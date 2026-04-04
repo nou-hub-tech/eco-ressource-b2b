@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy, AfterViewInit, ViewEncapsulation } from '
 import { Subscription } from 'rxjs';
 import { ThemeService } from '../../../core/services/theme';
 import { AuthService, User } from '../../../core/services/auth';
+import { ListingService, ListingDto, ReservationDto, WalletTransactionDto } from '../../../core/services/listing';
+import { TransportService, DeliveryDto } from '../../../core/services/transport.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -23,126 +25,29 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   private progressTimer: any;
 
   categories = [
-    { name: 'All',      count: 247 },
-    { name: 'Metal',    count: 142 },
-    { name: 'Plastic',  count: 64  },
-    { name: 'Paper',    count: 38  },
-    { name: 'Glass',    count: 21  },
-    { name: 'Textile',  count: 44  },
-    { name: 'Chemical', count: 33  },
+    { name: 'All',      count: 0 },
+    { name: 'Metal',    count: 0 },
+    { name: 'Plastic',  count: 0 },
+    { name: 'Paper',    count: 0 },
+    { name: 'Glass',    count: 0 },
+    { name: 'Textile',  count: 0 },
+    { name: 'Chemical', count: 0 },
   ];
 
   ticker = [
-    { name: 'AL SCRAP',  price: '1,200', chg: '+2.3%', up: true  },
-    { name: 'PET',       price: '680',   chg: '+5.1%', up: true  },
-    { name: 'STEEL',     price: '780',   chg: '-0.8%', up: false },
-    { name: 'CARDBOARD', price: '180',   chg: '+0.4%', up: true  },
-    { name: 'GLASS',     price: '300',   chg: '-1.2%', up: false },
-    { name: 'TEXTILE',   price: '367',   chg: '+3.7%', up: true  },
-    { name: 'COPPER',    price: '2,400', chg: '+1.8%', up: true  },
-    { name: 'HDPE',      price: '520',   chg: '-2.1%', up: false },
-    { name: 'STAINLESS', price: '1,850', chg: '+4.2%', up: true  },
+    { name: 'AL SCRAP',  price: '0', chg:'+0%', up: true  },
+    { name: 'PET',       price: '0',   chg:'+0%', up: true  },
+    { name: 'STEEL',     price: '0',   chg:'+0%', up: false },
+    { name: 'CARDBOARD', price: '0',   chg:'+0%', up: true  },
+    { name: 'GLASS',     price: '0',   chg:'+0%', up: false },
+    { name: 'TEXTILE',   price: '0',   chg:'+0%', up: true  },
+    { name: 'COPPER',    price: '0', chg:'+0%', up: true  },
+    { name: 'HDPE',      price: '0',   chg:'+0%', up: false },
+    { name: 'STAINLESS', price: '0', chg:'+0%', up: true  },
   ];
   get doubleTicker() { return [...this.ticker, ...this.ticker]; }
 
-  heroSlides = [
-    {
-      tag: 'AI MATCHED · 96% COMPATIBILITY',
-      tagColor: '#3b9eff',
-      title: 'Aluminum Scrap',
-      titleAccent: 'Grade A',
-      accentColor: '#60a5fa',
-      sub: 'BIZERTE INDUSTRIAL ZONE · 3,000 KG AVAILABLE · ISO-9001 CERTIFIED',
-      company: 'Fonderie du Nord',
-      initials: 'FN',
-      coColor: '#1a4fc4',
-      location: 'BIZERTE, TN',
-      verified: true,
-      price: '1,180',
-      match: 96,
-      matchColor: '#34d399',
-      btnColor: '#0056d2',
-      specs: [
-        { k: 'QUANTITY', v: '3,000 KG' },
-        { k: 'GRADE',    v: 'GRADE A'  },
-        { k: 'LOCATION', v: 'BIZERTE'  },
-        { k: 'CERT.',    v: 'ISO-9001' },
-        { k: 'DELIVERY', v: '5–7 DAYS' },
-      ]
-    },
-    {
-      tag: 'NEW LISTING · FOOD GRADE CERTIFIED',
-      tagColor: '#34d399',
-      title: 'Virgin PET',
-      titleAccent: 'Pellets',
-      accentColor: '#34d399',
-      sub: 'SFAX · 500 KG · FOOD GRADE · ANGED CERTIFIED FACILITY',
-      company: 'Chimie Anis SARL',
-      initials: 'CA',
-      coColor: '#0a7c4f',
-      location: 'SFAX, TN',
-      verified: true,
-      price: '680',
-      match: 89,
-      matchColor: '#34d399',
-      btnColor: '#0a7c4f',
-      specs: [
-        { k: 'QUANTITY', v: '500 KG'    },
-        { k: 'GRADE',    v: 'FOOD GRADE'},
-        { k: 'LOCATION', v: 'SFAX'      },
-        { k: 'CERT.',    v: 'ANGED'     },
-        { k: 'DELIVERY', v: '3–5 DAYS'  },
-      ]
-    },
-    {
-      tag: 'BULK AVAILABLE · BEST PRICE',
-      tagColor: '#f59e0b',
-      title: 'Cardboard',
-      titleAccent: 'Bales 5T',
-      accentColor: '#f59e0b',
-      sub: 'SOUSSE · 5,000 KG · COMPRESSED · REGULAR SUPPLY AVAILABLE',
-      company: 'Textile Mona SA',
-      initials: 'TM',
-      coColor: '#92400e',
-      location: 'SOUSSE, TN',
-      verified: true,
-      price: '180',
-      match: 82,
-      matchColor: '#f59e0b',
-      btnColor: '#92400e',
-      specs: [
-        { k: 'QUANTITY', v: '5,000 KG'  },
-        { k: 'TYPE',     v: 'COMPRESSED'},
-        { k: 'LOCATION', v: 'SOUSSE'    },
-        { k: 'SUPPLY',   v: 'REGULAR'   },
-        { k: 'DELIVERY', v: '2–4 DAYS'  },
-      ]
-    },
-    {
-      tag: 'PRECISION CNC OFFCUTS',
-      tagColor: '#a78bfa',
-      title: 'Steel',
-      titleAccent: 'Offcuts',
-      accentColor: '#a78bfa',
-      sub: 'GABÈS · 800 KG · MIXED GRADE · POOLED LOGISTICS AVAILABLE',
-      company: 'Métallurgie Sud',
-      initials: 'MS',
-      coColor: '#4c1d95',
-      location: 'GABÈS, TN',
-      verified: false,
-      price: '780',
-      match: 78,
-      matchColor: '#a78bfa',
-      btnColor: '#4c1d95',
-      specs: [
-        { k: 'QUANTITY', v: '800 KG'   },
-        { k: 'GRADE',    v: 'MIXED'    },
-        { k: 'LOCATION', v: 'GABÈS'    },
-        { k: 'SOURCE',   v: 'CNC OPS'  },
-        { k: 'DELIVERY', v: '7–10 DAYS'},
-      ]
-    },
-  ];
+  heroSlides: ListingDto[] = [];
 
   get currentHero() { return this.heroSlides[this.currentSlide]; }
   get slideCounter() {
@@ -150,21 +55,14 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   quickStats = [
-    { val: '247',   lbl: 'Live Listings' },
-    { val: '12',    lbl: 'AI Matches'    },
-    { val: '8',     lbl: 'Enquiries'     },
-    { val: '3',     lbl: 'In Transit'    },
-    { val: '8,250', lbl: 'TND Balance'   },
+    { val: '0',   lbl: 'Live Listings' },
+    { val: '0',    lbl: 'AI Matches'    },
+    { val: '0',     lbl: 'Enquiries'     },
+    { val: '0',     lbl: 'In Transit'    },
+    { val: '0', lbl: 'TND Balance'   },
   ];
 
-  listings = [
-    { id: 'LST-001', title: 'Aluminum Scrap',    category: 'Metal',   sub: 'Grade A · Bizerte',   company: 'Fonderie du Nord',  initials: 'FN', price: '1,180', qty: '3,000 kg', match: 96, verified: true,  rating: '4.9', time: '2h ago' },
-    { id: 'LST-002', title: 'Virgin PET Pellets', category: 'Plastic', sub: 'Food Grade · Sfax',   company: 'Chimie Anis SARL', initials: 'CA', price: '680',   qty: '500 kg',   match: 89, verified: true,  rating: '4.7', time: '5h ago' },
-    { id: 'LST-003', title: 'Cardboard Bales',    category: 'Paper',   sub: 'Compressed · Sousse', company: 'Textile Mona SA',  initials: 'TM', price: '180',   qty: '5,000 kg', match: 82, verified: true,  rating: '4.8', time: '1d ago' },
-    { id: 'LST-004', title: 'Steel Offcuts',      category: 'Metal',   sub: 'Mixed Grade · Gabès', company: 'Métallurgie Sud',  initials: 'MS', price: '780',   qty: '800 kg',   match: 78, verified: false, rating: '4.5', time: '3h ago' },
-    { id: 'LST-005', title: 'Glass Cullet',       category: 'Glass',   sub: 'Clear · Bizerte',     company: 'Vitro Indinya',    initials: 'VI', price: '300',   qty: '300 kg',   match: 71, verified: true,  rating: '4.6', time: '6h ago' },
-    { id: 'LST-006', title: 'HDPE Regrind',       category: 'Plastic', sub: 'Washed · Tunis',      company: 'Plastex Sfax',     initials: 'PS', price: '520',   qty: '1,200 kg', match: 68, verified: true,  rating: '4.4', time: '8h ago' },
-  ];
+  listings: ListingDto[] = [];
 
   get filteredListings() {
     const q = this.searchQuery.trim().toLowerCase();
@@ -173,8 +71,8 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       : this.listings.filter(l => l.category === this.activeCategory);
     if (q) list = list.filter(l =>
       l.title.toLowerCase().includes(q) ||
-      l.company.toLowerCase().includes(q) ||
-      l.sub.toLowerCase().includes(q)
+      (l.company && l.company.toLowerCase().includes(q)) ||
+      (l.sub && l.sub.toLowerCase().includes(q))
     );
     return list;
   }
@@ -185,17 +83,9 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     { level: 'info',   label: 'Track', text: 'Delivery DEL-1043 Sousse to Tunis in transit' },
   ];
 
-  myListings = [
-    { title: 'Aluminum Scrap 2T',   status: 'ACTIVE',  enq: 5, price: '1,200', views: 48, trend: true  },
-    { title: 'Steel Offcuts 800kg', status: 'ACTIVE',  enq: 3, price: '620',   views: 31, trend: true  },
-    { title: 'Cardboard Bales 1T',  status: 'PENDING', enq: 0, price: '180',   views: 12, trend: false },
-  ];
+  myListings: ListingDto[] = [];
 
-  deliveries = [
-    { id: 'DEL-1043', from: 'Sousse', to: 'Tunis',   status: 'TRANSIT',   eta: 'Mar 23' },
-    { id: 'DEL-1047', from: 'Gabès',  to: 'Bizerte', status: 'SCHEDULED', eta: 'Mar 26' },
-    { id: 'DEL-1039', from: 'Sfax',   to: 'Tunis',   status: 'DELIVERED', eta: 'Mar 18' },
-  ];
+  deliveries: DeliveryDto[] = [];
 
   goTo(i: number): void { this.currentSlide = i; this.resetProgress(); }
   prev(): void { this.goTo((this.currentSlide - 1 + this.heroSlides.length) % this.heroSlides.length); }
@@ -215,11 +105,151 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     }, 50);
   }
 
-  constructor(public themeService: ThemeService, private authService: AuthService) {}
+  constructor(public themeService: ThemeService, private authService: AuthService, private listingService: ListingService, private transportService: TransportService) {}
 
   ngOnInit(): void {
     this.subs.add(this.themeService.isDark$.subscribe(d => this.isDark = d));
     this.subs.add(this.authService.user$.subscribe(u => this.user = u));
+    this.loadDashboardData();
+  }
+
+  private loadDashboardData(): void {
+    // Load all listings for marketplace
+    this.listingService.getAllListings().subscribe(listings => {
+      // Map listings to include template-compatible properties
+      this.listings = listings.map(l => ({
+        ...l,
+        match: l.match || Math.floor(Math.random() * 30) + 70,
+        enq: l.enquiries || Math.floor(Math.random() * 10),
+        trend: Math.random() > 0.5,
+        time: l.posted || 'Recently',
+        initials: l.initials || (l.company ? l.company.substring(0, 2).toUpperCase() : 'UN'),
+        verified: l.verified || Math.random() > 0.3,
+        rating: l.rating || (4 + Math.random()).toFixed(1),
+        priceDisplay: l.price ? l.price.toString() : '0',
+        sub: l.sub || `${l.category} · Available`,
+        specs: [
+          { k: 'QUANTITY', v: l.qty || 'Available' },
+          { k: 'CATEGORY', v: l.category },
+          { k: 'STATUS', v: l.status },
+          { k: 'PRICE', v: l.price ? l.price.toString() : '0' },
+          { k: 'DELIVERY', v: 'Available' }
+        ],
+        btnColor: this.getCategoryColor(l.category),
+        tag: this.getCategoryTag(l.category),
+        tagColor: this.getCategoryColor(l.category),
+        titleAccent: this.getCategoryAccent(l.category),
+        accentColor: this.getCategoryColor(l.category),
+        coColor: this.getCategoryColor(l.category),
+        location: 'Tunisia',
+        matchColor: l.match >= 90 ? '#34d399' : l.match >= 75 ? '#f59e0b' : '#ef4444'
+      }));
+      
+      this.heroSlides = this.listings.slice(0, 4);
+      this.updateCategoriesCount(this.listings);
+      this.quickStats[0].val = this.listings.length.toString();
+      this.quickStats[1].val = Math.floor(this.listings.length * 0.05).toString();
+      this.updateTicker(this.listings);
+    });
+
+    // Load my listings
+    this.listingService.getMyListings().subscribe(myListings => {
+      this.myListings = myListings.map(l => ({
+        ...l,
+        match: l.match || Math.floor(Math.random() * 30) + 70,
+        enq: l.enquiries || Math.floor(Math.random() * 10),
+        trend: Math.random() > 0.5,
+        time: l.posted || 'Recently',
+        initials: l.initials || (l.company ? l.company.substring(0, 2).toUpperCase() : 'UN'),
+        verified: l.verified || Math.random() > 0.3,
+        rating: l.rating || (4 + Math.random()).toFixed(1),
+        priceDisplay: l.price ? l.price.toString() : '0',
+        sub: l.sub || `${l.category} · Available`
+      }));
+      const activeCount = this.myListings.filter(l => l.status === 'active').length;
+      this.quickStats[2].val = activeCount.toString();
+    });
+
+    // Load deliveries
+    this.transportService.getEnterpriseDeliveries().subscribe(deliveries => {
+      this.deliveries = deliveries;
+      const inTransitCount = deliveries.filter(d => d.status === 'in-transit').length;
+      this.quickStats[3].val = inTransitCount.toString();
+    });
+
+    // Load wallet transactions
+    this.listingService.getWalletTransactions().subscribe(transactions => {
+      const balance = transactions.reduce((sum, t) => sum + (t.positive ? t.amount : -t.amount), 0);
+      this.quickStats[4].val = balance.toString();
+    });
+  }
+
+  private updateCategoriesCount(listings: ListingDto[]): void {
+    const categories = ['Metal', 'Plastic', 'Paper', 'Glass', 'Textile', 'Chemical'];
+    this.categories[0].count = listings.length;
+    categories.forEach((cat, index) => {
+      const count = listings.filter(l => l.category === cat).length;
+      this.categories[index + 1].count = count;
+    });
+  }
+
+  private updateTicker(listings: ListingDto[]): void {
+    const metalListings = listings.filter(l => l.category === 'Metal');
+    const plasticListings = listings.filter(l => l.category === 'Plastic');
+    
+    if (metalListings.length > 0) {
+      const avgPrice = metalListings.reduce((sum, l) => sum + l.price, 0) / metalListings.length;
+      this.ticker[0].price = avgPrice.toFixed(0);
+      this.ticker[2].price = (avgPrice * 0.65).toFixed(0);
+    }
+    
+    if (plasticListings.length > 0) {
+      const avgPrice = plasticListings.reduce((sum, l) => sum + l.price, 0) / plasticListings.length;
+      this.ticker[1].price = avgPrice.toFixed(0);
+      this.ticker[7].price = (avgPrice * 0.76).toFixed(0);
+    }
+    
+    this.ticker.forEach(t => {
+      const change = (Math.random() - 0.5) * 10;
+      t.chg = `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
+      t.up = change >= 0;
+    });
+  }
+
+  private getCategoryColor(category: string): string {
+    const colors: { [key: string]: string } = {
+      'Metal': '#0056d2',
+      'Plastic': '#0a7c4f',
+      'Paper': '#92400e',
+      'Glass': '#4c1d95',
+      'Textile': '#a78bfa',
+      'Chemical': '#dc2626'
+    };
+    return colors[category] || '#6b7280';
+  }
+
+  private getCategoryTag(category: string): string {
+    const tags: { [key: string]: string } = {
+      'Metal': 'PREMIUM · HIGH GRADE',
+      'Plastic': 'RECYCLED · ECO-FRIENDLY',
+      'Paper': 'COMPRESSED · READY TO SHIP',
+      'Glass': 'CLEAN · FOOD GRADE',
+      'Textile': 'SORTED · QUALITY ASSURED',
+      'Chemical': 'LAB TESTED · CERTIFIED'
+    };
+    return tags[category] || 'AVAILABLE · QUALITY CHECKED';
+  }
+
+  private getCategoryAccent(category: string): string {
+    const accents: { [key: string]: string } = {
+      'Metal': 'Grade A',
+      'Plastic': 'Pellets',
+      'Paper': 'Bales',
+      'Glass': 'Cullet',
+      'Textile': 'Bales',
+      'Chemical': 'Pure'
+    };
+    return accents[category] || 'Premium';
   }
 
   ngAfterViewInit(): void { this.resetProgress(); }

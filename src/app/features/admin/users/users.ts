@@ -1,21 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { AdminApiService, AdminUserDto } from '../../../core/services/admin-api.service';
 
-export interface User {
-  id:        string;
-  name:      string;
-  email:     string;
-  company:   string;
-  role:      'enterprise' | 'transporter';
-  status:    'active' | 'pending' | 'suspended';
-  phone:     string;
-  city:      string;
-  joined:    string;
-  listings:  number;
-  orders:    number;
-  revenue:   string;
-  verified:  boolean;
-  avatar:    string;
-}
+export type User = AdminUserDto;
 
 @Component({
   selector:    'app-users',
@@ -36,68 +22,11 @@ export class Users implements OnInit {
 
   successMsg = '';
 
-  users: User[] = [
-    {
-      id: 'USR-001', name: 'Slim Ben Ali',       email: 'slim@entreprise.tn',
-      company: 'Industrie Slim SARL',    role: 'enterprise',  status: 'active',
-      phone: '+216 71 234 567', city: 'Tunis',   joined: '2025-01-10',
-      listings: 5, orders: 12, revenue: '14,200', verified: true,  avatar: 'SB'
-    },
-    {
-      id: 'USR-002', name: 'Karim Transport',    email: 'karim@transport.tn',
-      company: 'Karim Logistics',               role: 'transporter', status: 'active',
-      phone: '+216 72 345 678', city: 'Sfax',    joined: '2025-01-15',
-      listings: 0, orders: 34, revenue: '8,750', verified: true,  avatar: 'KT'
-    },
-    {
-      id: 'USR-003', name: 'Mona Trabelsi',      email: 'mona@textile.tn',
-      company: 'Textile Mona SA',               role: 'enterprise',  status: 'active',
-      phone: '+216 73 456 789', city: 'Sousse',  joined: '2025-01-22',
-      listings: 8, orders: 21, revenue: '6,400', verified: true,  avatar: 'MT'
-    },
-    {
-      id: 'USR-004', name: 'Anis Cherif',        email: 'anis@chimie.tn',
-      company: 'Chimie Anis SARL',              role: 'enterprise',  status: 'suspended',
-      phone: '+216 74 567 890', city: 'Bizerte', joined: '2025-02-01',
-      listings: 2, orders: 4,  revenue: '1,200', verified: false, avatar: 'AC'
-    },
-    {
-      id: 'USR-005', name: 'Sana Logistics',     email: 'sana@transport.tn',
-      company: 'Sana Transport',                role: 'transporter', status: 'active',
-      phone: '+216 75 678 901', city: 'Gabès',   joined: '2025-02-08',
-      listings: 0, orders: 19, revenue: '5,100', verified: true,  avatar: 'SL'
-    },
-    {
-      id: 'USR-006', name: 'Yassine Rekik',      email: 'yassine@metal.tn',
-      company: 'Métallurgie Sud',               role: 'enterprise',  status: 'pending',
-      phone: '+216 76 789 012', city: 'Gabès',   joined: '2025-02-14',
-      listings: 1, orders: 0,  revenue: '0',     verified: false, avatar: 'YR'
-    },
-    {
-      id: 'USR-007', name: 'Fatma Jlassi',       email: 'fatma@glass.tn',
-      company: 'Vitro Indinya',                 role: 'enterprise',  status: 'active',
-      phone: '+216 77 890 123', city: 'Nabeul',  joined: '2025-02-20',
-      listings: 3, orders: 7,  revenue: '2,900', verified: true,  avatar: 'FJ'
-    },
-    {
-      id: 'USR-008', name: 'Rami Dridi',         email: 'rami@plastex.tn',
-      company: 'Plastex Sfax',                  role: 'enterprise',  status: 'active',
-      phone: '+216 78 901 234', city: 'Sfax',    joined: '2025-03-01',
-      listings: 4, orders: 9,  revenue: '3,600', verified: true,  avatar: 'RD'
-    },
-    {
-      id: 'USR-009', name: 'Nour Hamdi',         email: 'nour@trans.tn',
-      company: 'Nour Express',                  role: 'transporter', status: 'pending',
-      phone: '+216 79 012 345', city: 'Tunis',   joined: '2025-03-05',
-      listings: 0, orders: 0,  revenue: '0',     verified: false, avatar: 'NH'
-    },
-    {
-      id: 'USR-010', name: 'Khaled Mansouri',    email: 'khaled@fond.tn',
-      company: 'Fonderie du Nord',              role: 'enterprise',  status: 'suspended',
-      phone: '+216 70 123 456', city: 'Bizerte', joined: '2025-03-10',
-      listings: 0, orders: 2,  revenue: '800',   verified: false, avatar: 'KM'
-    },
-  ];
+  users: User[] = [];
+
+  constructor(
+    private adminApiService: AdminApiService
+  ) {}
 
   get filtered(): User[] {
     return this.users.filter(u => {
@@ -130,24 +59,41 @@ export class Users implements OnInit {
 
   /* ── STATUS ACTIONS ── */
   activate(user: User): void {
-    user.status    = 'active';
-    this.successMsg = `${user.name} has been activated.`;
-    this.closeDetail();
-    this.flash();
+    const userId = AdminApiService.parseUserNumericId(user.id);
+    this.adminApiService.updateUserStatus(userId, 'active').subscribe(updatedUser => {
+      const index = this.users.findIndex(u => u.id === user.id);
+      if (index !== -1) {
+        this.users[index] = updatedUser;
+      }
+      this.successMsg = `${user.name} has been activated.`;
+      this.closeDetail();
+      this.flash();
+    });
   }
 
   suspend(user: User): void {
-    user.status    = 'suspended';
-    this.successMsg = `${user.name} has been suspended.`;
-    this.closeDetail();
-    this.flash();
+    const userId = AdminApiService.parseUserNumericId(user.id);
+    this.adminApiService.updateUserStatus(userId, 'suspended').subscribe(updatedUser => {
+      const index = this.users.findIndex(u => u.id === user.id);
+      if (index !== -1) {
+        this.users[index] = updatedUser;
+      }
+      this.successMsg = `${user.name} has been suspended.`;
+      this.closeDetail();
+      this.flash();
+    });
   }
 
   approve(user: User): void {
-    user.status   = 'active';
-    user.verified = true;
-    this.successMsg = `${user.name} has been approved.`;
-    this.flash();
+    const userId = AdminApiService.parseUserNumericId(user.id);
+    this.adminApiService.updateUserStatus(userId, 'active').subscribe(updatedUser => {
+      const index = this.users.findIndex(u => u.id === user.id);
+      if (index !== -1) {
+        this.users[index] = { ...updatedUser, verified: true };
+      }
+      this.successMsg = `${user.name} has been approved.`;
+      this.flash();
+    });
   }
 
   /* ── DELETE ── */
@@ -162,12 +108,16 @@ export class Users implements OnInit {
   }
   executeDelete(): void {
     if (!this.deletingUser) return;
-    const name        = this.deletingUser.name;
-    this.users        = this.users.filter(u => u.id !== this.deletingUser!.id);
-    this.successMsg   = `${name} has been deleted.`;
-    this.showDeleteConfirm = false;
-    this.deletingUser = null;
-    this.flash();
+    const name = this.deletingUser.name;
+    const userId = AdminApiService.parseUserNumericId(this.deletingUser.id);
+    
+    this.adminApiService.deleteUser(userId).subscribe(() => {
+      this.users = this.users.filter(u => u.id !== this.deletingUser!.id);
+      this.successMsg = `${name} has been deleted.`;
+      this.showDeleteConfirm = false;
+      this.deletingUser = null;
+      this.flash();
+    });
   }
 
   private flash(): void {
@@ -187,5 +137,13 @@ export class Users implements OnInit {
     return role === 'enterprise' ? 'Enterprise' : 'Transporter';
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.loadUsers();
+  }
+
+  private loadUsers(): void {
+    this.adminApiService.getUsers().subscribe(users => {
+      this.users = users;
+    });
+  }
 }

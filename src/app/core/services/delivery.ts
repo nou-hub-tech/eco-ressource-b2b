@@ -1,8 +1,7 @@
-import { Injectable } from '@angular/core';
-
-@Injectable({
-  providedIn: 'root',
-})
-export class Delivery {
-  
-}
+export {
+  TransportService as DeliveryService
+} from './transport.service';
+export type {
+  DeliveryDto,
+  TransportOfferPayload
+} from './transport.service';
