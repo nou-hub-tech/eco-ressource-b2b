@@ -1,0 +1,216 @@
+.sil-header-row {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.sil-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.sil-filters {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+}
+
+.sil-filter-row {
+  align-items: flex-end;
+  margin-bottom: 0;
+}
+
+.sil-grow {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.sil-company {
+  flex: 0 1 180px;
+}
+
+.sil-filter-actions {
+  flex: 0 0 auto;
+}
+
+.sil-label-spacer {
+  visibility: hidden;
+}
+
+.sil-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px;
+  color: var(--text3);
+}
+
+.spinner-lg {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: sil-spin 0.7s linear infinite;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: sil-spin 0.6s linear infinite;
+  display: inline-block;
+}
+
+@keyframes sil-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sil-table-wrap {
+  padding: 0;
+  overflow: hidden;
+  display: none;
+}
+
+.sil-table-scroll {
+  overflow-x: auto;
+}
+
+.sil-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sil-table th,
+.sil-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.sil-table th {
+  font-weight: 600;
+  color: var(--text2, var(--text));
+  background: var(--bg3, var(--bg2));
+}
+
+.sil-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sil-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--bg3, var(--bg2));
+  border: 1px solid var(--border);
+  color: var(--text2, var(--text));
+}
+
+.sil-actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.sil-actions-cell .btn {
+  margin-left: 6px;
+}
+
+.sil-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sil-card {
+  padding: 16px;
+}
+
+.sil-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sil-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sil-dl {
+  margin: 0 0 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sil-dl dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text3);
+  margin: 0 0 2px;
+}
+
+.sil-dl dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.sil-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sil-dialog-error {
+  margin-top: 8px;
+}
+
+.sil-deleting-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: all;
+}
+
+@media (min-width: 900px) {
+  .sil-table-wrap {
+    display: block;
+  }
+
+  .sil-cards {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .sil-dl {
+    grid-template-columns: 1fr;
+  }
+}

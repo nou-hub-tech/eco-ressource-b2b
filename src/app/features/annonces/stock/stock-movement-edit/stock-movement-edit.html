@@ -1,0 +1,81 @@
+<div class="page-wrapper">
+  <div class="sme-page">
+    <a routerLink="/enterprise/annonces/stock/movements" class="btn btn-ghost btn-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12" />
+        <polyline points="12 19 5 12 12 5" />
+      </svg>
+      Retour aux mouvements
+    </a>
+
+    <h1 class="sme-heading">Modifier le mouvement</h1>
+
+    <div class="sme-loading" *ngIf="loading">
+      <div class="spinner-lg"></div>
+      <p>Chargement…</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && error && !movement">
+      <span class="empty-icon">⚠️</span>
+      <h3>{{ error }}</h3>
+      <a routerLink="/enterprise/annonces/stock/movements" class="btn btn-primary" style="margin-top:12px">
+        Retour à la liste
+      </a>
+    </div>
+
+    <div class="card sme-card" *ngIf="!loading && movement" [formGroup]="form">
+      <div class="form-group">
+        <label>Article en stock *</label>
+        <select formControlName="idStock">
+          <option [ngValue]="null" disabled>— Choisir un article —</option>
+          <option *ngFor="let s of stockItems" [ngValue]="s.idStock">
+            {{ stockOptionLabel(s) }}
+          </option>
+        </select>
+        <div class="form-error" *ngIf="form.get('idStock')!.touched && form.get('idStock')!.invalid">
+          Veuillez sélectionner un article en stock.
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quantité *</label>
+          <input type="number" formControlName="quantity" min="0.0001" step="any" />
+          <div class="form-error" *ngIf="form.get('quantity')!.touched && form.get('quantity')!.hasError('required')">
+            La quantité est obligatoire.
+          </div>
+          <div class="form-error" *ngIf="form.get('quantity')!.touched && form.get('quantity')!.hasError('min')">
+            La quantité doit être strictement positive.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Type de mouvement *</label>
+          <select formControlName="movementType">
+            <option *ngFor="let t of movementTypes" [ngValue]="t.value">{{ t.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date du mouvement</label>
+          <input type="datetime-local" formControlName="movementDate" />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" formControlName="description" />
+        </div>
+      </div>
+
+      <div class="alert alert-danger" *ngIf="error && movement">{{ error }}</div>
+
+      <div class="sme-actions">
+        <a routerLink="/enterprise/annonces/stock/movements" class="btn btn-outline">Annuler</a>
+        <button type="button" class="btn btn-primary" [disabled]="form.invalid || submitting" (click)="submit()">
+          <span *ngIf="!submitting">Enregistrer</span>
+          <span *ngIf="submitting" class="spinner-sm"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

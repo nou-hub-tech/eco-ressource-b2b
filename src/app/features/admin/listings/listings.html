@@ -1,0 +1,113 @@
+<div class="page-wrapper">
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>Listings</h1>
+      <p>Manage all marketplace posts and approve submissions</p>
+    </div>
+    <button class="btn btn-primary" (click)="openModal()">+ Add Listing</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" placeholder="Search listings..." [(ngModel)]="search">
+    </div>
+    <select class="filter-select" [(ngModel)]="filterStatus">
+      <option value="all">All statuses</option>
+      <option value="active">Active</option>
+      <option value="pending">Pending</option>
+      <option value="rejected">Rejected</option>
+    </select>
+    <div class="spacer"></div>
+    <span class="toolbar-count">{{filtered.length}} listings</span>
+  </div>
+
+  <div class="card" style="padding:0">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Company</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Status</th>
+          <th>AI Insight</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let l of filtered">
+          <td>
+            <strong style="color:var(--text)">{{l.title}}</strong>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Posted {{l.posted}}</div>
+          </td>
+          <td style="color:var(--text2)">{{l.company}}</td>
+          <td><span class="badge badge-neutral">{{l.category}}</span></td>
+          <td><strong style="color:var(--primary)">{{l.price}} TND</strong></td>
+          <td>
+            <span class="badge"
+              [ngClass]="l.status==='active' ? 'badge-success' : l.status==='pending' ? 'badge-warning' : 'badge-danger'">
+              {{l.status}}
+            </span>
+          </td>
+          <td><span class="ai-tip">🤖 {{l.ai}}</span></td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-outline btn-sm" *ngIf="l.status==='pending'" (click)="approve(l)">Approve</button>
+              <button class="btn btn-danger btn-sm" *ngIf="l.status==='pending'" (click)="reject(l)">Reject</button>
+              <button class="btn btn-ghost btn-sm" *ngIf="l.status!=='pending'">Edit</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty-state" *ngIf="filtered.length===0">
+      <span class="empty-icon">📋</span>
+      <h3>No listings found</h3>
+      <p>Try adjusting your search or filters</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Add Listing</h2>
+      <button class="btn btn-icon" (click)="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" placeholder="e.g. Aluminum Scrap 2T">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select>
+          <option>Metal</option>
+          <option>Plastic</option>
+          <option>Paper</option>
+          <option>Glass</option>
+          <option>Textile</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Price (TND)</label>
+        <input type="number" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Quantity (kg)</label>
+        <input type="number" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea placeholder="Describe the listing..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="closeModal()">Create Listing</button>
+    </div>
+  </div>
+</div>

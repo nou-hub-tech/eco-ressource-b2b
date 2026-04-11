@@ -1,0 +1,40 @@
+<div class="page-wrapper">
+  <div class="fl-page">
+    <div class="page-header-row">
+      <div class="page-header" style="margin:0">
+        <h1>Mes Favoris</h1>
+        <p>Les annonces que vous avez sauvegardées</p>
+      </div>
+      <a class="btn btn-outline" routerLink="/enterprise/annonces">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Retour aux annonces
+      </a>
+    </div>
+
+    <div class="fl-loading" *ngIf="loading">
+      <div class="spinner-lg"></div>
+      <p>Chargement de vos favoris...</p>
+    </div>
+
+    <div class="fl-list" *ngIf="!loading && favorites.length > 0">
+      <div class="fl-item" *ngFor="let f of favorites">
+        <div class="fl-icon">❤</div>
+        <div class="fl-info">
+          <a [routerLink]="['/enterprise/annonces', f.listingId]" class="fl-title">{{f.listingTitle}}</a>
+          <span class="fl-id">Annonce #{{f.listingId}}</span>
+        </div>
+        <button class="btn btn-ghost btn-sm fl-remove" (click)="removeFavorite(f.listingId)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Retirer
+        </button>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && favorites.length === 0">
+      <span class="empty-icon">💔</span>
+      <h3>Aucun favori</h3>
+      <p>Ajoutez des annonces à vos favoris en cliquant sur le cœur</p>
+      <a class="btn btn-primary" routerLink="/enterprise/annonces" style="margin-top:12px">Explorer les annonces</a>
+    </div>
+  </div>
+</div>

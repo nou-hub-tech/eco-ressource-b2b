@@ -1,0 +1,42 @@
+<div class="page-wrapper">
+  <div class="page-header"><h1>Transactions & Escrow</h1><p>Track all your financial operations and secured payments</p></div>
+
+  <div class="grid-2" style="margin-bottom:22px">
+    <div class="card" style="padding:20px;display:flex;align-items:center;gap:16px">
+      <div style="width:48px;height:48px;background:rgba(5,150,105,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💰</div>
+      <div>
+        <div style="font-size:12px;color:var(--text3);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Available Balance</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--success,#059669);letter-spacing:-1px">{{balance}} <span style="font-size:14px;opacity:.6">TND</span></div>
+      </div>
+    </div>
+    <div class="card" style="padding:20px;display:flex;align-items:center;gap:16px">
+      <div style="width:48px;height:48px;background:rgba(217,119,6,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🔒</div>
+      <div>
+        <div style="font-size:12px;color:var(--text3);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Escrow Locked</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--warning,#d97706);letter-spacing:-1px">{{escrow}} <span style="font-size:14px;opacity:.6">TND</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Released on delivery confirmation</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0">
+    <div class="card-header"><h3>Transaction History</h3><button class="btn btn-outline btn-sm">Export CSV</button></div>
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>Description</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let t of transactions">
+          <td><code style="font-size:11px;color:var(--text3)">{{t.id}}</code></td>
+          <td><strong style="color:var(--text)">{{t.label}}</strong></td>
+          <td><span class="badge badge-neutral">{{t.type}}</span></td>
+          <td>
+            <strong [style.color]="t.positive===true ? 'var(--success,#059669)' : t.positive===false ? 'var(--danger,#dc2626)' : 'var(--warning,#d97706)'">
+              {{t.positive===true ? '+' : ''}}{{t.amount}} TND
+            </strong>
+          </td>
+          <td><span class="badge" [ngClass]="t.status==='completed'?'badge-success':t.status==='locked'?'badge-warning':'badge-neutral'">{{t.status}}</span></td>
+          <td style="font-size:12px;color:var(--text3)">{{t.date}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,128 @@
+<div class="page-wrapper">
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>Produits</h1>
+      <p>Gérez le catalogue de produits liés à vos annonces</p>
+    </div>
+    <div class="pl-actions">
+      <a class="btn btn-primary" routerLink="/enterprise/annonces/products/create">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nouveau produit
+      </a>
+    </div>
+  </div>
+
+  <div class="pl-filters">
+    <div class="pl-filter-group">
+      <select class="filter-select" [(ngModel)]="filterCategory" (ngModelChange)="onCategoryChange()">
+        <option value="">Toutes les catégories</option>
+        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+      </select>
+
+      <div class="search-box pl-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Rechercher par nom, description..." [(ngModel)]="searchQuery" (input)="applyFilters()">
+      </div>
+
+      <div class="pl-view-toggle" role="group" aria-label="Mode d'affichage">
+        <button type="button" class="btn btn-sm" [class.btn-primary]="viewMode === 'grid'" [class.btn-outline]="viewMode !== 'grid'" (click)="setView('grid')">Grille</button>
+        <button type="button" class="btn btn-sm" [class.btn-primary]="viewMode === 'table'" [class.btn-outline]="viewMode !== 'table'" (click)="setView('table')">Tableau</button>
+      </div>
+    </div>
+
+    <div class="pl-sort-row">
+      <button class="btn btn-ghost btn-sm" *ngIf="hasActiveFilters" (click)="clearFilters()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Réinitialiser
+      </button>
+      <span class="toolbar-count">{{ filtered.length }} produit{{ filtered.length > 1 ? 's' : '' }}</span>
+    </div>
+  </div>
+
+  <div class="pl-loading" *ngIf="loading">
+    <div class="spinner-lg"></div>
+    <p>Chargement des produits...</p>
+  </div>
+
+  <!-- Grid -->
+  <div class="pl-grid" *ngIf="!loading && paged.length > 0 && viewMode === 'grid'">
+    <article class="pl-card card" *ngFor="let p of paged">
+      <a class="pl-card-media" [routerLink]="['/enterprise/annonces/products', p.idProduct]">
+        <img *ngIf="p.image" [src]="p.image" [alt]="p.name" loading="lazy">
+        <div class="pl-card-placeholder" *ngIf="!p.image">📦</div>
+      </a>
+      <div class="pl-card-body">
+        <a class="pl-card-title" [routerLink]="['/enterprise/annonces/products', p.idProduct]">{{ p.name }}</a>
+        <div class="pl-card-meta">
+          <span class="pl-badge pl-badge-muted" *ngIf="p.category">{{ p.category }}</span>
+          <span class="pl-badge pl-badge-ok" *ngIf="p.recyclable">Recyclable</span>
+          <span class="pl-badge pl-badge-warn" *ngIf="!p.recyclable">Non recyclable</span>
+        </div>
+        <p class="pl-card-desc" *ngIf="p.description">{{ descPreview(p.description) }}</p>
+        <div class="pl-card-actions">
+          <a class="btn btn-outline btn-sm" [routerLink]="['/enterprise/annonces/products', p.idProduct, 'edit']">Modifier</a>
+          <button type="button" class="btn btn-danger btn-sm" (click)="requestDelete(p)">Supprimer</button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <!-- Table -->
+  <div class="pl-table-wrap card" *ngIf="!loading && paged.length > 0 && viewMode === 'table'">
+    <table class="pl-table">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Catégorie</th>
+          <th>Recyclable</th>
+          <th class="pl-th-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of paged">
+          <td>
+            <a class="pl-table-link" [routerLink]="['/enterprise/annonces/products', p.idProduct]">{{ p.name }}</a>
+          </td>
+          <td>{{ p.category || '—' }}</td>
+          <td>
+            <span class="pl-badge pl-badge-ok" *ngIf="p.recyclable">Oui</span>
+            <span class="pl-badge pl-badge-warn" *ngIf="!p.recyclable">Non</span>
+          </td>
+          <td class="pl-td-actions">
+            <a class="btn btn-outline btn-sm" [routerLink]="['/enterprise/annonces/products', p.idProduct, 'edit']">Modifier</a>
+            <button type="button" class="btn btn-danger btn-sm" (click)="requestDelete(p)">Supprimer</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && filtered.length === 0">
+    <span class="empty-icon">📦</span>
+    <h3>Aucun produit</h3>
+    <p *ngIf="hasActiveFilters">Modifiez vos filtres ou la recherche</p>
+    <p *ngIf="!hasActiveFilters">Créez votre premier produit pour l'associer aux annonces</p>
+    <a class="btn btn-primary" routerLink="/enterprise/annonces/products/create" style="margin-top:12px">Créer un produit</a>
+  </div>
+
+  <app-pagination
+    *ngIf="!loading && filtered.length > 0"
+    [currentPage]="currentPage"
+    [totalItems]="filtered.length"
+    [pageSize]="pageSize"
+    (pageChange)="onPageChange($event)">
+  </app-pagination>
+
+  <div class="alert alert-danger pl-delete-err" *ngIf="deleteError">{{ deleteError }}</div>
+
+  <app-confirm-dialog
+    [visible]="showDeleteConfirm"
+    title="Supprimer ce produit ?"
+    [message]="productToDelete ? 'Le produit « ' + productToDelete.name + ' » sera définitivement supprimé.' : ''"
+    confirmLabel="Oui, supprimer"
+    cancelLabel="Annuler"
+    [danger]="true"
+    (confirmed)="confirmDelete()"
+    (cancelled)="cancelDelete()">
+  </app-confirm-dialog>
+</div>

@@ -1,0 +1,92 @@
+<div class="page-wrapper">
+  <div class="page-header-row sml-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>Mouvements de stock</h1>
+      <p>Entrées, sorties et ajustements</p>
+    </div>
+    <div class="sml-actions">
+      <a class="btn btn-outline" routerLink="/enterprise/annonces/stock">Articles en stock</a>
+      <a class="btn btn-primary" routerLink="/enterprise/annonces/stock/movements/create">
+        Nouveau mouvement
+      </a>
+    </div>
+  </div>
+
+  <div class="card sml-filters">
+    <div class="form-group sml-filter">
+      <label>Article en stock</label>
+      <select
+        class="filter-select"
+        [(ngModel)]="filterStockItemId"
+        (ngModelChange)="loadMovements()">
+        <option [ngValue]="''">Tous les articles</option>
+        <option *ngFor="let s of stockItems" [ngValue]="s.idStock">
+          {{ s.product?.name || 'Stock #' + s.idStock }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="loadError">{{ loadError }}</div>
+
+  <div class="sml-loading" *ngIf="loading">
+    <div class="spinner-lg"></div>
+    <p>Chargement…</p>
+  </div>
+
+  <div class="card sml-table-wrap" *ngIf="!loading && movements.length > 0">
+    <div class="sml-table-scroll">
+      <table class="sml-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Quantité</th>
+            <th>Article</th>
+            <th>Description</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of movements">
+            <td>{{ m.movementDate || '—' }}</td>
+            <td>
+              <span class="sml-type" *ngIf="m.movementType">{{ m.movementType }}</span>
+              <span *ngIf="!m.movementType">—</span>
+            </td>
+            <td>{{ m.quantity | number : '1.0-3' }}</td>
+            <td>{{ stockLabel(m) }}</td>
+            <td class="sml-desc">{{ m.description || '—' }}</td>
+            <td class="sml-actions-cell">
+              <button type="button" class="btn btn-outline btn-sm" (click)="goEdit(m.id)">Modifier</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sml-cards" *ngIf="!loading && movements.length > 0">
+    <div class="card sml-card" *ngFor="let m of movements">
+      <div class="sml-card-top">
+        <span class="sml-type" *ngIf="m.movementType">{{ m.movementType }}</span>
+        <span class="sml-date">{{ m.movementDate || '—' }}</span>
+      </div>
+      <p class="sml-card-stock">{{ stockLabel(m) }}</p>
+      <p class="sml-card-qty">Quantité : {{ m.quantity | number : '1.0-3' }}</p>
+      <p class="sml-card-desc" *ngIf="m.description">{{ m.description }}</p>
+      <button type="button" class="btn btn-primary btn-sm sml-card-btn" (click)="goEdit(m.id)">
+        Modifier
+      </button>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && movements.length === 0">
+    <span class="empty-icon">📋</span>
+    <h3>Aucun mouvement</h3>
+    <p>Créez un mouvement ou modifiez le filtre.</p>
+    <a class="btn btn-primary" routerLink="/enterprise/annonces/stock/movements/create" style="margin-top:12px">
+      Nouveau mouvement
+    </a>
+  </div>
+</div>
