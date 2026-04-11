@@ -1,0 +1,113 @@
+<div class="history-container">
+  
+  <!-- Header Section -->
+  <div class="history-header">
+    <div class="header-left">
+      <h1 class="history-title">📋 Stock Movements History</h1>
+      <p class="history-subtitle">Track all inventory changes, additions, and removals</p>
+    </div>
+    <button class="btn-back" (click)="back()">
+      ← Back to Stock Items
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid" *ngIf="history.length > 0">
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-value">{{ history.length }}</div>
+      <div class="stat-label">Total Movements</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📥</div>
+      <div class="stat-value">{{ getMovementCount('IN') }}</div>
+      <div class="stat-label">Stock Additions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📤</div>
+      <div class="stat-value">{{ getMovementCount('OUT') }}</div>
+      <div class="stat-label">Stock Removals</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✏️</div>
+      <div class="stat-value">{{ getMovementCount('UPDATE') }}</div>
+      <div class="stat-label">Updates</div>
+    </div>
+  </div>
+
+  <!-- Search and Filter -->
+  <div class="toolbar" *ngIf="history.length > 0">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        placeholder="Search by product or description..." 
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="filterHistory()"
+        class="search-input"
+      />
+    </div>
+    <div class="filter-group">
+      <select [(ngModel)]="filterType" (change)="filterHistory()" class="filter-select">
+        <option value="all">All Types</option>
+        <option value="IN">Stock Additions (IN)</option>
+        <option value="OUT">Stock Removals (OUT)</option>
+        <option value="UPDATE">Updates (UPDATE)</option>
+      </select>
+    </div>
+    <div class="spacer"></div>
+    <span class="record-count">{{ filteredHistory.length }} records</span>
+  </div>
+
+  <!-- History Table -->
+  <div class="card" *ngIf="filteredHistory.length > 0; else emptyState">
+    <div class="table-responsive">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Stock ID</th>
+            <th>Product</th>
+            <th>Date & Time</th>
+            <th>Type</th>
+            <th>Quantity</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let h of filteredHistory; let i = index" class="history-row">
+            <td class="stock-id">#{{ h.stockItem?.id_stock }}</td>
+            <td class="product-name">
+              <strong>{{ h.stockItem?.product?.name || 'Unknown Product' }}</strong>
+              <span class="product-location" *ngIf="h.stockItem?.location">
+                📍 {{ h.stockItem?.location }}
+              </span>
+            </td>
+            <td class="date-time">
+              <span class="date">{{ h.movementDate | date:'dd/MM/yyyy' }}</span>
+              <span class="time">{{ h.movementDate | date:'HH:mm:ss' }}</span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="getBadgeClass(h.movementType)">
+                {{ getMovementIcon(h.movementType) }} {{ h.movementType }}
+              </span>
+            </td>
+            <td class="quantity" [class.quantity-in]="h.movementType === 'IN'" [class.quantity-out]="h.movementType === 'OUT'">
+              {{ h.movementType === 'IN' ? '+' : h.movementType === 'OUT' ? '-' : '' }}{{ h.quantity }}
+            </td>
+            <td class="description">{{ h.description || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <h3>No Movement History</h3>
+      <p>No stock movements have been recorded yet.<br>Add or update stock items to see history here.</p>
+    </div>
+  </ng-template>
+
+</div>

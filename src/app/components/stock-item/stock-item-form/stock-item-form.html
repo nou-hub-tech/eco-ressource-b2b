@@ -1,0 +1,127 @@
+<div style="padding:20px; max-width:500px;">
+  <h2>{{ isEditMode ? 'Edit Stock Item' : 'Add Stock Item' }}</h2>
+
+  <form #stockForm="ngForm" (ngSubmit)="save(stockForm)">
+
+    <div style="margin-bottom:12px;">
+      <label>Product *</label><br>
+      <select [(ngModel)]="stockItem.product" [compareWith]="compareProducts"
+              name="product" required #product="ngModel"
+              style="width:100%; padding:8px; margin-top:4px;">
+        <option [ngValue]="null" disabled>-- Select a product --</option>
+        <option *ngFor="let p of products" [ngValue]="p">{{ p.name }}</option>
+      </select>
+      <div style="color:red; font-size:12px;" *ngIf="product.invalid && (product.touched || submitted)">
+        Le produit est obligatoire.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Company ID *</label><br>
+      <input type="number" [(ngModel)]="stockItem.companyId" name="companyId"
+             required min="1" #companyId="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="companyId.invalid && (companyId.touched || submitted)">
+        <span *ngIf="companyId.errors?.['required']">Company ID est obligatoire.</span>
+        <span *ngIf="companyId.errors?.['min']">Doit être supérieur à 0.</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Quantity *</label><br>
+      <input type="number" [(ngModel)]="stockItem.quantity" name="quantity"
+             required min="1" #quantity="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="quantity.invalid && (quantity.touched || submitted)">
+        <span *ngIf="quantity.errors?.['required']">La quantité est obligatoire.</span>
+        <span *ngIf="quantity.errors?.['min']">La quantité doit être supérieure à 0.</span>
+      </div>
+    </div>
+<div style="margin-bottom:12px;">
+  <label>Unit Price (DT) *</label><br>
+  <input type="number" [(ngModel)]="stockItem.unitPrice" name="unitPrice"
+         required min="0.01" step="0.01" #unitPrice="ngModel"
+         style="width:100%; padding:8px; margin-top:4px;">
+  <div style="color:red; font-size:12px;" *ngIf="unitPrice.invalid && (unitPrice.touched || submitted)">
+    <span *ngIf="unitPrice.errors?.['required']">Le prix unitaire est obligatoire.</span>
+    <span *ngIf="unitPrice.errors?.['min']">Doit être supérieur à 0.</span>
+  </div>
+</div>
+    <div style="margin-bottom:12px;">
+      <label>Unit *</label><br>
+      <input type="text" [(ngModel)]="stockItem.unit" name="unit"
+             required #unit="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="unit.invalid && (unit.touched || submitted)">
+        L'unité est obligatoire.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Status *</label><br>
+      <input type="text" [(ngModel)]="stockItem.status" name="status"
+             required #status="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="status.invalid && (status.touched || submitted)">
+        Le statut est obligatoire.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Location *</label><br>
+      <input type="text" [(ngModel)]="stockItem.location" name="location"
+             required #location="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="location.invalid && (location.touched || submitted)">
+        La localisation est obligatoire.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Expiration Date * (must be in the future)</label><br>
+      <input type="date" [(ngModel)]="stockItem.expirationDate" name="expirationDate"
+             required [min]="minDate" #expirationDate="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="expirationDate.invalid && (expirationDate.touched || submitted)">
+        <span *ngIf="expirationDate.errors?.['required']">La date est obligatoire.</span>
+        <span *ngIf="expirationDate.errors?.['min']">La date doit être dans le futur.</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Condition *</label><br>
+      <input type="text" [(ngModel)]="stockItem.condition" name="condition"
+             required #condition="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="condition.invalid && (condition.touched || submitted)">
+        La condition est obligatoire.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+  <label>Image *</label><br>
+  <input type="file" accept="image/*"
+         (change)="onFileSelected($event)"
+         style="width:100%; padding:8px; margin-top:4px;">
+  <div *ngIf="imagePreviewUrl" style="margin-top:10px;">
+    <img [src]="imagePreviewUrl" alt="Preview"
+         style="width:100%; max-height:200px; object-fit:contain; border:1px solid #ddd; border-radius:4px;">
+  </div>
+</div>
+
+    <div style="color:red; font-size:13px; margin-bottom:10px;" *ngIf="serverErrors">
+      {{ serverErrors }}
+    </div>
+
+    <button type="submit"
+            [style.opacity]="stockForm.invalid ? '0.6' : '1'"
+            style="padding:8px 20px; background:#28a745; color:white; border:none; border-radius:4px; cursor:pointer; margin-right:10px;">
+      {{ isEditMode ? 'Update' : 'Add' }}
+    </button>
+    <button type="button" (click)="cancel()"
+            style="padding:8px 20px; background:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;">
+      Cancel
+    </button>
+
+  </form>
+</div>

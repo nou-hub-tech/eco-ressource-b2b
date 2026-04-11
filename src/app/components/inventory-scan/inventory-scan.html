@@ -1,0 +1,182 @@
+<div class="inv-wrap">
+  <h2>Inventory scanner</h2>
+  <p class="sub">Scan a barcode to compare real vs digital stock state</p>
+
+  <div class="tabs">
+    <button class="tab" [class.active]="activeTab==='products'" (click)="switchTab('products')">All products</button>
+    <button class="tab" [class.active]="activeTab==='scan'" (click)="switchTab('scan')">Scan barcode</button>
+    <button class="tab" [class.active]="activeTab==='history'" (click)="switchTab('history')">Audit log</button>
+  </div>
+
+  <!-- PRODUCTS TAB — [hidden] keeps DOM alive so SVGs are never destroyed -->
+  <div [hidden]="activeTab !== 'products'">
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="metric-lbl">Total products</div>
+        <div class="metric-val">{{ products.length }}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-lbl">With barcode</div>
+        <div class="metric-val ok">{{ withBarcodeCount }}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-lbl">Expiring soon</div>
+        <div class="metric-val warn">{{ expiringSoonCount }}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div *ngIf="products.length === 0" class="empty">Loading products...</div>
+      <div class="prod-row" *ngFor="let p of products">
+        <div class="prod-avatar">{{ p.product.name.slice(0,2).toUpperCase() }}</div>
+        <div class="prod-info">
+          <div class="prod-name">{{ p.product.name }}</div>
+          <div class="prod-meta">{{ p.product.category }} &bull; Qty: {{ p.qty }} &bull; {{ p.condition }}</div>
+          <div class="prod-meta">Barcode: {{ p.product.barcode || 'Not set' }}</div>
+        </div>
+        <div class="dlc-wrap">
+          <svg *ngIf="p.product.barcode"
+               [id]="'bc_' + p.product.id_product"
+               style="width:90px;height:35px;display:block">
+          </svg>
+          <span class="barcode-num" *ngIf="p.product.barcode">{{ p.product.barcode }}</span>
+          <span class="dlc-badge" [ngClass]="'dlc-' + dlcStatus(p.expirationDate)">
+            {{ dlcLabel(p.expirationDate) }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCAN TAB — [hidden] keeps state alive -->
+  <div [hidden]="activeTab !== 'scan'">
+    <div class="card scan-card">
+      <p class="section-title">Barcode</p>
+      <div class="barcode-input-row">
+        <input class="field-input" [(ngModel)]="barcode" placeholder="Enter barcode manually..." style="flex:1" />
+        <label class="scan-image-btn">
+          <input type="file" accept="image/*" (change)="onBarcodeImageSelected($event)" style="display:none" />
+          {{ imageScanning ? 'Reading...' : '📷 Scan from image' }}
+        </label>
+      </div>
+
+      <div *ngIf="scannedImagePreview" class="image-preview-row">
+        <img [src]="scannedImagePreview" style="height:60px;border-radius:6px;border:1px solid var(--border)" />
+        <span *ngIf="barcode" class="detected-badge">✓ Detected: {{ barcode }}</span>
+        <span *ngIf="imageError" class="image-error">{{ imageError }}</span>
+      </div>
+
+      <p class="section-title" style="margin-top:1.2rem">Real state (what you physically see)</p>
+      <div class="field-grid">
+        <div>
+          <label class="field-label">Quantity</label>
+          <input class="field-input" type="number" [(ngModel)]="realQty" placeholder="0" />
+        </div>
+        <div>
+          <label class="field-label">Condition</label>
+          <input class="field-input" [(ngModel)]="realCondition" placeholder="Good / Damaged / New" />
+        </div>
+        <div>
+          <label class="field-label">Location</label>
+          <input class="field-input" [(ngModel)]="realLocation" placeholder="e.g. A1" />
+        </div>
+      </div>
+
+      <button class="scan-btn" [disabled]="!barcode || loading" (click)="doScan()">
+        <span *ngIf="loading" class="spinner"></span>
+        {{ loading ? 'Scanning...' : 'Compare states' }}
+      </button>
+    </div>
+
+    <div *ngIf="scanError" class="alert-err">{{ scanError }}</div>
+
+    <div *ngIf="scanResult" class="diff-card">
+      <div class="diff-header">
+        <div>
+          <div class="diff-title">{{ scanResult.product.name }}</div>
+          <div class="diff-sub">{{ scanResult.product.category }} &bull; {{ scanResult.product.barcode }}</div>
+        </div>
+        <span class="status-badge" [ngClass]="{
+            'status-ok':   scanResult.mismatches === 0,
+            'status-warn': scanResult.mismatches > 0 && scanResult.mismatches <= 2,
+            'status-err':  scanResult.mismatches > 2
+          }">
+          {{ scanResult.mismatches === 0 ? 'In sync' : scanResult.mismatches + ' discrepancy' }}
+        </span>
+      </div>
+      <div class="diff-heads">
+        <span>Field</span>
+        <span>Digital (DB)</span>
+        <span>Real (scanned)</span>
+      </div>
+      <div class="diff-row">
+        <span class="diff-field">Quantity</span>
+        <span class="diff-db">{{ scanResult.digital?.qty }}</span>
+        <span class="diff-real"
+          [class.match]="scanResult.digital?.qty === scanResult.real?.qty"
+          [class.mismatch]="scanResult.digital?.qty !== scanResult.real?.qty">
+          {{ scanResult.real?.qty }}
+          <ng-container *ngIf="scanResult.digital?.qty !== scanResult.real?.qty">
+            &nbsp;⚠ ({{ scanResult.real?.qty - scanResult.digital?.qty > 0 ? '+' : '' }}{{ scanResult.real?.qty - scanResult.digital?.qty }})
+          </ng-container>
+          <ng-container *ngIf="scanResult.digital?.qty === scanResult.real?.qty"> ✓</ng-container>
+        </span>
+      </div>
+      <div class="diff-row">
+        <span class="diff-field">Condition</span>
+        <span class="diff-db">{{ scanResult.digital?.condition }}</span>
+        <span class="diff-real"
+          [class.match]="scanResult.digital?.condition === scanResult.real?.condition"
+          [class.mismatch]="scanResult.digital?.condition !== scanResult.real?.condition">
+          {{ scanResult.real?.condition }}
+          {{ scanResult.digital?.condition === scanResult.real?.condition ? '✓' : '⚠' }}
+        </span>
+      </div>
+      <div class="diff-row">
+        <span class="diff-field">Location</span>
+        <span class="diff-db">{{ scanResult.digital?.location }}</span>
+        <span class="diff-real"
+          [class.match]="scanResult.digital?.location === scanResult.real?.location"
+          [class.mismatch]="scanResult.digital?.location !== scanResult.real?.location">
+          {{ scanResult.real?.location }}
+          {{ scanResult.digital?.location === scanResult.real?.location ? '✓' : '⚠' }}
+        </span>
+      </div>
+      <div class="diff-row" *ngIf="scanResult.expirationDate">
+        <span class="diff-field">Expiration</span>
+        <span class="diff-db">{{ scanResult.expirationDate | date:'dd/MM/yyyy' }}</span>
+        <span class="diff-real">
+          <span class="dlc-badge" [ngClass]="'dlc-' + dlcStatus(scanResult.expirationDate)">
+            {{ dlcLabel(scanResult.expirationDate) }}
+          </span>
+        </span>
+      </div>
+      <div class="diff-summary" *ngIf="scanResult.mismatches > 0">
+        <strong>Action needed:</strong>
+        <span *ngIf="scanResult.digital?.qty !== scanResult.real?.qty">
+          Stock count mismatch — DB says {{ scanResult.digital?.qty }}, physical count is {{ scanResult.real?.qty }}.
+        </span>
+        <span *ngIf="scanResult.digital?.condition !== scanResult.real?.condition">
+          Condition changed from "{{ scanResult.digital?.condition }}" to "{{ scanResult.real?.condition }}".
+        </span>
+        <span *ngIf="scanResult.digital?.location !== scanResult.real?.location">
+          Location mismatch — DB says "{{ scanResult.digital?.location }}", found at "{{ scanResult.real?.location }}".
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB — [hidden] keeps state alive -->
+  <div [hidden]="activeTab !== 'history'">
+    <div *ngIf="history.length === 0" class="empty">No scans yet. Use the Scan tab to start.</div>
+    <div class="card" *ngIf="history.length > 0">
+      <div class="prod-row" *ngFor="let h of history">
+        <div class="prod-avatar">{{ h.product?.name?.slice(0,2)?.toUpperCase() }}</div>
+        <div class="prod-info">
+          <div class="prod-name">{{ h.product?.name }}</div>
+          <div class="prod-meta">{{ h.barcode }} &bull; {{ h.scannedAt | date:'dd/MM/yyyy HH:mm' }}</div>
+          <div class="prod-meta">Qty: {{ h.realQty }} &bull; {{ h.realCondition }} &bull; {{ h.realLocation }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,81 @@
+<div style="padding:20px; max-width:500px;">
+  <h2>{{ isEditMode ? 'Modifier Produit' : 'Ajouter Produit' }}</h2>
+
+  <form #productForm="ngForm" (ngSubmit)="save(productForm)">
+
+    <div style="margin-bottom:12px;">
+      <label>Nom *</label><br>
+      <input [(ngModel)]="product.name" name="name" required minlength="2"
+             #name="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="name.invalid && (name.touched || submitted)">
+        <span *ngIf="name.errors?.['required']">Le nom est obligatoire.</span>
+        <span *ngIf="name.errors?.['minlength']">Minimum 2 caractères.</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Catégorie *</label><br>
+      <input [(ngModel)]="product.category" name="category" required
+             #category="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="category.invalid && (category.touched || submitted)">
+        La catégorie est obligatoire.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Type Matériau *</label><br>
+      <input [(ngModel)]="product.materialType" name="materialType" required
+             #materialType="ngModel"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <div style="color:red; font-size:12px;" *ngIf="materialType.invalid && (materialType.touched || submitted)">
+        Le type de matériau est obligatoire.
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Recyclable</label><br>
+      <input type="checkbox" [(ngModel)]="product.recyclable" name="recyclable">
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>Description *</label><br>
+      <textarea [(ngModel)]="product.description" name="description" required minlength="5"
+                #description="ngModel"
+                style="width:100%; padding:8px; margin-top:4px;" rows="3"></textarea>
+      <div style="color:red; font-size:12px;" *ngIf="description.invalid && (description.touched || submitted)">
+        <span *ngIf="description.errors?.['required']">La description est obligatoire.</span>
+        <span *ngIf="description.errors?.['minlength']">Minimum 5 caractères.</span>
+      </div>
+    </div>
+
+    <!-- IMAGE UPLOAD FIELD -->
+    <div style="margin-bottom:12px;">
+      <label>Image *</label><br>
+      <input type="file" accept="image/*"
+             (change)="onFileSelected($event)"
+             style="width:100%; padding:8px; margin-top:4px;">
+      <!-- Image preview -->
+      <div *ngIf="imagePreviewUrl" style="margin-top:10px;">
+        <img [src]="imagePreviewUrl" alt="Preview"
+             style="width:100%; max-height:200px; object-fit:contain; border:1px solid #ddd; border-radius:4px;">
+      </div>
+    </div>
+
+    <div style="color:red; font-size:13px; margin-bottom:10px;" *ngIf="serverErrors">
+      {{ serverErrors }}
+    </div>
+
+    <button type="submit"
+            [style.opacity]="productForm.invalid ? '0.6' : '1'"
+            style="padding:8px 20px; background:#28a745; color:white; border:none; border-radius:4px; cursor:pointer; margin-right:10px;">
+      {{ isEditMode ? 'Modifier' : 'Ajouter' }}
+    </button>
+    <button type="button" (click)="cancel()"
+            style="padding:8px 20px; background:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;">
+      Annuler
+    </button>
+
+  </form>
+</div>

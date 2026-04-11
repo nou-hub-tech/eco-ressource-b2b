@@ -1,0 +1,135 @@
+<div class="stats-page">
+  <!-- Header Section -->
+  <div class="stats-header">
+    <div class="header-content">
+      <div class="header-left">
+        <button class="back-btn" (click)="back()">
+          <span class="back-icon">←</span>
+          <span>Back to Stock</span>
+        </button>
+        <h1 class="page-title">
+          <span class="title-icon">📊</span>
+          Stock Statistics
+        </h1>
+        <p class="page-subtitle">Comprehensive overview of inventory distribution</p>
+      </div>
+      <div class="header-right" *ngIf="!loading">
+        <div class="total-stats">
+          <div class="total-stat-item">
+            <div class="total-stat-value">{{ totalQuantity | number }}</div>
+            <div class="total-stat-label">Total Units</div>
+          </div>
+          <div class="total-stat-divider"></div>
+          <div class="total-stat-item">
+            <div class="total-stat-value">{{ totalCategories }}</div>
+            <div class="total-stat-label">Categories</div>
+          </div>
+          <div class="total-stat-divider"></div>
+          <div class="total-stat-item">
+            <div class="total-stat-value">{{ totalLocations }}</div>
+            <div class="total-stat-label">Locations</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Loading statistics...</p>
+  </div>
+
+  <!-- Stats Grid -->
+  <div *ngIf="!loading" class="stats-grid">
+    <!-- Stats by Category Card -->
+    <div class="stats-card category-card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-icon category-icon">📦</div>
+          <div>
+            <h3 class="card-title">Statistics by Category</h3>
+            <p class="card-subtitle">Product distribution across categories</p>
+          </div>
+        </div>
+        <div class="card-total">
+          <div class="card-total-value">{{ totalQuantity | number }}</div>
+          <div class="card-total-label">Total Units</div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div *ngIf="statsByCategory.length === 0" class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p class="empty-text">No category data available</p>
+        </div>
+
+        <div *ngFor="let s of statsByCategory; let i = index" class="stat-row">
+          <div class="stat-row-header">
+            <div class="stat-rank">{{ i + 1 }}</div>
+            <div class="stat-name">{{ s['product'] }}</div>
+            <div class="stat-quantity">{{ s['total'] | number }}</div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" 
+                 [style.width.%]="getPercentage(s['total'], maxCategoryQuantity)">
+              <div class="progress-bar-fill category-fill"></div>
+            </div>
+          </div>
+          <div class="stat-percentage">{{ getPercentage(s['total'], maxCategoryQuantity) | number: '1.0-0' }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats by Location Card -->
+    <div class="stats-card location-card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-icon location-icon">📍</div>
+          <div>
+            <h3 class="card-title">Statistics by Location</h3>
+            <p class="card-subtitle">Inventory distribution across facilities</p>
+          </div>
+        </div>
+        <div class="card-total">
+          <div class="card-total-value">{{ totalQuantity | number }}</div>
+          <div class="card-total-label">Total Units</div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div *ngIf="statsByLocation.length === 0" class="empty-state">
+          <div class="empty-icon">🗺️</div>
+          <p class="empty-text">No location data available</p>
+        </div>
+
+        <div *ngFor="let s of statsByLocation; let i = index" class="stat-row">
+          <div class="stat-row-header">
+            <div class="stat-rank">{{ i + 1 }}</div>
+            <div class="stat-name">{{ s['location'] }}</div>
+            <div class="stat-quantity">{{ s['total'] | number }}</div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" 
+                 [style.width.%]="getPercentage(s['total'], maxLocationQuantity)">
+              <div class="progress-bar-fill location-fill"></div>
+            </div>
+          </div>
+          <div class="stat-percentage">{{ getPercentage(s['total'], maxLocationQuantity) | number: '1.0-0' }}%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions" *ngIf="!loading">
+    <button class="action-btn" (click)="loadStats()">
+      <span>🔄</span>
+      <span>Refresh Data</span>
+    </button>
+    <button class="action-btn" (click)="back()">
+      <span>📋</span>
+      <span>View Stock Items</span>
+    </button>
+  </div>
+</div>

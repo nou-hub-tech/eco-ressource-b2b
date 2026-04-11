@@ -1,0 +1,78 @@
+<div class="chatbot-container">
+  <h1 class="chatbot-title">Product Finder</h1>
+  <p class="chatbot-subtitle">Describe what you're looking for and I'll find the best match</p>
+
+  <div class="chat-card">
+    <div #scrollMe class="messages-container">
+      <!-- Empty state when no messages -->
+      <div *ngIf="messages.length === 0" class="empty-chat">
+        <div class="empty-icon">💬</div>
+        <div class="empty-title">Start a conversation</div>
+        <div class="empty-text">Ask me about products, materials, or recycling options</div>
+      </div>
+
+      <!-- Messages loop -->
+      <div *ngFor="let m of messages" class="message" [class.message-bot]="m.role === 'bot'" [class.message-user]="m.role === 'user'">
+        <div class="bubble" [class.bubble-bot]="m.role === 'bot'" [class.bubble-user]="m.role === 'user'">
+          {{ m.text }}
+          
+          <!-- Product cards -->
+          <div *ngFor="let p of m.cards" class="product-card">
+            <div class="product-name">{{ p.name }}</div>
+            <div class="product-description">{{ p.description }}</div>
+            <div class="product-tags">
+              <span class="tag tag-category">{{ p.category }}</span>
+              <span class="tag tag-material">{{ p.materialType }}</span>
+              <span *ngIf="p.recyclable" class="tag tag-recyclable">♻️ Recyclable</span>
+            </div>
+          </div>
+        </div>
+        <div class="message-time" *ngIf="m.role === 'bot'">AI Assistant</div>
+      </div>
+
+      <!-- Loading indicator -->
+      <div *ngIf="loading" class="loading-indicator">
+        <span>Searching products</span>
+        <div class="loading-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggestions (optional) -->
+    <div class="suggestions" *ngIf="!loading">
+      <div class="suggestions-label">Suggested questions</div>
+      <div class="suggestions-list">
+        <div class="suggestion-chip" (click)="userInput = 'Show me recyclable products'; send()">
+          ♻️ Recyclable products
+        </div>
+        <div class="suggestion-chip" (click)="userInput = 'Products made of plastic'; send()">
+          🧪 Plastic materials
+        </div>
+        <div class="suggestion-chip" (click)="userInput = 'Sustainable packaging'; send()">
+          🌱 Sustainable packaging
+        </div>
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-area">
+      <textarea
+        [(ngModel)]="userInput"
+        (keydown)="onEnter($event)"
+        placeholder="e.g., I need a recyclable plastic packaging product..."
+        class="message-input"
+        rows="1">
+      </textarea>
+      <button
+        (click)="send()"
+        [disabled]="loading"
+        class="send-button">
+        <span>{{ loading ? 'Searching' : 'Send' }}</span>
+        <span *ngIf="!loading">→</span>
+      </button>
+    </div>
+  </div>
+</div>

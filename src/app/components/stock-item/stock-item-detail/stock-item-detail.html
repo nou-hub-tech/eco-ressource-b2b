@@ -1,0 +1,73 @@
+<div style="padding:30px; max-width:600px; margin:auto;">
+  <h2>🔍 Stock Item Details</h2>
+
+  <div *ngIf="stockItem" style="border:1px solid #ddd; border-radius:8px; padding:20px; margin-top:20px;">
+
+    <div style="text-align:center; margin-bottom:20px;">
+      <img *ngIf="stockItem.image"
+           [src]="'http://localhost:8080/files/' + stockItem.image"
+           alt="stock image"
+           style="width:200px; height:200px; object-fit:cover; border-radius:8px; border:1px solid #ddd;">
+      <div *ngIf="!stockItem.image" style="color:#999;">No image available</div>
+    </div>
+
+    <table width="100%" style="border-collapse:collapse;">
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; width:40%; color:#555;">ID</td>
+        <td style="padding:10px;">{{ stockItem.id_stock }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Product</td>
+        <td style="padding:10px;">{{ stockItem.product?.name }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Company ID</td>
+        <td style="padding:10px;">{{ stockItem.companyId }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Quantity</td>
+        <td style="padding:10px;">{{ stockItem.quantity }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Unit</td>
+        <td style="padding:10px;">{{ stockItem.unit }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Status</td>
+        <td style="padding:10px;">{{ stockItem.status }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Location</td>
+        <td style="padding:10px;">{{ stockItem.location }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Expiration Date</td>
+        <td style="padding:10px;">{{ stockItem.expirationDate }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px; font-weight:bold; color:#555;">Condition</td>
+        <td style="padding:10px;">{{ stockItem.condition }}</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button (click)="back()"
+              style="padding:8px 20px; background:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;">
+        ⬅ Back
+      </button>
+      <button (click)="edit()"
+              style="padding:8px 20px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer;">
+        ✏️ Update
+      </button>
+      <button (click)="delete()"
+              style="padding:8px 20px; background:#dc3545; color:white; border:none; border-radius:4px; cursor:pointer;">
+        🗑 Delete
+      </button>
+    </div>
+
+  </div>
+
+  <div *ngIf="!stockItem" style="color:#999; margin-top:20px;">
+    Loading...
+  </div>
+</div>

@@ -1,0 +1,117 @@
+<div class="page-wrapper">
+
+  <div class="stats-grid">
+    <div class="stat-card" *ngFor="let s of stats">
+      <div class="stat-icon" [style.background]="s.bg">{{s.icon}}</div>
+      <div>
+        <div class="stat-value">{{s.value}}</div>
+        <div class="stat-label">{{s.label}}</div>
+        <div class="stat-change" [class.up]="s.up" [class.down]="!s.up">
+          {{s.up ? '▲' : '▼'}} {{s.change}}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Registrations</h3>
+        <a routerLink="/admin/users" class="card-link">View all →</a>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of recentUsers">
+            <td>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">
+                  {{u.name.substring(0,2).toUpperCase()}}
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--text)">{{u.name}}</div>
+                  <div style="font-size:11px;color:var(--text3)">{{u.company}}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge"
+                [ngClass]="u.role==='transporter' ? 'badge-info' : 'badge-primary'">
+                {{u.role}}
+              </span>
+            </td>
+            <td>
+              <span class="badge"
+                [ngClass]="u.status==='active' ? 'badge-success' : u.status==='pending' ? 'badge-warning' : 'badge-danger'">
+                {{u.status}}
+              </span>
+            </td>
+            <td style="font-size:12px;color:var(--text3)">{{u.date}}</td>
+            <td>
+              <button class="btn btn-outline btn-sm">Manage</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Listings</h3>
+        <a routerLink="/admin/listings" class="card-link">View all →</a>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let l of recentListings">
+            <td>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">{{l.title}}</div>
+              <div style="font-size:11px;color:var(--text3)">{{l.company}}</div>
+            </td>
+            <td><span class="badge badge-neutral">{{l.category}}</span></td>
+            <td style="font-weight:600;color:var(--primary)">{{l.price}} TND</td>
+            <td>
+              <span class="badge"
+                [ngClass]="l.status==='active' ? 'badge-success' : 'badge-warning'">
+                {{l.status}}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="padding:16px 20px;border-top:1px solid var(--border)">
+        <h3 style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">System Activity</h3>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div *ngFor="let a of activity" style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"
+              [style.background]="a.bg" [style.border]="'1px solid ' + a.bdr">
+              {{a.icon}}
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--text2);font-weight:500">{{a.text}}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">{{a.time}}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,170 @@
+<div class="login-shell">
+
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="login-left">
+    <canvas #netCanvas class="login-net"></canvas>
+    <div class="login-grid"></div>
+    <div class="login-orb-1"></div>
+    <div class="login-orb-2"></div>
+
+    <div class="login-left-content">
+
+      <!-- Brand -->
+      <div class="login-brand">
+        <div class="login-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/>
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+          </svg>
+        </div>
+        <span class="login-brand-name">Eco-Ressource <strong>B2B</strong></span>
+      </div>
+
+      <!-- Typewriter headline — written directly via ElementRef, no change detection -->
+      <div class="login-headline">
+        <div><span #typeLine1></span></div>
+        <div><span #typeLine2></span></div>
+        <div class="login-accent"><span #typeLine3></span><span #typeCursor class="login-cursor"></span></div>
+      </div>
+
+      <p class="login-sub">Tunisia's first intelligent B2B platform for surplus valorisation, asset sharing and smart logistics.</p>
+
+      <!-- Feature tiles -->
+      <div class="login-tiles">
+        <div class="login-tile">
+          <div class="login-tile-ico">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg>
+          </div>
+          <div>
+            <div class="login-tile-title">B2B Marketplace</div>
+            <div class="login-tile-sub">Buy &amp; sell industrial surplus</div>
+          </div>
+        </div>
+        <div class="login-tile">
+          <div class="login-tile-ico">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div>
+            <div class="login-tile-title">AI Matching</div>
+            <div class="login-tile-sub">Smart buyer-seller pairing</div>
+          </div>
+        </div>
+        <div class="login-tile">
+          <div class="login-tile-ico">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          </div>
+          <div>
+            <div class="login-tile-title">Smart Logistics</div>
+            <div class="login-tile-sub">Optimise routes, cut CO₂</div>
+          </div>
+        </div>
+        <div class="login-tile">
+          <div class="login-tile-ico">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          </div>
+          <div>
+            <div class="login-tile-title">QR Traceability</div>
+            <div class="login-tile-sub">Full legal compliance</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="login-stats">
+        <div class="login-stat"><strong>500+</strong><span>Companies</span></div>
+        <div class="login-stat"><strong>30%</strong><span>Cost savings</span></div>
+        <div class="login-stat"><strong>12T</strong><span>CO₂ avoided</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="login-right">
+    <div class="login-right-bg"></div>
+
+    <div class="login-card" style="position:relative">
+
+      <!-- Success overlay -->
+      <div class="login-success" [class.show]="showSuccess">
+        <div class="ls-check">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12" class="ls-check-path"/>
+          </svg>
+        </div>
+        <div class="ls-text">Signed in successfully</div>
+        <div class="ls-sub">{{successRole}}</div>
+      </div>
+
+      <h2>Welcome back</h2>
+      <p class="login-card-sub">Sign in to your portal</p>
+
+      <!-- Demo pills -->
+      <div class="login-demo">
+        <span>DEMO ACCESS</span>
+        <button *ngFor="let d of demoAccounts" class="demo-pill" type="button" (click)="fillDemo(d.email)">
+          {{d.label}}
+        </button>
+      </div>
+
+      <!-- Error -->
+      <div class="login-error" *ngIf="errorMessage">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        {{errorMessage}}
+      </div>
+
+      <!-- Form -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="login-fg">
+          <label>Email address</label>
+          <div class="login-field" [class.invalid]="emailInvalid">
+            <span class="lf-ico">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </span>
+            <input type="email" formControlName="email" placeholder="your@email.tn" autocomplete="email"/>
+          </div>
+          <div class="login-ferr" *ngIf="emailInvalid">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Please enter a valid email.
+          </div>
+        </div>
+
+        <div class="login-fg">
+          <label>Password</label>
+          <div class="login-field" [class.invalid]="passwordInvalid">
+            <span class="lf-ico">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </span>
+            <input [type]="showPassword ? 'text' : 'password'" formControlName="password" placeholder="••••••••" autocomplete="current-password"/>
+            <button type="button" class="lf-toggle" (click)="showPassword = !showPassword" [class.active]="showPassword">
+              <svg *ngIf="!showPassword" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg *ngIf="showPassword"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>
+            </button>
+          </div>
+          <div class="login-ferr" *ngIf="passwordInvalid">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Password is required.
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn" [disabled]="loading">
+          <span class="login-btn-inner">
+            <span class="login-spinner" *ngIf="loading"></span>
+            <span>{{loading ? 'Signing in...' : 'Sign In'}}</span>
+            <span class="login-btn-arrow" *ngIf="!loading">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
+          </span>
+        </button>
+
+      </form>
+
+      <div class="login-footer">
+        No account? <a routerLink="/auth/register">Create enterprise account</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
