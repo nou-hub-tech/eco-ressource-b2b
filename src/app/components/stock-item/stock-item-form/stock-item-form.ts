@@ -117,13 +117,5 @@ export class StockItemFormComponent implements OnInit {
       });
     }
   }
-
-
-
-
-
-
-
-  
   cancel(): void { this.router.navigate(['/admin/stockitems']); }
 }
