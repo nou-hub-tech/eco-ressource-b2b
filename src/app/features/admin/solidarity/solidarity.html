@@ -1,0 +1,41 @@
+<div class="page-wrapper">
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0"><h1>Solidarity & Associations</h1><p>Support circular economy associations and manage donations</p></div>
+    <button class="btn btn-primary" (click)="openModal()">+ Add Association</button>
+  </div>
+  <div class="grid-2">
+    <div class="card" *ngFor="let a of associations" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <h3 style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">{{a.name}}</h3>
+          <p style="font-size:12px;color:var(--text3);line-height:1.5">{{a.mission}}</p>
+        </div>
+        <span class="badge" [ngClass]="a.status==='active'?'badge-success':'badge-warning'">{{a.status}}</span>
+      </div>
+      <div style="display:flex;gap:20px;margin-bottom:14px">
+        <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text)">{{a.members}}</div><div style="font-size:11px;color:var(--text3)">Members</div></div>
+        <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--primary)">{{a.donations}} TND</div><div style="font-size:11px;color:var(--text3)">Total Donations</div></div>
+      </div>
+      <div style="margin-bottom:14px"><span class="ai-tip">🤖 {{a.ai}}</span></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm">View Details</button>
+        <button class="btn btn-primary btn-sm">Donate</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header"><h2>Add Association</h2><button class="btn btn-icon" (click)="closeModal()">✕</button></div>
+    <div class="form-group"><label>Association Name</label><input type="text" placeholder="Organization name"></div>
+    <div class="form-group"><label>Mission</label><textarea placeholder="Describe the mission..."></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Contact Email</label><input type="email" placeholder="contact@association.tn"></div>
+      <div class="form-group"><label>Members</label><input type="number" placeholder="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="closeModal()">Add</button>
+    </div>
+  </div>
+</div>

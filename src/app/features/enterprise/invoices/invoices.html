@@ -1,0 +1,441 @@
+<div class="page-wrapper">
+
+  <!-- 🔔 TOAST -->
+  <div class="toast-container" [class.visible]="toastVisible">
+    <div class="toast" [class.toast-success]="toastType==='success'"
+      [class.toast-error]="toastType==='error'" [class.toast-info]="toastType==='info'">
+      <span class="toast-icon">{{ toastType==='success' ? '✓' : toastType==='error' ? '✕' : 'ℹ' }}</span>
+      <span>{{ toastMessage }}</span>
+    </div>
+  </div>
+
+  <!-- 🗑️ CONFIRM -->
+  <div *ngIf="showConfirm" class="modal-overlay" (click)="onConfirmNo()">
+    <div class="modal confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">⚠️</div>
+      <h3 class="confirm-title">Confirmation</h3>
+      <p class="confirm-msg">{{ confirmMessage }}</p>
+      <div class="confirm-actions">
+        <button class="btn btn-outline" (click)="onConfirmNo()">Annuler</button>
+        <button class="btn btn-danger" (click)="onConfirmYes()">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⚠️ OVERDUE ALERT -->
+  <div class="alert-banner alert-overdue" *ngIf="overdueInvoices.length > 0">
+    <span class="alert-icon">🔴</span>
+    <span>
+      <strong>{{ overdueInvoices.length }} facture(s) en retard</strong> (impayées depuis +30j) —
+      Montant : <strong>{{ overdueAmount | number:'1.3-3' }} TND</strong>
+    </span>
+  </div>
+
+  <!-- ====== HEADER + ONGLETS ====== -->
+  <div class="page-top">
+    <div class="page-title-row">
+      <div>
+        <h1 class="page-title">🧾 Gestion des Factures</h1>
+        <p class="page-subtitle">Création, suivi, exports PDF/Excel — TVA calculée automatiquement</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-outline btn-sm" (click)="exportAllToExcel()">📊 Excel</button>
+        <button class="btn btn-primary btn-sm" (click)="openForm()">➕ Nouvelle Facture</button>
+      </div>
+    </div>
+
+    <!-- Barre d'onglets -->
+    <div class="tab-bar">
+      <button class="tab-btn" [class.active]="activeInvTab==='list'" (click)="activeInvTab='list'">
+        <span class="tab-icon">🧾</span> Factures
+        <span class="tab-badge" *ngIf="overdueInvoices.length > 0">{{ overdueInvoices.length }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeInvTab==='stats'" (click)="activeInvTab='stats'">
+        <span class="tab-icon">📊</span> Statistiques
+      </button>
+    </div>
+  </div>
+
+  <!-- ====== ONGLET STATISTIQUES ====== -->
+  <div *ngIf="activeInvTab==='stats'" class="tab-content">
+
+    <!-- ── Bande résumé ── -->
+    <div class="stats-banner">
+      <div class="stats-banner-item">
+        <div class="stats-banner-val">{{ invoices.length }}</div>
+        <div class="stats-banner-lbl">Factures au total</div>
+      </div>
+      <div class="stats-banner-sep"></div>
+      <div class="stats-banner-item">
+        <div class="stats-banner-val" style="color:var(--success,#059669)">{{ totalTTC | number:'1.0-0' }} TND</div>
+        <div class="stats-banner-lbl">Volume total TTC</div>
+      </div>
+      <div class="stats-banner-sep"></div>
+      <div class="stats-banner-item">
+        <div class="stats-banner-val" style="color:var(--danger,#dc2626)">{{ overdueInvoices.length }}</div>
+        <div class="stats-banner-lbl">Factures en retard</div>
+      </div>
+    </div>
+
+    <!-- ── 4 KPI Cards avec barre de progression ── -->
+    <div class="stats-kpi-row">
+
+      <div class="card stats-kpi-card">
+        <div class="stats-kpi-top">
+          <div class="stats-kpi-icon" style="background:rgba(99,102,241,.12);color:#6366f1">🧾</div>
+          <div>
+            <div class="stats-kpi-lbl">Total factures</div>
+            <div class="stats-kpi-val">{{ invoices.length }}</div>
+          </div>
+        </div>
+        <div class="stats-kpi-sub">{{ totalTTC | number:'1.0-0' }} TND TTC</div>
+      </div>
+
+      <div class="card stats-kpi-card">
+        <div class="stats-kpi-top">
+          <div class="stats-kpi-icon" style="background:rgba(5,150,105,.12);color:#059669">✅</div>
+          <div>
+            <div class="stats-kpi-lbl">Payées</div>
+            <div class="stats-kpi-val" style="color:var(--success,#059669)">{{ totalPaid | number:'1.0-0' }} TND</div>
+          </div>
+        </div>
+        <div class="stats-progress-bar">
+          <div class="stats-progress-fill" style="background:#059669" [style.width]="recoveryRate + '%'"></div>
+        </div>
+        <div class="stats-kpi-sub">{{ countByStatus('PAID') }} facture(s) — {{ recoveryRate }}% recouvré</div>
+      </div>
+
+      <div class="card stats-kpi-card">
+        <div class="stats-kpi-top">
+          <div class="stats-kpi-icon" style="background:rgba(220,38,38,.10);color:#dc2626">⏳</div>
+          <div>
+            <div class="stats-kpi-lbl">Impayées</div>
+            <div class="stats-kpi-val" style="color:var(--danger,#dc2626)">{{ totalUnpaid | number:'1.0-0' }} TND</div>
+          </div>
+        </div>
+        <div class="stats-progress-bar">
+          <div class="stats-progress-fill" style="background:#dc2626" [style.width]="(100 - recoveryRate) + '%'"></div>
+        </div>
+        <div class="stats-kpi-sub">{{ countByStatus('UNPAID') }} facture(s) — {{ 100 - recoveryRate }}% restant</div>
+      </div>
+
+      <div class="card stats-kpi-card">
+        <div class="stats-kpi-top">
+          <div class="stats-kpi-icon" style="background:rgba(2,132,199,.12);color:#0284c7">📊</div>
+          <div>
+            <div class="stats-kpi-lbl">Taux recouvrement</div>
+            <div class="stats-kpi-val" style="color:var(--info,#0284c7)">{{ recoveryRate }}%</div>
+          </div>
+        </div>
+        <div class="stats-progress-bar">
+          <div class="stats-progress-fill" [style.background]="recoveryRate >= 80 ? '#059669' : recoveryRate >= 50 ? '#d97706' : '#dc2626'"
+            [style.width]="recoveryRate + '%'"></div>
+        </div>
+        <div class="stats-kpi-sub">Score : {{ recoveryRate >= 80 ? '🟢 Excellent' : recoveryRate >= 50 ? '🟡 Moyen' : '🔴 Critique' }}</div>
+      </div>
+
+    </div>
+
+    <!-- ── 2 colonnes : Donut + Détails Retards ── -->
+    <div class="stats-bottom-row">
+
+      <!-- Donut -->
+      <div class="card stats-donut-card">
+        <div class="chart-head">
+          <h3>🥧 Répartition PAID / UNPAID</h3>
+          <span class="chart-badge">{{ invoices.length }} factures</span>
+        </div>
+        <div class="donut-body">
+          <canvas #doughnutChart></canvas>
+          <div class="donut-center">
+            <div class="donut-pct">{{ recoveryRate }}%</div>
+            <div class="donut-lbl">Recouvré</div>
+          </div>
+        </div>
+        <!-- Légende -->
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#059669"></span>
+            <span>Payées ({{ countByStatus('PAID') }})</span>
+            <span class="legend-val">{{ totalPaid | number:'1.0-0' }} TND</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#dc2626"></span>
+            <span>Impayées ({{ countByStatus('UNPAID') }})</span>
+            <span class="legend-val">{{ totalUnpaid | number:'1.0-0' }} TND</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Factures en retard -->
+      <div class="card stats-overdue-card">
+        <div class="chart-head">
+          <h3>🔴 Factures en retard</h3>
+          <span class="chart-badge" [style.background]="overdueInvoices.length > 0 ? 'rgba(220,38,38,.1)' : ''"
+            [style.color]="overdueInvoices.length > 0 ? '#dc2626' : ''">
+            {{ overdueInvoices.length }} en retard
+          </span>
+        </div>
+
+        <div *ngIf="overdueInvoices.length === 0" style="text-align:center;padding:32px;color:var(--success,#059669)">
+          <div style="font-size:32px;margin-bottom:8px">✅</div>
+          <div style="font-size:13px;font-weight:600">Aucune facture en retard</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Toutes les factures sont à jour</div>
+        </div>
+
+        <div class="overdue-list" *ngIf="overdueInvoices.length > 0">
+          <div class="overdue-item" *ngFor="let inv of overdueInvoices">
+            <div class="overdue-item-left">
+              <code class="inv-num">{{ inv.invoiceNumber }}</code>
+              <div style="margin-top:3px">
+                <strong style="font-size:12px">{{ inv.clientName }}</strong>
+                <span style="font-size:11px;color:var(--text3);margin-left:6px">{{ inv.project }}</span>
+              </div>
+              <div style="font-size:10px;color:var(--text3);margin-top:1px">Émise le {{ inv.issueDate }}</div>
+            </div>
+            <div class="overdue-item-right">
+              <div style="font-size:14px;font-weight:800;color:var(--danger,#dc2626)">
+                {{ inv.amountTTC | number:'1.0-0' }} TND
+              </div>
+              <span class="overdue-badge">+30j</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total retards -->
+        <div class="overdue-total" *ngIf="overdueInvoices.length > 0">
+          <span>Total impayé en retard</span>
+          <strong style="color:var(--danger,#dc2626)">{{ overdueAmount | number:'1.3-3' }} TND</strong>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /STATS TAB -->
+
+
+  <!-- ====== ONGLET LISTE FACTURES ====== -->
+  <div *ngIf="activeInvTab==='list'" class="tab-content">
+    <div class="card" style="padding:0">
+
+      <!-- Toolbar : filtres + recherche -->
+      <div class="card-header" style="flex-wrap:wrap;gap:12px">
+        <div class="filter-bar">
+          <button *ngFor="let f of filterOptions" class="filter-btn"
+            [class.active]="activeFilter===f" (click)="setFilter(f)">
+            {{ f==='ALL'?'Toutes':f }}
+            <span class="filter-count">{{ f==='ALL' ? invoices.length : countByStatus(f) }}</span>
+          </button>
+        </div>
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-input" type="text" [(ngModel)]="searchQuery"
+            (input)="onSearch()" placeholder="Client, projet, N°…">
+          <button *ngIf="searchQuery" class="search-clear" (click)="searchQuery=''; onSearch()">✕</button>
+        </div>
+      </div>
+
+      <!-- Table allégée -->
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="sortBy('invoiceNumber')">N° {{ getSortIcon('invoiceNumber') }}</th>
+            <th class="sortable" (click)="sortBy('clientName')">Client {{ getSortIcon('clientName') }}</th>
+            <th>Projet</th>
+            <th class="sortable" (click)="sortBy('amountTTC')">Montant TTC {{ getSortIcon('amountTTC') }}</th>
+            <th class="sortable" (click)="sortBy('status')">Statut {{ getSortIcon('status') }}</th>
+            <th class="sortable" (click)="sortBy('issueDate')">Date {{ getSortIcon('issueDate') }}</th>
+            <th>Livraison</th>
+            <th style="width:130px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="paginatedInvoices.length===0">
+            <td colspan="8" class="empty-cell">Aucune facture trouvée</td>
+          </tr>
+          <tr *ngFor="let inv of paginatedInvoices" [class.overdue-row]="isOverdue(inv)">
+            <td>
+              <code class="inv-num">{{ inv.invoiceNumber }}</code>
+              <span class="overdue-badge" *ngIf="isOverdue(inv)" style="margin-left:4px">+30j</span>
+            </td>
+            <td><strong style="font-size:12px">{{ inv.clientName }}</strong></td>
+            <td style="font-size:12px;color:var(--text3)">{{ inv.project }}</td>
+            <td>
+              <strong [class.positive]="inv.status==='PAID'" [class.negative]="inv.status==='UNPAID'">
+                {{ inv.amountTTC | number:'1.3-3' }} TND
+              </strong>
+              <div style="font-size:10px;color:var(--text3)">HT: {{ inv.amountHT | number:'1.0-0' }} | TVA {{ inv.tva }}%</div>
+            </td>
+            <td>
+              <span class="badge"
+                [class.badge-success]="inv.status==='PAID'"
+                [class.badge-danger]="inv.status==='UNPAID'">
+                {{ inv.status === 'PAID' ? '✓ Payée' : '⏳ Impayée' }}
+              </span>
+            </td>
+            <td style="font-size:11px;color:var(--text3)">{{ inv.issueDate }}</td>
+            <!-- Livraison -->
+            <td>
+              <ng-container *ngIf="hasLinkedDelivery(inv)">
+                <span class="delivery-badge" *ngIf="inv.status!=='PAID'">🚚 #{{ inv.deliveryOrderId }}</span>
+                <span class="delivered-badge" *ngIf="inv.status==='PAID'">✅ Livrée</span>
+              </ng-container>
+              <span style="color:var(--text3);font-size:11px" *ngIf="!hasLinkedDelivery(inv)">—</span>
+            </td>
+            <td class="action-cell">
+              <button class="btn btn-delivery btn-sm"
+                *ngIf="hasLinkedDelivery(inv) && inv.status!=='PAID'"
+                title="Confirmer livraison → PAID + Escrow RELEASED"
+                (click)="confirmDelivery(inv)">🚚</button>
+              <button class="btn btn-ghost btn-sm" title="Aperçu" (click)="openPreview(inv)">👁️</button>
+              <button class="btn btn-ghost btn-sm" title="PDF" (click)="exportInvoicePDF(inv)">📄</button>
+              <button class="btn btn-ghost btn-sm" title="Modifier" (click)="openForm(inv)">✏️</button>
+              <button class="btn btn-danger btn-sm" title="Supprimer" (click)="delete(inv.id!)">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination-bar" *ngIf="totalPages > 1">
+        <span class="page-info">{{ processedInvoices.length }} résultat(s) — page {{ currentPage }}/{{ totalPages }}</span>
+        <div class="page-btns">
+          <button class="page-btn" [disabled]="currentPage===1" (click)="setPage(currentPage-1)">‹</button>
+          <button class="page-btn" *ngFor="let p of pageNumbers" [class.active]="p===currentPage" (click)="setPage(p)">{{ p }}</button>
+          <button class="page-btn" [disabled]="currentPage===totalPages" (click)="setPage(currentPage+1)">›</button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /LIST TAB -->
+
+  <!-- ====== MODAL FORM ====== -->
+  <div *ngIf="showForm" class="modal-overlay" (click)="closeForm()">
+    <div class="modal form-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editing ? '✏️ Modifier Facture' : '➕ Nouvelle Facture' }}</h2>
+        <button class="modal-close" (click)="closeForm()">✕</button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>N° Facture</label>
+            <input type="text" formControlName="invoiceNumber" placeholder="INV-001">
+          </div>
+          <div class="form-group">
+            <label>Date d'émission</label>
+            <input type="date" formControlName="issueDate">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nom du client</label>
+            <input type="text" formControlName="clientName" placeholder="Société XYZ">
+          </div>
+          <div class="form-group">
+            <label>Projet</label>
+            <input type="text" formControlName="project" placeholder="Nom du projet">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Montant HT (TND)</label>
+            <input type="number" formControlName="amountHT" placeholder="0.000" step="0.001">
+          </div>
+          <div class="form-group">
+            <label>TVA (%)</label>
+            <input type="number" formControlName="tva" placeholder="19" min="0" max="100">
+          </div>
+        </div>
+
+        <!-- TTC preview -->
+        <div class="ttc-preview">
+          <span class="ttc-label">Montant TTC calculé</span>
+          <span class="ttc-value">{{ previewTTC | number:'1.3-3' }} TND</span>
+        </div>
+
+        <div class="form-group" style="margin-top:12px">
+          <label>Statut</label>
+          <select formControlName="status">
+            <option value="UNPAID">⏳ Impayée</option>
+            <option value="PAID">✅ Payée</option>
+          </select>
+        </div>
+
+        <!-- Liaison livraison -->
+        <div class="delivery-link-section">
+          <div class="delivery-link-title">🚚 Liaison Livraison <span class="optional-tag">optionnel</span></div>
+          <p class="delivery-link-hint">À renseigner quand la facture est liée à une commande de livraison.</p>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label>ID Commande / Livraison</label>
+              <input type="number" formControlName="deliveryOrderId" placeholder="Ex: 42">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>ID Escrow lié</label>
+              <input type="number" formControlName="linkedEscrowId" placeholder="Ex: 7">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeForm()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!form.valid">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== MODAL PREVIEW ====== -->
+  <div *ngIf="previewInvoice" class="modal-overlay" (click)="closePreview()">
+    <div class="modal preview-modal" (click)="$event.stopPropagation()">
+      <div class="invoice-preview">
+        <div class="inv-header">
+          <div class="inv-brand">
+            <div class="inv-logo">🌿</div>
+            <div>
+              <div class="inv-company">EcoRessource B2B</div>
+              <div class="inv-tagline">Plateforme de ressources durables</div>
+            </div>
+          </div>
+          <div class="inv-meta">
+            <div class="inv-title-lbl">FACTURE</div>
+            <div class="inv-num-lbl">{{ previewInvoice.invoiceNumber }}</div>
+            <span class="badge"
+              [class.badge-success]="previewInvoice.status==='PAID'"
+              [class.badge-danger]="previewInvoice.status==='UNPAID'">
+              {{ previewInvoice.status === 'PAID' ? '✓ Payée' : '⏳ Impayée' }}
+            </span>
+          </div>
+        </div>
+        <div class="inv-divider"></div>
+        <div class="inv-info-row">
+          <div><div class="inv-info-lbl">Facturé à</div><div class="inv-info-val">{{ previewInvoice.clientName }}</div></div>
+          <div><div class="inv-info-lbl">Projet</div><div class="inv-info-val">{{ previewInvoice.project }}</div></div>
+          <div><div class="inv-info-lbl">Date</div><div class="inv-info-val">{{ previewInvoice.issueDate }}</div></div>
+        </div>
+        <table class="inv-table">
+          <thead><tr><th>Description</th><th class="tr">Montant HT</th><th class="tr">TVA ({{ previewInvoice.tva }}%)</th><th class="tr">Montant TTC</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>{{ previewInvoice.project }}</td>
+              <td class="tr">{{ previewInvoice.amountHT | number:'1.3-3' }} TND</td>
+              <td class="tr">{{ (previewInvoice!.amountTTC - previewInvoice!.amountHT) | number:'1.3-3' }} TND</td>
+              <td class="tr"><strong>{{ previewInvoice!.amountTTC | number:'1.3-3' }} TND</strong></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="3"><strong>TOTAL À PAYER</strong></td>
+              <td class="tr total-val">{{ previewInvoice!.amountTTC | number:'1.3-3' }} TND</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="inv-footer-note">Merci pour votre confiance — EcoRessource B2B</div>
+        <div class="modal-footer" style="border:none;padding-top:14px">
+          <button class="btn btn-outline" (click)="closePreview()">Fermer</button>
+          <button class="btn btn-ghost" (click)="exportInvoicePDF(previewInvoice!)">📄 Télécharger PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
