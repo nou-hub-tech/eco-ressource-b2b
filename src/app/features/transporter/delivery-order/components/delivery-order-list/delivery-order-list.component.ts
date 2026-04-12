@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, ChangeDetectionStrategy, Component, OnInit, OnDestroy, ViewChild, ElementRef, NgZone } from '@angular/core';
+import { ChangeDetectorRef, ChangeDetectionStrategy, Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -16,10 +16,9 @@ declare var QRCode: any;
     templateUrl: './delivery-order-list.component.html',
     styleUrls: ['./delivery-order-list.component.css'],
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
-    changeDetection: ChangeDetectionStrategy.OnPush
+    imports: [CommonModule, ReactiveFormsModule]
 })
-export class DeliveryOrderListComponent implements OnInit, OnDestroy {
+export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewInit {
     
     deliveryOrders: DeliveryOrder[] = [];
     filteredOrders: DeliveryOrder[] = [];
@@ -66,6 +65,17 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.subscriptions.unsubscribe();
         window.removeEventListener('orderChanged', this.handleOrderChange.bind(this));
+    }
+
+    ngAfterViewInit(): void {
+        // ViewChild is now available
+        this.cd.detectChanges();
+        
+        // Vérifier que la libraire QRCode est chargée
+        console.log('QRCode library available:', typeof QRCode !== 'undefined' ? 'YES' : 'NO');
+        if (typeof QRCode === 'undefined') {
+            console.error('⚠️ QRCode library not loaded! Make sure qrcode.min.js is included in angular.json scripts');
+        }
     }
 
     private runZone(fn: () => void): void {
@@ -330,9 +340,16 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         this.selectedOrder = order;
         this.showQrModal = true;
         
-        setTimeout(() => {
-            this.generateQRCode();
-        }, 300);
+        // Forcer la détection des changements
+        this.cd.markForCheck();
+        
+        // Attendre que le DOM soit rendu avant de générer le QR code
+        // Utiliser requestAnimationFrame pour un timing mieux optimisé
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                this.generateQRCode();
+            }, 100);
+        });
     }
     
     closeQrModal(): void {
@@ -342,48 +359,63 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
     }
     
     generateQRCode(): void {
-        if (!this.qrCanvas || !this.qrCanvas.nativeElement) {
-            console.error('qrCanvas non trouvé');
-            return;
-        }
+        console.log('🔵 generateQRCode appelé');
+        console.log('qrCanvas:', this.qrCanvas);
+        console.log('selectedOrder:', this.selectedOrder);
         
         if (!this.selectedOrder) {
-            console.error('Aucune commande sélectionnée');
+            console.error('❌ Aucune commande sélectionnée');
             return;
         }
         
         try {
-            this.qrCanvas.nativeElement.innerHTML = '';
+            // Vérifier que QRCode est disponible
+            if (typeof QRCode === 'undefined') {
+                console.error('❌ QRCode library not loaded');
+                alert('⚠️ Erreur: Libraire QRCode non chargée. Rechargez la page.');
+                return;
+            }
             
-            // ✅ Utiliser l'IP du serveur ou localhost selon l'accès
+            const container = document.querySelector('[qrcanvas]') as HTMLElement || this.qrCanvas?.nativeElement;
+            
+            if (!container) {
+                console.error('❌ Conteneur QR code non trouvé dans le DOM');
+                alert('⚠️ Erreur: Conteneur QR code non trouvé. Consultez la console.');
+                return;
+            }
+            
+            console.log('✅ Container trouvé:', container);
+            
+            // Vider le conteneur
+            container.innerHTML = '';
+            
+            // ✅ Construire l'URL du QR code
             let baseUrl: string;
             const hostname = window.location.hostname;
             
             if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                // Si accès depuis le PC, utiliser l'IP locale pour le téléphone
                 baseUrl = 'http://192.168.182.154:8080';
             } else {
-                // Si accès depuis le téléphone, utiliser l'IP actuelle
                 baseUrl = `http://${hostname}:8080`;
             }
             
             const url = `${baseUrl}/api/delivery-orders/update-by-qr/${this.selectedOrder.idDelivery}`;
+            console.log('🔗 QR code URL:', url);
             
-            console.log('QR code URL:', url);
-            
-            new QRCode(this.qrCanvas.nativeElement, {
+            // Générer le QR code
+            new QRCode(container, {
                 text: url,
                 width: 200,
                 height: 200,
                 colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
+                colorLight: "#ffffff"
             });
             
-            console.log('QR code généré avec succès');
+            console.log('✅ QR code généré avec succès!');
             
         } catch (error) {
-            console.error('Erreur génération QR:', error);
+            console.error('❌ Erreur lors de la génération du QR code:', error);
+            alert('⚠️ Erreur: ' + (error instanceof Error ? error.message : 'Erreur inconnue'));
         }
     }
 
