@@ -1,0 +1,151 @@
+/* ── TABLE ROW ── */
+.users-row {
+  cursor: pointer;
+  transition: background .12s;
+}
+.users-row:hover td {
+  background: var(--card2, var(--bg3));
+}
+
+/* ── USER CELL ── */
+.users-cell {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+/* ── AVATAR ── */
+.users-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: .5px;
+}
+.ava-enterprise  { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+.ava-transporter { background: linear-gradient(135deg, #d97706, #fbbf24); color: #000; }
+
+.users-avatar-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: .5px;
+}
+
+/* ── NAME / EMAIL ── */
+.users-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.users-email {
+  font-size: 11px;
+  color: var(--text3);
+}
+.users-company {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+/* ── WARN BUTTON (suspend) ── */
+.users-btn-warn {
+  border-color: var(--warning, #d97706) !important;
+  color: var(--warning, #d97706) !important;
+}
+.users-btn-warn:hover {
+  background: rgba(217,119,6,.06) !important;
+}
+
+/* ── SUSPEND BUTTON in modal ── */
+.users-btn-suspend {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(220,38,38,.3);
+  background: rgba(220,38,38,.06);
+  color: var(--danger, #dc2626);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.users-btn-suspend:hover {
+  background: rgba(220,38,38,.12);
+  border-color: var(--danger, #dc2626);
+}
+
+/* ── DETAIL MODAL ── */
+.users-modal {
+  max-width: 560px;
+}
+
+.users-profile-hd {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 4px 0 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+.users-profile-info {
+  flex: 1;
+  min-width: 0;
+}
+.users-profile-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -.3px;
+  margin-bottom: 3px;
+}
+.users-profile-company {
+  font-size: 13px;
+  color: var(--text3);
+}
+
+/* ── INFO GRID ── */
+.users-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.users-info-item {
+  background: var(--bg3, var(--card2));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+}
+.users-info-lbl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text3);
+  margin-bottom: 5px;
+}
+.users-info-val {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}

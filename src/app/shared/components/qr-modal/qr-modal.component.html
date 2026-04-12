@@ -1,0 +1,43 @@
+<!-- Modal overlay -->
+<div *ngIf="showModal" class="modal-overlay" (click)="close()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h4>
+                <i class="bi bi-qr-code"></i> QR Code - Commande #{{ order?.idDelivery }}
+            </h4>
+            <button class="btn-close" (click)="close()">×</button>
+        </div>
+        <div class="modal-body">
+            <div *ngIf="isLoading" class="text-center">
+                <div class="spinner-border text-primary"></div>
+                <p>Génération du QR code...</p>
+            </div>
+            
+            <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+            
+            <div *ngIf="!isLoading && !errorMessage">
+                <div class="order-info">
+                    <p><strong>Client:</strong> {{ order?.nomClient }}</p>
+                    <p><strong>Adresse:</strong> {{ order?.adresseLivraison }}</p>
+                    <p><strong>Statut:</strong> 
+                        <span [class]="getStatutClass(order?.statut)">{{ order?.statut }}</span>
+                    </p>
+                </div>
+                
+                <div #qrcode class="qrcode-container"></div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-success" (click)="downloadQRCode()">
+                        <i class="bi bi-download"></i> Télécharger
+                    </button>
+                    <button class="btn btn-info" (click)="printQRCode()">
+                        <i class="bi bi-printer"></i> Imprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="close()">Fermer</button>
+        </div>
+    </div>
+</div>

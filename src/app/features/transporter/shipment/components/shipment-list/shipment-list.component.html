@@ -1,0 +1,165 @@
+<div class="page-wrapper">
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1><i class="bi bi-truck"></i> Expéditions</h1>
+      <p>Suivi des envois liés aux commandes</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="button" class="btn btn-outline" (click)="toggleStats()">
+        <i class="bi bi-graph-up"></i> Statistiques
+      </button>
+      <button type="button" class="btn btn-primary" (click)="onCreateNew()">
+        <i class="bi bi-plus-circle"></i> Nouvelle expédition
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3><i class="bi bi-search"></i> Recherche</h3>
+      <span *ngIf="rechercheActive" class="badge badge-info">Recherche active</span>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="searchForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Produit (ID)</label>
+            <input type="number" formControlName="produitId" placeholder="ex. 101">
+          </div>
+          <div class="form-group">
+            <label>Quantité</label>
+            <input type="number" formControlName="quantite" placeholder="ex. 15.5">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Statut</label>
+            <select formControlName="statut">
+              <option value="">Tous</option>
+              <option *ngFor="let statut of statuts" [value]="statut">{{ statut }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date de départ</label>
+            <input type="date" formControlName="dateDepart">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button type="button" class="btn btn-outline" (click)="resetFilters()">
+            <i class="bi bi-eraser"></i> Réinitialiser
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div *ngIf="rechercheActive && isLoading" class="alert alert-success" style="border-color:rgba(52,211,153,.3)">
+    <i class="bi bi-search"></i> Recherche en cours…
+  </div>
+
+  <div *ngIf="showStats && statistiques" class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <h3><i class="bi bi-graph-up"></i> Statistiques</h3>
+    </div>
+    <div class="card-body">
+      <div class="stats-grid">
+        <div class="stat-card text-center">
+          <div class="stat-value">{{ statistiques.total || 0 }}</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--warning)">{{ statistiques.parStatut?.EN_ATTENTE || 0 }}</div>
+          <div class="stat-label">En attente</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-warning" [style.width]="getProgressWidth('EN_ATTENTE')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_EN_ATTENTE | number:'1.0-0' }}%</small>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--info)">{{ statistiques.parStatut?.EN_COURS || 0 }}</div>
+          <div class="stat-label">En cours</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-info" [style.width]="getProgressWidth('EN_COURS')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_EN_COURS | number:'1.0-0' }}%</small>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--success)">{{ statistiques.parStatut?.LIVREE || 0 }}</div>
+          <div class="stat-label">Livrées</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-success" [style.width]="getProgressWidth('LIVREE')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_LIVREE | number:'1.0-0' }}%</small>
+        </div>
+      </div>
+      <p *ngIf="statistiques.quantiteTotale" class="text-center" style="margin-top:14px;color:var(--text2);font-size:14px">
+        Quantité totale transportée : <strong style="color:var(--accent)">{{ statistiques.quantiteTotale | number:'1.0-2' }}</strong>
+      </p>
+    </div>
+  </div>
+
+  <div class="tx-sort-row">
+    <div class="tx-sort-group">
+      <button type="button" class="tx-sort-btn" [class.active]="sortBy === 'date'" (click)="sortByField('date')">
+        <i class="bi bi-calendar"></i> Date départ
+        <i *ngIf="sortBy === 'date'" [class]="sortOrder === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+      </button>
+      <button type="button" class="tx-sort-btn" [class.active]="sortBy === 'quantite'" (click)="sortByField('quantite')">
+        <i class="bi bi-bar-chart"></i> Quantité
+        <i *ngIf="sortBy === 'quantite'" [class]="sortOrder === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+      </button>
+    </div>
+    <span style="font-size:12px;color:var(--text3)">{{ filteredShipments.length }} expédition(s)</span>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading && !rechercheActive" class="empty-state">
+    <div class="spinner-border" role="status"></div>
+    <p class="mt-2" style="color:var(--text3)">Chargement des expéditions…</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="card" style="padding:0">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Commande</th>
+          <th>Client</th>
+          <th>Produit</th>
+          <th>Qté</th>
+          <th>Transp.</th>
+          <th>Départ</th>
+          <th>Statut</th>
+          <th style="width:120px">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let shipment of filteredShipments">
+          <td><code style="font-size:11px;color:var(--text3)">{{ shipment.id }}</code></td>
+          <td>#{{ shipment.deliveryOrder.idDelivery }}</td>
+          <td style="font-size:12px;color:var(--text2)">{{ getClientName(shipment.deliveryOrder.idDelivery) }}</td>
+          <td>{{ shipment.produitId }}</td>
+          <td>{{ shipment.quantite }}</td>
+          <td>{{ shipment.idTransporter }}</td>
+          <td style="font-size:12px;color:var(--text3)">{{ shipment.dateDepart | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td><span [class]="getStatutClass(shipment.statut)">{{ shipment.statut }}</span></td>
+          <td>
+            <button type="button" class="btn btn-outline btn-sm" style="padding:4px 8px;margin-right:4px" (click)="onViewDetail(shipment.id)"><i class="bi bi-eye"></i></button>
+            <button type="button" class="btn btn-outline btn-sm" style="padding:4px 8px;margin-right:4px" (click)="onEdit(shipment.id)"><i class="bi bi-pencil"></i></button>
+            <button type="button" class="btn btn-danger btn-sm" style="padding:4px 8px" (click)="onDelete(shipment.id)"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredShipments.length === 0">
+          <td colspan="9" class="text-center" style="padding:32px;color:var(--text3)">
+            <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
+            Aucune expédition
+            <button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;display:inline-flex" (click)="onCreateNew()">
+              <i class="bi bi-plus-circle"></i> Créer
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

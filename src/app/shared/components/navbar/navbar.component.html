@@ -1,0 +1,69 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" routerLink="/transporter/dashboard">
+            <i class="bi bi-truck"></i> Gestion Livraison
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <!-- ✅ ALERTES - Bouton cloche -->
+                <li class="nav-item dropdown" style="position: relative;">
+                    <a class="nav-link position-relative" (click)="toggleAlerts()" style="cursor: pointer;">
+                        <i class="bi bi-bell-fill"></i>
+                        <span *ngIf="unreadCount > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ unreadCount }}
+                        </span>
+                    </a>
+                    <!-- Menu déroulant des alertes -->
+                    <div *ngIf="showAlerts" class="dropdown-menu show" style="position: absolute; right: 0; left: auto; width: 350px; top: 100%;">
+                        <div class="dropdown-header bg-dark text-white p-2">
+                            <span>🔔 Alertes</span>
+                            <button class="btn btn-sm btn-link text-white float-end" (click)="clearAlerts()">Tout effacer</button>
+                        </div>
+                        <div class="alerts-list" style="max-height: 400px; overflow-y: auto;">
+                            <div *ngFor="let alert of alerts" 
+                                 class="alert-item p-2 border-bottom"
+                                 [class.alert-unread]="!alert.read"
+                                 [class.alert-read]="alert.read">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <i [class]="getAlertIcon(alert.type)"></i>
+                                        <span class="ms-2">{{ alert.message }}</span>
+                                    </div>
+                                    <div class="text-end ms-2">
+                                        <small class="text-muted">{{ getTimeAgo(alert.date) }}</small>
+                                        <button class="btn btn-sm btn-link text-danger" (click)="removeAlert(alert.id)">✕</button>
+                                    </div>
+                                </div>
+                                <div class="mt-1" *ngIf="!alert.read">
+                                    <button class="btn btn-sm btn-primary" (click)="markAsRead(alert.id)">Marquer comme lu</button>
+                                </div>
+                            </div>
+                            <div *ngIf="alerts.length === 0" class="text-center text-muted p-3">
+                                Aucune alerte
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/transporter/dashboard/components/dashboard/dashboard.component" routerLinkActive="active">
+                        <i class="bi bi-speedometer2"></i> Tableau de bord
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/transporter/delivery-orders" routerLinkActive="active">
+                        <i class="bi bi-box-seam"></i> Commandes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/transporter/shipments" routerLinkActive="active">
+                        <i class="bi bi-truck"></i> Expéditions
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
