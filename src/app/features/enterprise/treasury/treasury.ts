@@ -134,19 +134,37 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Release escrow directement depuis la table ──
   releaseEscrow(esc: EscrowEntry): void {
-    this.confirm(`Libérer l'escrow "${esc.project}" (${esc.amount.toLocaleString('fr-FR')} TND) ?`, () => {
-      const updated: EscrowEntry = { ...esc, status: 'RELEASED' as any };
-      this.financeService.updateEscrow(updated).subscribe({
-        next: () => {
-          const idx = this.escrowEntries.findIndex(e => e.id === esc.id);
-          if (idx !== -1) this.escrowEntries[idx] = { ...updated };
-          this.escrowEntries = [...this.escrowEntries];
-          this.cd.detectChanges();
-          this.showToast(`🔓 Escrow "${esc.project}" libéré`, 'success');
-        },
-        error: () => this.showToast('Erreur lors de la libération', 'error')
-      });
-    });
+    if (esc.status === 'RELEASED') {
+      this.showToast('Cet escrow est déjà libéré.', 'info');
+      return;
+    }
+    this.confirm(
+      `Libérer l'escrow "${esc.project}" (${esc.amount.toLocaleString('fr-FR')} TND) ?\nUn email de notification sera envoyé au responsable financier.`,
+      () => {
+        this.financeService.releaseEscrow(esc.id!).subscribe({
+          next: (updated) => {
+            const idx = this.escrowEntries.findIndex(e => e.id === esc.id);
+            if (idx !== -1) {
+              this.escrowEntries[idx] = {
+                id: (updated as any).idescrow ?? updated.id,
+                project: (updated as any).project,
+                amount: (updated as any).amount,
+                status: (updated as any).status,
+                createdAt: (updated as any).createdAt,
+                releaseDate: (updated as any).releaseDate,
+              };
+            }
+            this.escrowEntries = [...this.escrowEntries];
+            this.cd.detectChanges();
+            this.showToast(
+              `🔓 Escrow "${esc.project}" libéré — 📧 Email envoyé au financier`,
+              'success'
+            );
+          },
+          error: () => this.showToast('Erreur lors de la libération de l\'escrow', 'error')
+        });
+      }
+    );
   }
 
 
