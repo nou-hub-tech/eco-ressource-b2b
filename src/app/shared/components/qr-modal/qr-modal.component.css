@@ -1,123 +1,33 @@
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
+/* Ajouter ces styles */
 
-.modal-content {
-    background: white;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 450px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    background: #0d6efd;
-    color: white;
-    border-radius: 12px 12px 0 0;
-}
-
-.modal-header .btn-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: white;
-}
-
-.modal-body {
-    padding: 20px;
-    text-align: center;
-}
-
-.qr-modal-inner {
-    position: relative;
-    min-height: 280px;
-}
-
-.qr-loading {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.92);
-    padding: 16px;
-}
-
-.modal-footer {
-    padding: 15px 20px;
-    border-top: 1px solid #eee;
-    text-align: right;
-}
-
-.order-info {
-    background: #f8f9fa;
-    padding: 10px;
-    border-radius: 8px;
-    text-align: left;
-    margin-bottom: 15px;
-}
-
-.order-info p {
-    margin: 5px 0;
-}
-
-.qrcode-container {
-    display: flex;
-    justify-content: center;
-    margin: 15px 0;
-    min-height: 250px;
-}
-
-.qr-canvas {
-    display: block;
-    margin: 0 auto;
-    max-width: 100%;
-    height: auto;
-}
-
-.btn-group {
+.qr-buttons {
     display: flex;
     gap: 10px;
     justify-content: center;
-    margin-top: 15px;
+    margin: 15px 0;
 }
 
-.btn {
+.qr-buttons .btn {
     padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    border: none;
     font-size: 14px;
 }
 
-.btn-success { background: #198754; color: white; }
-.btn-info { background: #0dcaf0; color: black; }
-.btn-secondary { background: #6c757d; color: white; }
-
-.badge {
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-size: 11px;
+.btn-primary {
+    background: #0d6efd;
+    color: white;
+    border: none;
 }
 
-.bg-warning { background-color: #ffc107; color: #000; }
-.bg-info { background-color: #0dcaf0; color: #000; }
-.bg-success { background-color: #198754; color: #fff; }
+.btn-primary:hover {
+    background: #0b5ed7;
+}
+
+.btn-info {
+    background: #0dcaf0;
+    color: black;
+    border: none;
+}
+
+.btn-info:hover {
+    background: #0bb5d6;
+}

@@ -8,6 +8,7 @@ export class QrCodeService {
     constructor() { }
 
     generateQrData(orderId: number): string {
-                    return `http://192.168.1.181:8080/api/delivery-orders/update-by-qr/${orderId}`;
+        // ✅ Utilise TON IP
+        return `http://192.168.1.18:8080/api/delivery-orders/update-by-qr/${orderId}`;
     }
 }

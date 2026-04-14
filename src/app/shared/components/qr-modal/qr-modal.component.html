@@ -1,21 +1,16 @@
-<!-- Modal overlay -->
 <div *ngIf="showModal" class="modal-overlay" (click)="close()">
     <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header">
             <h4>
-                <i class="bi bi-qr-code"></i> QR Code - Commande #{{ order?.idDelivery }}
+                <i class="bi bi-qr-code"></i> Commande #{{ order?.idDelivery }}
             </h4>
             <button class="btn-close" (click)="close()">×</button>
         </div>
         <div class="modal-body">
-            <!-- Canvas présent pendant le chargement : le QR est dessiné via le package npm `qrcode` -->
-            <div *ngIf="order" class="qr-modal-inner">
-                <div *ngIf="isLoading" class="qr-loading text-center">
-                    <div class="spinner-border text-primary"></div>
-                    <p>{{ errorMessage || 'Génération du QR code...' }}</p>
-                </div>
-
-                <div class="order-info" *ngIf="!isLoading && !errorMessage">
+            <div *ngIf="order">
+                
+                <!-- Infos commande -->
+                <div class="order-info">
                     <p><strong>Client:</strong> {{ order.nomClient }}</p>
                     <p><strong>Adresse:</strong> {{ order.adresseLivraison }}</p>
                     <p><strong>Statut:</strong>
@@ -23,20 +18,42 @@
                     </p>
                 </div>
 
-                <div class="qrcode-container">
-                    <canvas #qrCanvas class="qr-canvas" width="250" height="250" aria-label="QR code livraison"></canvas>
+                <!-- QR CODE -->
+                <div class="qr-section">
+                    <p>📱 Scannez ce QR code avec votre téléphone:</p>
+                    <img [src]="qrUrl" alt="QR Code" width="200" height="200" *ngIf="qrUrl" id="qrCodeImage">
                 </div>
 
-                <div class="btn-group" *ngIf="!isLoading && !errorMessage">
-                    <button class="btn btn-success" (click)="downloadQRCode()">
-                        <i class="bi bi-download"></i> Télécharger
+                <!-- Boutons Télécharger et Imprimer -->
+                <div class="qr-buttons">
+                    <button class="btn btn-primary" (click)="downloadQRCode()">
+                        <i class="bi bi-download"></i> Télécharger QR code
                     </button>
                     <button class="btn btn-info" (click)="printQRCode()">
-                        <i class="bi bi-printer"></i> Imprimer
+                        <i class="bi bi-printer"></i> Imprimer QR code
                     </button>
                 </div>
 
-                <div *ngIf="!isLoading && errorMessage" class="alert alert-danger">
+                <div class="divider">— OU —</div>
+
+                <!-- BOUTON DIRECT -->
+                <div class="btn-section">
+                    <button class="btn btn-success btn-block" (click)="confirmerLivraison()" [disabled]="isLoading">
+                        <i class="bi bi-check-circle"></i>
+                        {{ isLoading ? 'Chargement...' : '✅ CONFIRMER LA LIVRAISON' }}
+                    </button>
+                </div>
+
+                <!-- Lien alternatif -->
+                <div class="link-section">
+                    <small>Ou cliquez sur le lien:</small>
+                    <div class="link-box">
+                        <input type="text" [value]="lienConfirmation" readonly>
+                        <button class="btn btn-sm btn-outline-primary" (click)="copierLien()">Copier</button>
+                    </div>
+                </div>
+
+                <div *ngIf="errorMessage" class="alert alert-danger mt-3">
                     {{ errorMessage }}
                 </div>
             </div>

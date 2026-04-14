@@ -1,9 +1,9 @@
 import { ChangeDetectorRef, Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap, startWith } from 'rxjs/operators';
 import { DeliveryOrderService } from '../../../../../core/services/delivery-order.service';
 import { AlertService } from '../../../../../core/services/alert.service';
 import { DeliveryOrder } from '../../../../../core/models/delivery-order';
@@ -33,6 +33,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
     showStats = false;
     rechercheActive = false;
     private subscriptions: Subscription = new Subscription();
+    private refreshInterval: any;
 
     constructor(
         private deliveryOrderService: DeliveryOrderService,
@@ -55,11 +56,50 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         this.setupDynamicSearch();
         window.addEventListener('orderChanged', this.handleOrderChange.bind(this));
         window.addEventListener('focus', () => this.loadDeliveryOrders());
+        
+        // ✅ METTRE À JOUR AUTOMATIQUEMENT TOUTES LES 5 SECONDES
+        this.refreshInterval = setInterval(() => {
+            this.refreshData();
+        }, 5000);
     }
 
     ngOnDestroy(): void {
         this.subscriptions.unsubscribe();
         window.removeEventListener('orderChanged', this.handleOrderChange.bind(this));
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
+    }
+
+    // ✅ Rafraîchir les données sans perdre les filtres
+    refreshData(): void {
+        this.deliveryOrderService.getAll().subscribe({
+            next: (data: any) => {
+                // Vérifier si des changements ont eu lieu
+                let hasChanges = false;
+                if (this.deliveryOrders.length !== data.length) {
+                    hasChanges = true;
+                } else {
+                    for (let i = 0; i < data.length; i++) {
+                        const oldOrder = this.deliveryOrders.find(o => o.idDelivery === data[i].idDelivery);
+                        if (oldOrder && oldOrder.statut !== data[i].statut) {
+                            hasChanges = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (hasChanges) {
+                    console.log('🔄 Mise à jour automatique détectée');
+                    this.deliveryOrders = data;
+                    this.filterOrders();
+                    this.cd.detectChanges();
+                }
+            },
+            error: (error) => {
+                console.error('Erreur refresh:', error);
+            }
+        });
     }
 
     // ==================== RECHERCHE DYNAMIQUE ====================

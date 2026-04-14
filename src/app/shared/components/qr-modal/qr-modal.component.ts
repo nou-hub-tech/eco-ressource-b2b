@@ -1,7 +1,7 @@
-import { ChangeDetectorRef, Component, ElementRef, inject, Input, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import QRCode from 'qrcode';
-import { QrCodeService } from '../../../core/services/qr-code.service';
+import { DeliveryOrderService } from '../../../core/services/delivery-order.service';
+import { StatutCommande } from '../../../core/models/statut';
 
 @Component({
     selector: 'app-qr-modal',
@@ -13,148 +13,147 @@ import { QrCodeService } from '../../../core/services/qr-code.service';
 export class QrModalComponent {
     @Input() order: any;
 
-    @ViewChild('qrCanvas') qrCanvas?: ElementRef<HTMLCanvasElement>;
-
     private readonly cd = inject(ChangeDetectorRef);
-    private readonly qr = inject(QrCodeService);
+    private readonly deliveryOrderService = inject(DeliveryOrderService);
 
-    isLoading = true;
+    isLoading = false;
     errorMessage = '';
     showModal = false;
-    private canvasResolveAttempts = 0;
+    qrUrl = '';
+    lienConfirmation = '';
 
     open(order: any): void {
         this.order = order;
         this.showModal = true;
-        this.isLoading = true;
+        this.isLoading = false;
         this.errorMessage = '';
-        this.canvasResolveAttempts = 0;
+        
+        // Utilise l'URL ngrok
+        const ngrokUrl = 'https://exes-unreal-movable.ngrok-free.dev';
+        this.lienConfirmation = `${ngrokUrl}/api/delivery-orders/update-by-qr/${this.order.idDelivery}`;
+        
+        this.qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(this.lienConfirmation)}&size=250`;
+        
         this.cd.detectChanges();
-        queueMicrotask(() => void this.paintQrWhenReady());
     }
 
     close(): void {
         this.showModal = false;
-        this.isLoading = true;
         this.cd.detectChanges();
     }
 
-    private paintQrWhenReady(): void {
-        const canvas = this.qrCanvas?.nativeElement;
-        if (!canvas && this.canvasResolveAttempts < 30) {
-            this.canvasResolveAttempts++;
-            setTimeout(() => this.paintQrWhenReady(), 20);
-            return;
-        }
-        void this.paintQr(canvas ?? null);
-    }
-
-    private async paintQr(canvas: HTMLCanvasElement | null): Promise<void> {
-        if (!canvas || !this.order) {
-            this.errorMessage = 'Erreur technique';
-            this.isLoading = false;
-            this.cd.detectChanges();
-            return;
-        }
-
-        const url = this.qr.generateQrData(this.order.idDelivery);
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-
-        try {
-            await QRCode.toCanvas(canvas, url, {
-                width: 250,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#ffffff'
-                },
-                errorCorrectionLevel: 'H'
-            });
-            this.isLoading = false;
-            this.errorMessage = '';
-        } catch (error) {
-            console.error('QR generation failed', error);
-            this.errorMessage = 'Erreur lors de la génération du QR code';
-            this.isLoading = false;
-        }
-        this.cd.detectChanges();
-    }
-
-    private getCanvas(): HTMLCanvasElement | null {
-        return this.qrCanvas?.nativeElement ?? null;
-    }
-
-    private getDataUrl(): string | null {
-        const canvas = this.getCanvas();
-        if (!canvas) {
-            return null;
-        }
-        try {
-            return canvas.toDataURL('image/png');
-        } catch {
-            return null;
-        }
-    }
-
+    // ✅ Télécharger le QR code
     downloadQRCode(): void {
-        const dataUrl = this.getDataUrl();
-        if (!dataUrl || !this.order) {
-            return;
+        const img = document.getElementById('qrCodeImage') as HTMLImageElement;
+        if (img && img.src) {
+            const link = document.createElement('a');
+            link.download = `QR_Code_Commande_${this.order.idDelivery}.png`;
+            link.href = img.src;
+            link.click();
+        } else {
+            // Alternative: créer un canvas à partir de l'image
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const tempImg = new Image();
+            tempImg.crossOrigin = 'Anonymous';
+            tempImg.onload = () => {
+                canvas.width = tempImg.width;
+                canvas.height = tempImg.height;
+                ctx?.drawImage(tempImg, 0, 0);
+                const link = document.createElement('a');
+                link.download = `QR_Code_Commande_${this.order.idDelivery}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            };
+            tempImg.src = this.qrUrl;
         }
-        const link = document.createElement('a');
-        link.download = `commande_${this.order.idDelivery}.png`;
-        link.href = dataUrl;
-        link.click();
     }
 
+    // ✅ Imprimer le QR code
     printQRCode(): void {
-        const dataUrl = this.getDataUrl();
-        if (!dataUrl || !this.order) {
-            return;
-        }
-        const win = window.open();
-        if (!win) {
-            return;
-        }
-        win.document.write(`
+        const img = document.getElementById('qrCodeImage') as HTMLImageElement;
+        if (img && img.src) {
+            const printWindow = window.open('', '_blank');
+            printWindow?.document.write(`
                 <html>
                     <head>
                         <title>QR Code Commande #${this.order.idDelivery}</title>
                         <style>
-                            body { font-family: Arial; text-align: center; padding: 20px; }
-                            .info { background: #f5f5f5; padding: 10px; margin: 20px 0; border-radius: 8px; }
+                            body {
+                                font-family: Arial, sans-serif;
+                                text-align: center;
+                                padding: 50px;
+                            }
+                            .qr-code {
+                                margin: 30px auto;
+                            }
+                            .info {
+                                margin-top: 30px;
+                                font-size: 14px;
+                                color: #666;
+                            }
+                            @media print {
+                                .no-print {
+                                    display: none;
+                                }
+                            }
                         </style>
                     </head>
                     <body>
                         <h1>QR Code - Commande #${this.order.idDelivery}</h1>
+                        <div class="qr-code">
+                            <img src="${img.src}" alt="QR Code" width="250" height="250">
+                        </div>
                         <div class="info">
                             <p><strong>Client:</strong> ${this.order.nomClient}</p>
                             <p><strong>Adresse:</strong> ${this.order.adresseLivraison}</p>
-                            <p><strong>Statut:</strong> ${this.order.statut}</p>
+                            <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
                         </div>
-                        <img src="${dataUrl}" alt="QR" />
-                        <p>Scannez ce QR code pour valider la livraison</p>
-                        <button onclick="window.close()">Fermer</button>
+                        <div class="no-print">
+                            <button onclick="window.print()">Imprimer</button>
+                            <button onclick="window.close()">Fermer</button>
+                        </div>
+                        <script>
+                            window.print();
+                        </script>
                     </body>
                 </html>
             `);
-        win.document.close();
-        win.print();
+            printWindow?.document.close();
+        }
+    }
+
+    // ✅ Confirmer la livraison avec un clic
+    confirmerLivraison(): void {
+        if (!this.order) return;
+        
+        this.isLoading = true;
+        this.deliveryOrderService.updateStatut(this.order.idDelivery, StatutCommande.LIVREE).subscribe({
+            next: () => {
+                this.isLoading = false;
+                alert(`✅ Commande #${this.order.idDelivery} livrée avec succès!`);
+                this.close();
+                window.location.reload();
+            },
+            error: (error) => {
+                console.error('Erreur:', error);
+                this.errorMessage = 'Erreur lors de la confirmation';
+                this.isLoading = false;
+            }
+        });
+    }
+
+    copierLien(): void {
+        navigator.clipboard.writeText(this.lienConfirmation);
+        alert('Lien copié!');
     }
 
     getStatutClass(statut: string): string {
         switch (statut) {
-            case 'EN_ATTENTE':
-                return 'badge bg-warning';
-            case 'EN_COURS':
-                return 'badge bg-info';
-            case 'LIVREE':
-                return 'badge bg-success';
-            default:
-                return 'badge bg-secondary';
+            case 'EN_ATTENTE': return 'badge bg-warning';
+            case 'EN_COURS': return 'badge bg-info';
+            case 'LIVREE': return 'badge bg-success';
+            default: return 'badge bg-secondary';
         }
     }
 }
