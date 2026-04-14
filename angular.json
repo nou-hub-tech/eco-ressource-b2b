@@ -44,9 +44,6 @@
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "node_modules/bootstrap-icons/font/bootstrap-icons.css",
               "src/styles.css"
-            ],
-            "scripts": [
-              "node_modules/qrcodejs2/qrcode.min.js"
             ]
           },
           "configurations": {
@@ -111,9 +108,6 @@
             ],
             "styles": [
               "src/styles.css"
-            ],
-            "scripts": [
-              "node_modules/qrcodejs2/qrcode.min.js"
             ]
           }
         }

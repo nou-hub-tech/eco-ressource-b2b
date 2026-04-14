@@ -8,31 +8,36 @@
             <button class="btn-close" (click)="close()">×</button>
         </div>
         <div class="modal-body">
-            <div *ngIf="isLoading" class="text-center">
-                <div class="spinner-border text-primary"></div>
-                <p>Génération du QR code...</p>
-            </div>
-            
-            <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
-            
-            <div *ngIf="!isLoading && !errorMessage">
-                <div class="order-info">
-                    <p><strong>Client:</strong> {{ order?.nomClient }}</p>
-                    <p><strong>Adresse:</strong> {{ order?.adresseLivraison }}</p>
-                    <p><strong>Statut:</strong> 
-                        <span [class]="getStatutClass(order?.statut)">{{ order?.statut }}</span>
+            <!-- Canvas présent pendant le chargement : le QR est dessiné via le package npm `qrcode` -->
+            <div *ngIf="order" class="qr-modal-inner">
+                <div *ngIf="isLoading" class="qr-loading text-center">
+                    <div class="spinner-border text-primary"></div>
+                    <p>{{ errorMessage || 'Génération du QR code...' }}</p>
+                </div>
+
+                <div class="order-info" *ngIf="!isLoading && !errorMessage">
+                    <p><strong>Client:</strong> {{ order.nomClient }}</p>
+                    <p><strong>Adresse:</strong> {{ order.adresseLivraison }}</p>
+                    <p><strong>Statut:</strong>
+                        <span [class]="getStatutClass(order.statut)">{{ order.statut }}</span>
                     </p>
                 </div>
-                
-                <div #qrcode class="qrcode-container"></div>
-                
-                <div class="btn-group">
+
+                <div class="qrcode-container">
+                    <canvas #qrCanvas class="qr-canvas" width="250" height="250" aria-label="QR code livraison"></canvas>
+                </div>
+
+                <div class="btn-group" *ngIf="!isLoading && !errorMessage">
                     <button class="btn btn-success" (click)="downloadQRCode()">
                         <i class="bi bi-download"></i> Télécharger
                     </button>
                     <button class="btn btn-info" (click)="printQRCode()">
                         <i class="bi bi-printer"></i> Imprimer
                     </button>
+                </div>
+
+                <div *ngIf="!isLoading && errorMessage" class="alert alert-danger">
+                    {{ errorMessage }}
                 </div>
             </div>
         </div>

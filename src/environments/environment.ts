@@ -1,4 +1,11 @@
-export const environment = {
+import type { AppEnvironment } from './app-environment';
+
+export const environment: AppEnvironment = {
   production: false,
-  apiUrl: 'http://localhost:8080/api'
+  apiUrl: '/api',
+  /**
+   * URL de base stable pour le QR (domaine, tunnel ngrok, etc.).
+   * Vide = `window.location.origin`.
+   */
+  qrCodeBaseUrl: ''
 };

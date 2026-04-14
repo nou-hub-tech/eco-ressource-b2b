@@ -15,10 +15,18 @@ export class JwtInterceptor implements HttpInterceptor {
     req: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
+    
+    // ✅ IGNORER tous les appels API de gestion livraison
+    if (req.url.includes('/api/delivery-orders') || 
+        req.url.includes('/api/shipments') ||
+        req.url.includes('/api/dashboard')) {
+      console.log('[JwtInterceptor] Ignoré - API Gestion Livraison');
+      return next.handle(req);
+    }
+    
     const token = localStorage.getItem(TOKEN_KEY);
     console.log('[JwtInterceptor] Token trouvé:', !!token);
     console.log('[JwtInterceptor] URL:', req.url);
-    console.log('[JwtInterceptor] Headers avant:', req.headers.keys());
     
     if (!token) {
       console.log('[JwtInterceptor] Pas de token, requête non modifiée');
@@ -32,7 +40,6 @@ export class JwtInterceptor implements HttpInterceptor {
         'Content-Type': 'application/json'
       }
     });
-    console.log('[JwtInterceptor] Headers après:', authReq.headers.get('Authorization'));
     return next.handle(authReq);
   }
 }

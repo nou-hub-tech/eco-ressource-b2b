@@ -1,4 +1,7 @@
-export const environment = {
+import type { AppEnvironment } from './app-environment';
+
+export const environment: AppEnvironment = {
   production: true,
-  apiUrl: 'http://localhost:8080/api'
+  apiUrl: '/api',
+  qrCodeBaseUrl: ''
 };

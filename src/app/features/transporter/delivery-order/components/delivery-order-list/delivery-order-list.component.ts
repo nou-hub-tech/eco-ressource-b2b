@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, ChangeDetectionStrategy, Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, NgZone } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -8,17 +8,18 @@ import { DeliveryOrderService } from '../../../../../core/services/delivery-orde
 import { AlertService } from '../../../../../core/services/alert.service';
 import { DeliveryOrder } from '../../../../../core/models/delivery-order';
 import { StatutCommande } from '../../../../../core/models/statut';
-
-declare var QRCode: any;
+import { QrModalComponent } from '../../../../../shared/components/qr-modal/qr-modal.component';
 
 @Component({
     selector: 'app-delivery-order-list',
     templateUrl: './delivery-order-list.component.html',
     styleUrls: ['./delivery-order-list.component.css'],
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule]
+    imports: [CommonModule, ReactiveFormsModule, QrModalComponent]
 })
-export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewInit {
+export class DeliveryOrderListComponent implements OnInit, OnDestroy {
+    
+    @ViewChild('qrModal') qrModal!: QrModalComponent;
     
     deliveryOrders: DeliveryOrder[] = [];
     filteredOrders: DeliveryOrder[] = [];
@@ -32,19 +33,13 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
     showStats = false;
     rechercheActive = false;
     private subscriptions: Subscription = new Subscription();
-    
-    // QR Code properties
-    showQrModal = false;
-    selectedOrder: DeliveryOrder | null = null;
-    @ViewChild('qrCanvas', { static: false }) qrCanvas!: ElementRef;
 
     constructor(
         private deliveryOrderService: DeliveryOrderService,
         private alertService: AlertService,
         private router: Router,
         private fb: FormBuilder,
-        private cd: ChangeDetectorRef,
-        private zone: NgZone
+        private cd: ChangeDetectorRef
     ) {
         this.searchForm = this.fb.group({
             nomClient: [''],
@@ -65,22 +60,6 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
     ngOnDestroy(): void {
         this.subscriptions.unsubscribe();
         window.removeEventListener('orderChanged', this.handleOrderChange.bind(this));
-    }
-
-    ngAfterViewInit(): void {
-        // ViewChild is now available
-        this.cd.detectChanges();
-        
-        // Vérifier que la libraire QRCode est chargée
-        console.log('QRCode library available:', typeof QRCode !== 'undefined' ? 'YES' : 'NO');
-        if (typeof QRCode === 'undefined') {
-            console.error('⚠️ QRCode library not loaded! Make sure qrcode.min.js is included in angular.json scripts');
-        }
-    }
-
-    private runZone(fn: () => void): void {
-        fn();
-        this.cd.markForCheck();
     }
 
     // ==================== RECHERCHE DYNAMIQUE ====================
@@ -104,18 +83,16 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
             )
             .subscribe({
                 next: (data: any) => {
-                    this.runZone(() => {
-                        this.deliveryOrders = data;
-                        this.filterOrders();
-                        this.isLoading = false;
-                    });
+                    this.deliveryOrders = data;
+                    this.filterOrders();
+                    this.isLoading = false;
+                    this.cd.detectChanges();
                 },
                 error: (error: any) => {
-                    this.runZone(() => {
-                        console.error('Erreur recherche nom:', error);
-                        this.errorMessage = 'Erreur lors de la recherche par nom';
-                        this.isLoading = false;
-                    });
+                    console.error('Erreur recherche nom:', error);
+                    this.errorMessage = 'Erreur lors de la recherche par nom';
+                    this.isLoading = false;
+                    this.cd.detectChanges();
                 }
             });
         this.subscriptions.add(nomClientSub);
@@ -138,18 +115,16 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
             )
             .subscribe({
                 next: (data: any) => {
-                    this.runZone(() => {
-                        this.deliveryOrders = data;
-                        this.filterOrders();
-                        this.isLoading = false;
-                    });
+                    this.deliveryOrders = data;
+                    this.filterOrders();
+                    this.isLoading = false;
+                    this.cd.detectChanges();
                 },
                 error: (error: any) => {
-                    this.runZone(() => {
-                        console.error('Erreur recherche adresse:', error);
-                        this.errorMessage = 'Erreur lors de la recherche par adresse';
-                        this.isLoading = false;
-                    });
+                    console.error('Erreur recherche adresse:', error);
+                    this.errorMessage = 'Erreur lors de la recherche par adresse';
+                    this.isLoading = false;
+                    this.cd.detectChanges();
                 }
             });
         this.subscriptions.add(adresseSub);
@@ -171,18 +146,16 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
             )
             .subscribe({
                 next: (data: any) => {
-                    this.runZone(() => {
-                        this.deliveryOrders = data;
-                        this.filterOrders();
-                        this.isLoading = false;
-                    });
+                    this.deliveryOrders = data;
+                    this.filterOrders();
+                    this.isLoading = false;
+                    this.cd.detectChanges();
                 },
                 error: (error: any) => {
-                    this.runZone(() => {
-                        console.error('Erreur recherche statut:', error);
-                        this.errorMessage = 'Erreur lors de la recherche par statut';
-                        this.isLoading = false;
-                    });
+                    console.error('Erreur recherche statut:', error);
+                    this.errorMessage = 'Erreur lors de la recherche par statut';
+                    this.isLoading = false;
+                    this.cd.detectChanges();
                 }
             });
         this.subscriptions.add(statutSub);
@@ -196,7 +169,6 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
                         this.rechercheActive = true;
                         this.isLoading = true;
                         const dateStr = value;
-                        console.log('Recherche par date:', dateStr);
                         return this.deliveryOrderService.searchByDate(dateStr);
                     } else if (!this.hasActiveFilters()) {
                         this.rechercheActive = false;
@@ -207,19 +179,16 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
             )
             .subscribe({
                 next: (data: any) => {
-                    this.runZone(() => {
-                        console.log('Résultats recherche par date:', data);
-                        this.deliveryOrders = data;
-                        this.filterOrders();
-                        this.isLoading = false;
-                    });
+                    this.deliveryOrders = data;
+                    this.filterOrders();
+                    this.isLoading = false;
+                    this.cd.detectChanges();
                 },
                 error: (error: any) => {
-                    this.runZone(() => {
-                        console.error('Erreur recherche date:', error);
-                        this.errorMessage = 'Erreur lors de la recherche par date: ' + (error.error?.message || error.message);
-                        this.isLoading = false;
-                    });
+                    console.error('Erreur recherche date:', error);
+                    this.errorMessage = 'Erreur lors de la recherche par date';
+                    this.isLoading = false;
+                    this.cd.detectChanges();
                 }
             });
         this.subscriptions.add(dateSub);
@@ -242,20 +211,18 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
         this.isLoading = true;
         const sub = this.deliveryOrderService.getAll().subscribe({
             next: (data: any) => {
-                this.runZone(() => {
-                    this.deliveryOrders = data;
-                    this.filterOrders();
-                    this.isLoading = false;
-                    this.alertService.checkRetardCommandes(data);
-                    this.alertService.checkRappelLivraison(data);
-                });
+                this.deliveryOrders = data;
+                this.filterOrders();
+                this.isLoading = false;
+                this.alertService.checkRetardCommandes(data);
+                this.alertService.checkRappelLivraison(data);
+                this.cd.detectChanges();
             },
             error: (error) => {
-                this.runZone(() => {
-                    console.error('Erreur chargement:', error);
-                    this.errorMessage = 'Erreur lors du chargement';
-                    this.isLoading = false;
-                });
+                console.error('Erreur chargement:', error);
+                this.errorMessage = 'Erreur lors du chargement';
+                this.isLoading = false;
+                this.cd.detectChanges();
             }
         });
         this.subscriptions.add(sub);
@@ -285,18 +252,16 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
         this.isLoading = true;
         const sub = this.deliveryOrderService.sortBy(field, this.sortOrder).subscribe({
             next: (data: any) => {
-                this.runZone(() => {
-                    this.deliveryOrders = data;
-                    this.filterOrders();
-                    this.isLoading = false;
-                });
+                this.deliveryOrders = data;
+                this.filterOrders();
+                this.isLoading = false;
+                this.cd.detectChanges();
             },
             error: (error: any) => {
-                this.runZone(() => {
-                    console.error('Erreur tri:', error);
-                    this.errorMessage = 'Erreur lors du tri';
-                    this.isLoading = false;
-                });
+                console.error('Erreur tri:', error);
+                this.errorMessage = 'Erreur lors du tri';
+                this.isLoading = false;
+                this.cd.detectChanges();
             }
         });
         this.subscriptions.add(sub);
@@ -307,14 +272,11 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
     loadStatistiques(): void {
         const sub = this.deliveryOrderService.getStatistiques().subscribe({
             next: (data: any) => {
-                this.runZone(() => {
-                    this.statistiques = data;
-                });
+                this.statistiques = data;
+                this.cd.detectChanges();
             },
             error: (error: any) => {
-                this.runZone(() => {
-                    console.error('Erreur chargement statistiques', error);
-                });
+                console.error('Erreur chargement statistiques', error);
             }
         });
         this.subscriptions.add(sub);
@@ -334,92 +296,17 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
         this.loadStatistiques();
     }
 
-    // ==================== QR CODE CORRIGÉ ====================
+    // ==================== QR CODE ====================
     
     openQrCode(order: DeliveryOrder): void {
-        this.selectedOrder = order;
-        this.showQrModal = true;
-        
-        // Forcer la détection des changements
-        this.cd.markForCheck();
-        
-        // Attendre que le DOM soit rendu avant de générer le QR code
-        // Utiliser requestAnimationFrame pour un timing mieux optimisé
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                this.generateQRCode();
-            }, 100);
-        });
-    }
-    
-    closeQrModal(): void {
-        this.showQrModal = false;
-        this.selectedOrder = null;
-        this.loadDeliveryOrders();
-    }
-    
-    generateQRCode(): void {
-        console.log('🔵 generateQRCode appelé');
-        console.log('qrCanvas:', this.qrCanvas);
-        console.log('selectedOrder:', this.selectedOrder);
-        
-        if (!this.selectedOrder) {
-            console.error('❌ Aucune commande sélectionnée');
-            return;
-        }
-        
-        try {
-            // Vérifier que QRCode est disponible
-            if (typeof QRCode === 'undefined') {
-                console.error('❌ QRCode library not loaded');
-                alert('⚠️ Erreur: Libraire QRCode non chargée. Rechargez la page.');
-                return;
-            }
-            
-            const container = document.querySelector('[qrcanvas]') as HTMLElement || this.qrCanvas?.nativeElement;
-            
-            if (!container) {
-                console.error('❌ Conteneur QR code non trouvé dans le DOM');
-                alert('⚠️ Erreur: Conteneur QR code non trouvé. Consultez la console.');
-                return;
-            }
-            
-            console.log('✅ Container trouvé:', container);
-            
-            // Vider le conteneur
-            container.innerHTML = '';
-            
-            // ✅ Construire l'URL du QR code
-            let baseUrl: string;
-            const hostname = window.location.hostname;
-            
-            if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                baseUrl = 'http://192.168.182.154:8080';
-            } else {
-                baseUrl = `http://${hostname}:8080`;
-            }
-            
-            const url = `${baseUrl}/api/delivery-orders/update-by-qr/${this.selectedOrder.idDelivery}`;
-            console.log('🔗 QR code URL:', url);
-            
-            // Générer le QR code
-            new QRCode(container, {
-                text: url,
-                width: 200,
-                height: 200,
-                colorDark: "#000000",
-                colorLight: "#ffffff"
-            });
-            
-            console.log('✅ QR code généré avec succès!');
-            
-        } catch (error) {
-            console.error('❌ Erreur lors de la génération du QR code:', error);
-            alert('⚠️ Erreur: ' + (error instanceof Error ? error.message : 'Erreur inconnue'));
+        if (this.qrModal) {
+            this.qrModal.open(order);
+        } else {
+            console.error('qrModal not found');
         }
     }
 
-    // ==================== ACTIONS ====================
+    // ================ ACTIONS ===============
     
     onEdit(id: number): void {
         this.router.navigate(['/transporter/delivery-orders/edit', id]);
@@ -433,11 +320,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy, AfterViewI
         if (confirm('Supprimer cette commande ?')) {
             const sub = this.deliveryOrderService.delete(id).subscribe({
                 next: () => {
-                    if (!this.rechercheActive) {
-                        this.loadDeliveryOrders();
-                    } else {
-                        this.loadDeliveryOrders();
-                    }
+                    this.loadDeliveryOrders();
                     this.loadStatistiques();
                 },
                 error: () => {
