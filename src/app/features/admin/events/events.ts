@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { finalize } from 'rxjs/operators';
 import {
   PlatformEventDto,
@@ -30,7 +30,14 @@ export class Events implements OnInit {
 
   form: PlatformEventRequestPayload = Events.emptyForm();
 
-  constructor(private readonly eventService: EventService) {}
+  constructor(
+    private readonly eventService: EventService,
+    private readonly cdr: ChangeDetectorRef
+  ) {}
+
+  private requestRender(): void {
+    this.cdr.markForCheck();
+  }
 
   private static emptyForm(): PlatformEventRequestPayload {
     return {
@@ -65,12 +72,24 @@ export class Events implements OnInit {
   reloadEvents(): void {
     this.listError = null;
     this.loading = true;
+    this.requestRender();
     this.eventService
       .getPlatformEvents()
-      .pipe(finalize(() => (this.loading = false)))
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.requestRender();
+        })
+      )
       .subscribe({
-        next: rows => (this.events = rows),
-        error: () => (this.listError = 'Unable to load events.')
+        next: rows => {
+          this.events = rows;
+          this.requestRender();
+        },
+        error: () => {
+          this.listError = 'Unable to load events.';
+          this.requestRender();
+        }
       });
   }
 
@@ -79,6 +98,7 @@ export class Events implements OnInit {
     this.form = Events.emptyForm();
     this.saveError = null;
     this.showModal = true;
+    this.requestRender();
   }
 
   openEditModal(e: PlatformEventDto): void {
@@ -93,12 +113,14 @@ export class Events implements OnInit {
     };
     this.saveError = null;
     this.showModal = true;
+    this.requestRender();
   }
 
   closeModal(): void {
     this.showModal = false;
     this.editingId = null;
     this.saveError = null;
+    this.requestRender();
   }
 
   submitModal(): void {
@@ -116,17 +138,28 @@ export class Events implements OnInit {
 
     this.saveError = null;
     this.saving = true;
+    this.requestRender();
     const request$ =
       this.editingId != null
         ? this.eventService.updatePlatformEvent(this.editingId, this.form)
         : this.eventService.createPlatformEvent(this.form);
 
-    request$.pipe(finalize(() => (this.saving = false))).subscribe({
+    request$
+      .pipe(
+        finalize(() => {
+          this.saving = false;
+          this.requestRender();
+        })
+      )
+      .subscribe({
       next: () => {
-        
         this.closeModal();
+        this.reloadEvents();
       },
-      error: () => (this.saveError = 'Could not save the event.')
+      error: () => {
+        this.saveError = 'Could not save the event.';
+        this.requestRender();
+      }
     });
   }
 
@@ -136,7 +169,10 @@ export class Events implements OnInit {
     }
     this.eventService.deletePlatformEvent(e.id).subscribe({
       next: () => this.reloadEvents(),
-      error: () => (this.listError = 'Could not delete the event.')
+      error: () => {
+        this.listError = 'Could not delete the event.';
+        this.requestRender();
+      }
     });
   }
 }
