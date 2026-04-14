@@ -35,6 +35,29 @@ export interface EventDto {
   type: string;
 }
 
+/** Matches Spring `EventStatus` enum names (STRING persistence). */
+export type PlatformEventStatus = string;
+
+export interface PlatformEventDto {
+  id: number;
+  title: string;
+  eventDate: string;
+  location: string;
+  participants: number;
+  status: PlatformEventStatus;
+  typeLabel: string;
+  createdAt: string;
+}
+
+export interface PlatformEventRequestPayload {
+  title: string;
+  eventDate: string;
+  location: string;
+  participants: number;
+  status: string;
+  typeLabel: string;
+}
+
 export interface SolidarityDto {
   id: number;
   name: string;
@@ -74,6 +97,39 @@ export class AdminApiService {
 
   getEvents(): Observable<EventDto[]> {
     return this.http.get<EventDto[]>(`${this.apiUrl}/admin/events`);
+  }
+
+  getPlatformEvents(): Observable<PlatformEventDto[]> {
+    return this.http.get<PlatformEventDto[]>(`${this.apiUrl}/platform-events`);
+  }
+
+  getPlatformEvent(id: number): Observable<PlatformEventDto> {
+    return this.http.get<PlatformEventDto>(
+      `${this.apiUrl}/platform-events/${id}`
+    );
+  }
+
+  createPlatformEvent(
+    body: PlatformEventRequestPayload
+  ): Observable<PlatformEventDto> {
+    return this.http.post<PlatformEventDto>(
+      `${this.apiUrl}/platform-events`,
+      body
+    );
+  }
+
+  updatePlatformEvent(
+    id: number,
+    body: PlatformEventRequestPayload
+  ): Observable<PlatformEventDto> {
+    return this.http.put<PlatformEventDto>(
+      `${this.apiUrl}/platform-events/${id}`,
+      body
+    );
+  }
+
+  deletePlatformEvent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/platform-events/${id}`);
   }
 
   getReservations(): Observable<ReservationDto[]> {
