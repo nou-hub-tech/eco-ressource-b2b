@@ -30,7 +30,7 @@ export class DeliveryOrderFormComponent implements OnInit {
         private router: Router,
         private cd: ChangeDetectorRef
     ) {
-        // ✅ Définir la date minimale (aujourd'hui)
+        //  la date minimale (aujourd'hui)
         const now = new Date();
         this.today = now.toISOString().slice(0, 16);
         this.deliveryOrderForm = this.createForm();
@@ -70,7 +70,7 @@ export class DeliveryOrderFormComponent implements OnInit {
             return { 'invalidYear': true };
         }
         
-        // Vérifier que la date est dans le futur
+        // la date est dans le futur
         const now = new Date();
         if (date < now) {
             return { 'pastDate': true };
@@ -83,7 +83,7 @@ export class DeliveryOrderFormComponent implements OnInit {
         this.isLoading = true;
         this.deliveryOrderService.getById(this.deliveryOrderId!).subscribe({
             next: (order: any) => {
-                // ✅ Formater la date pour input datetime-local
+                // Formater la date pour input datetime-local
                 const date = new Date(order.datePrevue);
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -177,7 +177,7 @@ export class DeliveryOrderFormComponent implements OnInit {
             },
             error: (error: any) => {
                 console.error('Erreur détaillée:', error);
-                // ✅ Afficher le message d'erreur détaillé
+                //  le message d'erreur détaillé
                 let errorMsg = 'Erreur inconnue';
                 if (error.error?.message) {
                     errorMsg = error.error.message;
