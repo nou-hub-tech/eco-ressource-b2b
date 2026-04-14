@@ -6,7 +6,8 @@ import { SharedModule } from '../../shared/shared-module';
 import { Layout } from '../../shared/components/layout/layout';
 import { Dashboard } from './dashboard/dashboard';
 import { Users } from './users/users';
-import { Events } from './events/events';
+import { Events } from '../events/events';
+import { FeaturesEventsModule } from '../events/events-module';
 import { Stock } from './stock/stock';
 import { Deliveries } from './deliveries/deliveries';
 import { Listings } from './listings/listings';
@@ -34,7 +35,14 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Reservations, Treasury, Solidarity],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
+  declarations: [Dashboard, Users, Stock, Deliveries, Listings, Reservations, Treasury, Solidarity],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    SharedModule,
+    FeaturesEventsModule,
+    RouterModule.forChild(routes)
+  ]
 })
 export class AdminModule {}

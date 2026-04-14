@@ -1,17 +1,22 @@
+<div class="toast-banner" *ngIf="toastMessage" [class.toast-banner--error]="toastKind === 'error'">
+  {{ toastMessage }}
+</div>
+
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
       <h1>Events & Campaigns</h1>
-      <p>Manage platform events (admin API)</p>
+      <p *ngIf="isAdmin">Manage platform events (admin API)</p>
+      <p *ngIf="!isAdmin">Browse and participate in B2B events and circular economy campaigns</p>
     </div>
-    <button class="btn btn-primary" type="button" (click)="openCreateModal()">+ Create Event</button>
+    <button *ngIf="isAdmin" class="btn btn-primary" type="button" (click)="openCreateModal()">+ Create Event</button>
   </div>
 
   <p *ngIf="listError" style="color:#ef4444;font-size:13px;margin-bottom:12px">{{listError}}</p>
   <p *ngIf="loading" style="font-size:13px;color:var(--text3)">Loading…</p>
 
   <div class="grid-2" *ngIf="!loading">
-    <div class="card" *ngFor="let e of events; trackBy: trackById" style="padding:20px">
+    <div class="card" *ngFor="let e of displayRows; trackBy: trackById" style="padding:20px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <span class="badge badge-info">{{e.typeLabel}}</span>
         <span class="badge" [ngClass]="statusBadgeClass(e.status)">
@@ -22,13 +27,32 @@
         {{e.title}}
       </h3>
       <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text3);margin-bottom:14px">
-        <span>📅 {{e.eventDate | date:'mediumDate'}}</span>
-        <span>📍 {{e.location}}</span>
-        <span>👥 {{e.participants}} participants</span>
+        <span>&#128197; {{e.eventDate | date:'mediumDate'}}</span>
+        <span>&#128205; {{e.location}}</span>
+        <span>&#128101; {{e.participants}} participants</span>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="isAdmin">
         <button class="btn btn-outline btn-sm" type="button" (click)="openEditModal(e)">Edit</button>
         <button class="btn btn-outline btn-sm" type="button" (click)="deleteEvent(e)">Delete</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="!isAdmin">
+        <button class="btn btn-outline btn-sm" type="button" (click)="openDetailModal(e)">View Details</button>
+        <button
+          *ngIf="canShowJoin(e)"
+          class="btn btn-primary btn-sm"
+          type="button"
+          (click)="joinEvent(e)"
+          [disabled]="actionBusyForId === e.id">
+          {{ actionBusyForId === e.id ? '…' : 'Join Event' }}
+        </button>
+        <button
+          *ngIf="canShowLeave(e)"
+          class="btn btn-sm btn-danger-outline"
+          type="button"
+          (click)="leaveEvent(e)"
+          [disabled]="actionBusyForId === e.id">
+          {{ actionBusyForId === e.id ? '…' : 'Cancel participation' }}
+        </button>
       </div>
     </div>
   </div>
@@ -38,7 +62,7 @@
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>{{ editingId != null ? 'Edit Event' : 'Create Event' }}</h2>
-      <button class="btn btn-icon" type="button" (click)="closeModal()">✕</button>
+      <button class="btn btn-icon" type="button" (click)="closeModal()">&times;</button>
     </div>
     <p *ngIf="saveError" style="color:#ef4444;font-size:12px;margin:0 0 12px">{{saveError}}</p>
     <div class="form-group">
@@ -76,6 +100,26 @@
       <button class="btn btn-primary" type="button" (click)="submitModal()" [disabled]="saving">
         {{ saving ? 'Saving…' : (editingId != null ? 'Save' : 'Create') }}
       </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showDetailModal" (click)="closeDetailModal()">
+  <div class="modal modal--detail" (click)="$event.stopPropagation()" *ngIf="detailEvent as d">
+    <div class="modal-header">
+      <h2>{{ d.title }}</h2>
+      <button class="btn btn-icon" type="button" (click)="closeDetailModal()">&times;</button>
+    </div>
+    <div class="detail-body">
+      <p><strong>Type</strong> {{ d.typeLabel }}</p>
+      <p><strong>Status</strong> {{ d.status }}</p>
+      <p><strong>Date</strong> {{ d.eventDate | date:'mediumDate' }}</p>
+      <p><strong>Location</strong> {{ d.location }}</p>
+      <p><strong>Participants</strong> {{ d.participants }}</p>
+      <p><strong>Created</strong> {{ d.createdAt | date:'medium' }}</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" (click)="closeDetailModal()">Close</button>
     </div>
   </div>
 </div>

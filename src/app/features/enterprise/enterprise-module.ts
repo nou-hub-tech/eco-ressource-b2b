@@ -13,7 +13,8 @@ import { MyReservations } from './my-reservations/my-reservations';
 import { Transactions } from './transactions/transactions';
 import { Reports } from './reports/reports';
 import { Requests } from './requests/requests';
-import { Events } from './events/events';
+import { Events } from '../events/events';
+import { FeaturesEventsModule } from '../events/events-module';
 
 const routes: Routes = [
   {
@@ -36,7 +37,24 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [Dashboard, Marketplace, MyStock, MyDeliveries, MyListings, MyReservations, Transactions, Reports, Requests, Events],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
+  declarations: [
+    Dashboard,
+    Marketplace,
+    MyStock,
+    MyDeliveries,
+    MyListings,
+    MyReservations,
+    Transactions,
+    Reports,
+    Requests
+  ],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    SharedModule,
+    FeaturesEventsModule,
+    RouterModule.forChild(routes)
+  ]
 })
 export class EnterpriseModule {}
