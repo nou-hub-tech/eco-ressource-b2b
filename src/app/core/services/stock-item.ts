@@ -55,4 +55,8 @@ export class StockItemService {
   importFromExcel(rows: any[]): Observable<any> {
   return this.http.post(`${this.api}/import`, rows);
 }
+// Add this method
+getAdvancedStats(): Observable<any> {
+  return this.http.get<any>(`${this.api}/advanced-stats`);
+}
 }

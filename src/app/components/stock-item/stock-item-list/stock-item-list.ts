@@ -31,8 +31,7 @@ export class StockItemListComponent implements OnInit {
   nearExpiryItems: StockItem[] = [];
   showExpired: boolean = false;
   showNearExpiry: boolean = false;
-    activeTab: string = 'list'; // 'list', 'stats', or 'history'
-
+  activeTab: string = 'list';
 
   constructor(
     private stockItemService: StockItemService,
@@ -127,15 +126,21 @@ export class StockItemListComponent implements OnInit {
   }
 
   getSortIcon(column: string): string {
-    if (this.sortBy !== column) return '↕️';
-    return this.direction === 'asc' ? '⬆️' : '⬇️';
+  if (this.sortBy !== column) {
+    return '↕️'; // Non trié
   }
+  return this.direction === 'asc' ? '↑' : '↓'; // Tri ascendant ou descendant
+}
 
   addStockItem(): void { this.router.navigate(['/admin/stockitems/add']); }
   detailStockItem(id: number): void { this.router.navigate(['/admin/stockitems/detail', id]); }
   editStockItem(id: number): void { this.router.navigate(['/admin/stockitems/edit', id]); }
 
-  deleteStockItem(id: number): void {
+  deleteStockItem(id: number | undefined): void {
+    if (id === undefined || id === null) {
+      console.warn('Cannot delete: idStock is undefined');
+      return;
+    }
     if (confirm('Delete this stock item?')) {
       this.stockItemService.delete(id).subscribe(() => {
         this.loadPaginated();
@@ -151,26 +156,24 @@ export class StockItemListComponent implements OnInit {
   }
 
   isExpired(date: string): boolean {
-  if (!date) return false;
-  return new Date(date) < new Date();
-}
+    if (!date) return false;
+    return new Date(date) < new Date();
+  }
 
-isNearExpiry(date: string): boolean {
-  if (!date) return false;
-  const d = new Date(date);
-  const now = new Date();
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() + 30);
-  return d >= now && d <= cutoff;
-}
+  isNearExpiry(date: string): boolean {
+    if (!date) return false;
+    const d = new Date(date);
+    const now = new Date();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + 30);
+    return d >= now && d <= cutoff;
+  }
+
   exportToExcel(): void {
     const hasFilters = this.searchStatus || this.searchLocation || this.searchProductName;
-
     if (hasFilters) {
-      // export filtered results (current stockItems shown)
       this.generateExcel(this.stockItems);
     } else {
-      // export all stock items
       this.stockItemService.getAll().subscribe({
         next: (data) => this.generateExcel(data),
         error: (err) => console.error(err)
@@ -180,7 +183,7 @@ isNearExpiry(date: string): boolean {
 
   private generateExcel(items: StockItem[]): void {
     const exportData = items.map(s => ({
-      'ID': s.id_stock,
+      'ID': s.idStock,
       'Product': s.product?.name ?? '',
       'Quantity': s.quantity,
       'Unit Price (DT)': s.unitPrice,
@@ -196,7 +199,6 @@ isNearExpiry(date: string): boolean {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Stock Items');
 
-    // auto column width
     const cols = Object.keys(exportData[0] || {}).map(key => ({
       wch: Math.max(key.length, 15)
     }));
@@ -210,46 +212,47 @@ isNearExpiry(date: string): boolean {
     const fileName = `stock-items-${new Date().toISOString().slice(0, 10)}.xlsx`;
     saveAs(blob, fileName);
   }
+
   triggerImport(): void {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.xlsx';
-  input.onchange = (e: any) => {
-    const file = e.target.files[0];
-    if (file) this.handleImport(file);
-  };
-  input.click();
-}
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx';
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (file) this.handleImport(file);
+    };
+    input.click();
+  }
 
-handleImport(file: File): void {
-  const reader = new FileReader();
-  reader.onload = (e: any) => {
-    const workbook = XLSX.read(e.target.result, { type: 'array' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+  handleImport(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const workbook = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet);
 
-    if (rows.length === 0) {
-      alert('The file is empty!');
-      return;
-    }
+      if (rows.length === 0) {
+        alert('The file is empty!');
+        return;
+      }
 
-    if (!confirm(`Import ${rows.length} rows into the database?`)) return;
+      if (!confirm(`Import ${rows.length} rows into the database?`)) return;
 
-    this.stockItemService.importFromExcel(rows).subscribe({
-      next: (res) => {
-        alert(`✅ Imported ${res.saved} items successfully.${res.errors.length > 0 ? '\n⚠️ Errors:\n' + res.errors.join('\n') : ''}`);
-        this.loadPaginated();
-        this.loadTotalValue();
-        this.loadExpired();
-        this.loadNearExpiry();
-      },
-      error: (err) => alert('❌ Import failed: ' + err.message)
-    });
-  };
-  reader.readAsArrayBuffer(file);
-}
-// Add this method
-manageProducts(): void {
-  this.router.navigate(['/admin/products']);
-}
+      this.stockItemService.importFromExcel(rows).subscribe({
+        next: (res) => {
+          alert(`✅ Imported ${res.saved} items successfully.${res.errors.length > 0 ? '\n⚠️ Errors:\n' + res.errors.join('\n') : ''}`);
+          this.loadPaginated();
+          this.loadTotalValue();
+          this.loadExpired();
+          this.loadNearExpiry();
+        },
+        error: (err) => alert('❌ Import failed: ' + err.message)
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  manageProducts(): void {
+    this.router.navigate(['/admin/products']);
+  }
 }

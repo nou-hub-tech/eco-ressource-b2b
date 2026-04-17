@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, AfterViewInit } from '@angular/co
 import JsBarcode from 'jsbarcode';
 import { InventoryService } from '../../core/services/inventory';
 import Quagga from '@ericblade/quagga2';
-
+import { PdfGeneratorService } from '../../core/services/pdf-generator.service';
 @Component({
   selector: 'app-inventory-scan',
   standalone: false,
@@ -13,7 +13,7 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
   products: any[] = [];
   history: any[] = [];
   activeTab = 'products';
-
+  generatingPDF = false;
   barcode = '';
   realQty: number = 0;
   realCondition = '';
@@ -29,7 +29,8 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
 
   constructor(
     private inventoryService: InventoryService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private pdfGenerator: PdfGeneratorService
   ) {}
 
   ngOnInit() {
@@ -205,5 +206,44 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
     if (days < 0) return 'Expired';
     if (days < 60) return days + 'd left';
     return new Date(dlc).toLocaleDateString();
+  }
+  async exportInventoryToPDF() {
+    this.generatingPDF = true;
+    try {
+      await this.pdfGenerator.generateInventoryReport(this.products);
+    } catch (error) {
+      console.error('PDF generation failed', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      this.generatingPDF = false;
+    }
+  }
+  
+  async exportComparisonToPDF() {
+    if (!this.scanResult) {
+      alert('Please perform a scan first');
+      return;
+    }
+    this.generatingPDF = true;
+    try {
+      await this.pdfGenerator.generateComparisonReport(this.scanResult);
+    } catch (error) {
+      console.error('PDF generation failed', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      this.generatingPDF = false;
+    }
+  }
+  
+  async exportFullReport() {
+    this.generatingPDF = true;
+    try {
+      await this.pdfGenerator.generateFullReport(this.products, this.scanResult);
+    } catch (error) {
+      console.error('PDF generation failed', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      this.generatingPDF = false;
+    }
   }
 }

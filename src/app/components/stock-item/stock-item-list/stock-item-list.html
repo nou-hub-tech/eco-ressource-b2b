@@ -75,7 +75,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of expiredItems">
-            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.id_stock }}</span></td>
+            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.idStock }}</span></td>
             <td><strong style="color:var(--text)">{{ s.product?.name }}</strong></td>
             <td>{{ s.quantity }}</td>
             <td><span class="badge badge-danger">{{ s.expirationDate }}</span></td>
@@ -97,7 +97,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of nearExpiryItems">
-            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.id_stock }}</span></td>
+            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.idStock }}</span></td>
             <td><strong style="color:var(--text)">{{ s.product?.name }}</strong></td>
             <td>{{ s.quantity }}</td>
             <td><span class="badge badge-warning">{{ s.expirationDate }}</span></td>
@@ -132,27 +132,36 @@
     </div>
 
     <!-- Main Table -->
-    <div class="card" style="padding:0;margin-bottom:18px">
-      <table class="data-table">
+<div class="card" style="padding:0;margin-bottom:18px;overflow-x:auto">      <table class="data-table">
         <thead>
-          <tr>
-            <th style="width:50px">ID</th>
-            <th style="cursor:pointer" (click)="sort('quantity')">Qty ↕</th>
-            <th style="cursor:pointer" (click)="sort('unitPrice')">Unit Price ↕</th>
-            <th>Total</th>
-            <th>Product</th>
-            <th>Unit</th>
-            <th style="cursor:pointer" (click)="sort('status')">Status ↕</th>
-            <th style="cursor:pointer" (click)="sort('location')">Location ↕</th>
-            <th style="cursor:pointer" (click)="sort('expirationDate')">Expiry ↕</th>
-            <th>Condition</th>
-            <th style="width:60px">Image</th>
-            <th style="width:130px;text-align:right">Actions</th>
-          </tr>
-        </thead>
+  <tr>
+    <th style="width:50px">ID</th>
+    <th style="cursor:pointer" (click)="sort('quantity')">
+      Qty {{ getSortIcon('quantity') }}
+    </th>
+    <th style="cursor:pointer" (click)="sort('unitPrice')">
+      Unit Price {{ getSortIcon('unitPrice') }}
+    </th>
+    <th>Total</th>
+    <th>Product</th>
+    <th>Unit</th>
+    <th style="cursor:pointer" (click)="sort('status')">
+      Status {{ getSortIcon('status') }}
+    </th>
+    <th style="cursor:pointer" (click)="sort('location')">
+      Location {{ getSortIcon('location') }}
+    </th>
+    <th style="cursor:pointer" (click)="sort('expirationDate')">
+      Expiry {{ getSortIcon('expirationDate') }}
+    </th>
+    <th>Condition</th>
+    <th style="width:60px">Image</th>
+    <th style="width:130px;text-align:right">Actions</th>
+  </tr>
+</thead>
         <tbody>
           <tr *ngFor="let s of stockItems">
-            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.id_stock }}</span></td>
+            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.idStock }}</span></td>
             <td><strong style="color:var(--text)">{{ s.quantity }}</strong></td>
             <td><span style="color:var(--primary);font-weight:600">{{ s.unitPrice | number:'1.2-2' }} DT</span></td>
             <td><span style="font-weight:600;color:var(--text)">{{ s.quantity * s.unitPrice | number:'1.2-2' }} DT</span></td>
@@ -182,10 +191,18 @@
             </td>
             <td>
               <div style="display:flex;gap:5px;justify-content:flex-end">
-                <button class="btn btn-ghost btn-sm btn-icon-sq" title="View" (click)="detailStockItem(s.id_stock!)">🔍</button>
-                <button class="btn btn-outline btn-sm btn-icon-sq" title="Edit" (click)="editStockItem(s.id_stock!)">✏️</button>
-                <button class="btn btn-danger btn-sm btn-icon-sq" title="Delete" (click)="deleteStockItem(s.id_stock!)">🗑</button>
-                <button class="btn btn-ghost btn-sm btn-icon-sq" title="History" (click)="router.navigate(['/stockitems/history', s.id_stock])">📋</button>
+                <button class="btn btn-ghost btn-sm btn-icon-sq" title="View"
+                  [disabled]="!s.idStock"
+                  (click)="s.idStock && detailStockItem(s.idStock)">🔍</button>
+                <button class="btn btn-outline btn-sm btn-icon-sq" title="Edit"
+                  [disabled]="!s.idStock"
+                  (click)="s.idStock && editStockItem(s.idStock)">✏️</button>
+                <button class="btn btn-danger btn-sm btn-icon-sq" title="Delete"
+                  [disabled]="!s.idStock"
+                  (click)="s.idStock && deleteStockItem(s.idStock)">🗑</button>
+                <button class="btn btn-ghost btn-sm btn-icon-sq" title="History"
+                  [disabled]="!s.idStock"
+                  (click)="s.idStock && router.navigate(['/stockitems/history', s.idStock])">📋</button>
               </div>
             </td>
           </tr>

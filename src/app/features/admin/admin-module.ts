@@ -31,6 +31,7 @@ import { StockAllHistoryComponent } from '../../components/stock-item/stock-all-
 import { Chatbot } from '../../components/chatbot/chatbot';
 import { BrokenProductDetectComponent } from '../../components/broken-product-detect/broken-product-detect';
 import { InventoryScanComponent } from '../../components/inventory-scan/inventory-scan';
+import { StockItemStatsAdvancedComponent } from '../../components/stock-item-stats-advanced/stock-item-stats-advanced';
 
 const routes: Routes = [
   {
@@ -79,6 +80,8 @@ const routes: Routes = [
     Treasury, 
     Solidarity,
     
+    
+    
     // YOUR COMPONENTS
     ProductListComponent,
     ProductFormComponent,
@@ -90,6 +93,8 @@ const routes: Routes = [
     StockItemHistoryComponent,
     StockAllHistoryComponent,
     Chatbot,
+    StockItemStatsAdvancedComponent,  // ✅ AJOUTE CETTE LIGNE
+
     BrokenProductDetectComponent,
     InventoryScanComponent
   ],

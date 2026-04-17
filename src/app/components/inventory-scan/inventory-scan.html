@@ -164,7 +164,35 @@
       </div>
     </div>
   </div>
-
+<!-- Enhanced PDF Toolbar -->
+<div class="pdf-toolbar">
+  <button class="pdf-btn" 
+          (click)="exportInventoryToPDF()" 
+          [disabled]="generatingPDF"
+          data-tooltip="Export all products to PDF">
+    <span class="btn-icon">📄</span>
+    <span>{{ generatingPDF ? 'Generating...' : 'Export Inventory' }}</span>
+    <span *ngIf="generatingPDF" class="btn-spinner"></span>
+  </button>
+  
+  <button class="pdf-btn" 
+          (click)="exportComparisonToPDF()" 
+          [disabled]="generatingPDF || !scanResult"
+          data-tooltip="Export current scan comparison">
+    <span class="btn-icon">📊</span>
+    <span>{{ generatingPDF ? 'Generating...' : 'Export Comparison' }}</span>
+    <span *ngIf="generatingPDF" class="btn-spinner"></span>
+  </button>
+  
+  <button class="pdf-btn" 
+          (click)="exportFullReport()" 
+          [disabled]="generatingPDF"
+          data-tooltip="Generate complete inventory report with barcodes">
+    <span class="btn-icon">📑</span>
+    <span>{{ generatingPDF ? 'Generating...' : 'Full Report' }}</span>
+    <span *ngIf="generatingPDF" class="btn-spinner"></span>
+  </button>
+</div>
   <!-- HISTORY TAB — [hidden] keeps state alive -->
   <div [hidden]="activeTab !== 'history'">
     <div *ngIf="history.length === 0" class="empty">No scans yet. Use the Scan tab to start.</div>

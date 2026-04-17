@@ -1,6 +1,7 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { AuthService, User } from '../../../core/services/auth';
 import { ThemeService } from '../../../core/services/theme';
+// Import the LanguageSwitcher component (no need to add to declarations if it's already in SharedModule)
 
 @Component({
   selector: 'app-header',

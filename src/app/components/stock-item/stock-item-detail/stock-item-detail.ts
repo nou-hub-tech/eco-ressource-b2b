@@ -29,15 +29,15 @@ export class StockItemDetailComponent implements OnInit {
     }
   }
 
-  edit(): void { this.router.navigate(['/admin/stockitems/edit', this.stockItem?.id_stock]); }
+  edit(): void { this.router.navigate(['/admin/stockitems/edit', this.stockItem?.idStock]); }
 
-  delete(): void {
-    if (confirm('Delete this stock item?')) {
-      this.stockItemService.delete(this.stockItem!.id_stock!).subscribe(() => {
-        this.router.navigate(['/admin/stockitems']);
-      });
-    }
+delete(): void {
+  if (confirm('Delete this stock item?')) {
+    this.stockItemService.delete(this.stockItem!.idStock!).subscribe(() => {
+      this.router.navigate(['/admin/stockitems']);
+    });
   }
+}
 
   back(): void { this.router.navigate(['/admin/stockitems']); }
 }

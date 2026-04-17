@@ -525,3 +525,186 @@ input,select,textarea{font-family:'Space Grotesk',sans-serif;font-size:14px}
 .theme-transporter.dark-mode .t-banner { background: linear-gradient(135deg,#fef3c7,#fef9ec); border-color: #fde68a; }
 .theme-transporter.dark-mode .t-map-mock { background: linear-gradient(135deg,#fef9ec,#fff); }
 .theme-transporter.dark-mode .t-map-grid { background: repeating-linear-gradient(0deg,rgba(245,158,11,.06) 0,rgba(245,158,11,.06) 1px,transparent 1px,transparent 40px),repeating-linear-gradient(90deg,rgba(245,158,11,.06) 0,rgba(245,158,11,.06) 1px,transparent 1px,transparent 40px); }
+/* Hide Google Translate banner but keep functionality */
+.goog-te-banner-frame,
+.goog-te-banner,
+.goog-te-balloon-frame,
+.skiptranslate {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  opacity: 0 !important;
+}
+
+/* Keep the dropdown accessible but hidden */
+.goog-te-combo {
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Fix body position */
+body {
+  top: 0px !important;
+  position: relative !important;
+}
+
+html {
+  margin-top: 0px !important;
+}
+
+/* Language switcher styles */
+.lang-switcher-container {
+  position: relative;
+  z-index: 1000;
+}
+
+.lang-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  transition: all 0.2s ease;
+}
+
+.lang-trigger:hover {
+  background: var(--bg3);
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.lang-flag {
+  font-size: 14px;
+}
+
+.lang-code {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.lang-chevron {
+  font-size: 8px;
+  transition: transform 0.2s;
+  color: var(--text3);
+}
+
+.lang-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.lang-dropdown-modern {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 1000;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+.lang-dropdown-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  background: var(--bg2);
+}
+
+.lang-dropdown-items {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.lang-option-modern {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s;
+  text-align: left;
+  color: var(--text2);
+}
+
+.lang-option-modern:hover {
+  background: var(--bg3);
+  color: var(--text);
+}
+
+.lang-option-modern.active {
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--primary);
+}
+
+.lang-option-flag {
+  font-size: 14px;
+}
+
+.lang-option-name {
+  flex: 1;
+}
+
+.lang-option-code {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--bg2);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.check-mark {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 11px;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Force button text to update */
+.lang-trigger {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.lang-flag, 
+.lang-code {
+  display: inline-block !important;
+}
+
+/* Remove any text-transform that might be interfering */
+.lang-code {
+  text-transform: none !important;
+}

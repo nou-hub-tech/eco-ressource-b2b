@@ -3,7 +3,10 @@
     <button class="hdr-toggle" (click)="toggleSidebar.emit()">☰</button>
     <h2 class="hdr-title">{{pageTitle}}</h2>
   </div>
+  
   <div class="hdr-right">
+    <!-- LANGUAGE SWITCHER - ADD THIS -->
+    <app-language-switcher></app-language-switcher>
 
     <!-- DARK MODE TOGGLE -->
     <button class="theme-toggle" (click)="toggleTheme()" [title]="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
@@ -13,7 +16,7 @@
           <span *ngIf="isDark">🌙</span>
         </span>
       </span>
-<span class="theme-toggle-label">{{isDark ? 'Light Mode' : 'Dark Mode'}}</span>
+      <span class="theme-toggle-label">{{isDark ? 'Light Mode' : 'Dark Mode'}}</span>
     </button>
 
     <!-- NOTIFICATIONS -->
