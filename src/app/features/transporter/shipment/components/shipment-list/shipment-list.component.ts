@@ -43,8 +43,8 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         private zone: NgZone
     ) {
         this.searchForm = this.fb.group({
-            produitId: [''],           // ✅ Recherche par produit
-            quantite: [''],            // ✅ NOUVEAU: Recherche par quantité
+            produitId: [''],           
+            quantite: [''],            
             statut: [''],
             dateDepart: ['']
         });
