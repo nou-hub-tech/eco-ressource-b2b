@@ -307,7 +307,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         this.subscriptions.add(sub);
     }
 
-    // ================ STATISTIQUES ================
+    // ============= STATISTIQUES ==============
     
     loadStatistiques(): void {
         const sub = this.deliveryOrderService.getStatistiques().subscribe({
