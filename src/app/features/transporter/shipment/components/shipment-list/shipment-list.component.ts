@@ -70,7 +70,7 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         this.cd.markForCheck();
     }
 
-    // ======== RECHERCHE DYNAMIQUE ==========
+    // ====== RECHERCHE DYNAMIQUE ========
     
     setupDynamicSearch(): void {
         // Recherche par produit
@@ -108,7 +108,7 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
             });
         this.subscriptions.add(produitSub);
         
-        // ✅ NOUVEAU: Recherche par quantité
+        // Recherche par quantité
         const quantiteSub = this.searchForm.get('quantite')?.valueChanges
             .pipe(
                 debounceTime(500),
