@@ -336,7 +336,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         this.loadStatistiques();
     }
 
-    // ==================== QR CODE ====================
+    // ============== QR CODE ====================
     
     openQrCode(order: DeliveryOrder): void {
         if (this.qrModal) {
@@ -346,7 +346,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         }
     }
 
-    // ================ ACTIONS ===============
+    // ============= ACTIONS ===============
     
     onEdit(id: number): void {
         this.router.navigate(['/transporter/delivery-orders/edit', id]);
