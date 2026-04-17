@@ -11,8 +11,6 @@ import { PdfGeneratorService } from '../../core/services/pdf-generator.service';
 })
 
 
-
-
 export class InventoryScanComponent implements OnInit, AfterViewInit {
   products: any[] = [];
   history: any[] = [];
