@@ -70,7 +70,7 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         this.cd.markForCheck();
     }
 
-    // =========== RECHERCHE DYNAMIQUE =============
+    // ======== RECHERCHE DYNAMIQUE ==========
     
     setupDynamicSearch(): void {
         // Recherche par produit
