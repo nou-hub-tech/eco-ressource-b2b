@@ -10,6 +10,9 @@ import { PdfGeneratorService } from '../../core/services/pdf-generator.service';
   styleUrls: ['./inventory-scan.css']
 })
 
+
+
+
 export class InventoryScanComponent implements OnInit, AfterViewInit {
   products: any[] = [];
   history: any[] = [];
