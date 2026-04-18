@@ -1,0 +1,11 @@
+.calendar-page {
+  padding: 24px;
+}
+
+.event-details {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}

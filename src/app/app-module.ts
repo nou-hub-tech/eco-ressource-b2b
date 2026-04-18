@@ -5,6 +5,9 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { JwtInterceptor } from './core/interceptors/jwt.interceptor';
+import { FullCalendarModule } from '@fullcalendar/angular';
+import { EventCalendarComponent } from './features/event-calendar/event-calendar.component';
+
 
 @NgModule({
   declarations: [App],
@@ -13,10 +16,13 @@ import { JwtInterceptor } from './core/interceptors/jwt.interceptor';
     HttpClientModule,
     FormsModule,
     ReactiveFormsModule,
-    AppRoutingModule
+    FullCalendarModule,
+    AppRoutingModule,
+    EventCalendarComponent
   ],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: 
+      JwtInterceptor, multi: true }
   ],
   bootstrap: [App]
 })

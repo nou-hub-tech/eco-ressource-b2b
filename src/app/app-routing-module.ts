@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { RoleGuard } from './core/guards/role.guard';
+import { EventCalendarComponent } from './features/event-calendar/event-calendar.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
@@ -27,6 +28,7 @@ const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { role: 'transporter' }
   },
+    { path: 'event-calendar', component: EventCalendarComponent },
   { path: '**', redirectTo: '/auth/login' }
 ];
 
