@@ -51,7 +51,7 @@ export class QrModalComponent {
             link.href = img.src;
             link.click();
         } else {
-            // Alternative: créer un canvas à partir de l'image
+            // Alternative: créer un canvas partir de l'image
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const tempImg = new Image();
