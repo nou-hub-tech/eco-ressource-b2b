@@ -22,26 +22,53 @@
     </div>
   </div>
 
-  <!-- Carte OpenStreetMap avec bouton de localisation -->
+  <!-- Carte OpenStreetMap avec boutons de localisation -->
   <div class="map-card">
     <div class="map-header">
       <i class="bi bi-map"></i>
       <span>Map of Tunisia - Delivery Routes</span>
-      <button class="btn-locate" (click)="getUserLocation()" [disabled]="isLoadingLocation">
-        <i class="bi bi-crosshair"></i>
-        {{ isLoadingLocation ? 'Localisation...' : 'Ma position' }}
-      </button>
     </div>
     <div id="mainMap" class="map-container"></div>
+    
+    <!-- Groupe de boutons de localisation -->
+    <div class="button-group">
+      <button class="btn-locate" (click)="getUserLocation()" [disabled]="isLoadingLocation">
+        <i class="bi bi-crosshair"></i>
+        {{ isLoadingLocation ? 'Localisation...' : '📍 Ma position' }}
+      </button>
+      
+      <button class="btn-locate btn-track" (click)="startRealTimeTracking()" [disabled]="isTracking" [class.active]="isTracking">
+        <i class="bi bi-play-fill"></i>
+        {{ isTracking ? 'Suivi actif...' : '▶️ Suivi temps réel' }}
+      </button>
+      
+      <button class="btn-locate btn-stop" (click)="stopRealTimeTracking()" [disabled]="!isTracking">
+        <i class="bi bi-stop-fill"></i>
+        ⏹️ Arrêter
+      </button>
+    </div>
+    
     <div class="map-footer">
-      <small>📍 Click on "Ma position" to locate yourself | Click on markers for trip details</small>
+      <small>📍 Cliquez sur "Ma position" pour vous localiser | "Suivi temps réel" pour un suivi dynamique</small>
     </div>
   </div>
 
   <!-- Message d'erreur de géolocalisation -->
   <div *ngIf="locationError" class="alert-warning">
-    <i class="bi bi-exclamation-triangle"></i>
+    <i class="bi bi-exclamation-triangle-fill"></i>
     {{ locationError }}
+  </div>
+
+  <!-- Message de succès de géolocalisation -->
+  <div *ngIf="locationSuccess" class="alert-success">
+    <i class="bi bi-check-circle-fill"></i>
+    {{ locationSuccess }}
+  </div>
+
+  <!-- Indicateur de suivi actif -->
+  <div *ngIf="isTracking" class="tracking-indicator">
+    <i class="bi bi-record-circle"></i>
+    Suivi en temps réel activé - La carte se met à jour automatiquement
   </div>
 
   <!-- Tableau des trajets -->
@@ -74,8 +101,8 @@
             <button class="btn-map" (click)="openMapModal(t)" title="View on map">
               <i class="bi bi-geo-alt-fill"></i>
             </button>
-          </td>
-        </tr>
+           </td>
+         </tr>
       </tbody>
     </table>
   </div>
@@ -88,15 +115,32 @@
       <h2>Log New Trip</h2>
       <button class="btn btn-icon" (click)="closeModal()">✕</button>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>From</label><input type="text" placeholder="Departure city"></div>
-      <div class="form-group"><label>To</label><input type="text" placeholder="Destination city"></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>From</label>
+          <input type="text" placeholder="Departure city">
+        </div>
+        <div class="form-group">
+          <label>To</label>
+          <input type="text" placeholder="Destination city">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cargo</label>
+          <input type="text" placeholder="What are you transporting?">
+        </div>
+        <div class="form-group">
+          <label>Weight (kg)</label>
+          <input type="number" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date">
+      </div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Cargo</label><input type="text" placeholder="What are you transporting?"></div>
-      <div class="form-group"><label>Weight (kg)</label><input type="number" placeholder="0"></div>
-    </div>
-    <div class="form-group"><label>Date</label><input type="date"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
       <button class="btn btn-primary" (click)="closeModal()">Log Trip</button>

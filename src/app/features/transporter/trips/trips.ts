@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 
 declare var L: any;
 
@@ -8,7 +8,7 @@ declare var L: any;
     templateUrl: './trips.html',
     styleUrls: ['./trips.css']
 })
-export class Trips implements OnInit, AfterViewInit {
+export class Trips implements OnInit, AfterViewInit, OnDestroy {
     showModal = false;
     showMapModal = false;
     selectedTrip: any = null;
@@ -17,6 +17,8 @@ export class Trips implements OnInit, AfterViewInit {
     locationSuccess: string | null = null;
     private mainMap: any = null;
     private userMarker: any = null;
+    private watchId: number | null = null;
+    isTracking = false;  // ✅ RENDU PUBLIC (supprimé "private")
     
     trips = [
         { id:'DEL-1046', from:'Gabès',  to:'Tunis',   cargo:'Steel Offcuts 2T', weight:'2,000kg', earn:420, status:'in-transit', date:'Today', co2:'28kg', lat:33.89, lng:10.10 },
@@ -29,9 +31,7 @@ export class Trips implements OnInit, AfterViewInit {
     aiOpportunity = { from:'Sfax', to:'Tunis', cargo:'Empty return match — load available', earn:180 };
     
     ngOnInit(): void {
-        // Configurer l'icône par défaut de Leaflet
         (window as any).L = L;
-        // Fix pour les icônes Leaflet
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
             iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -61,7 +61,7 @@ export class Trips implements OnInit, AfterViewInit {
         this.selectedTrip = null;
     }
     
-    // ✅ GÉOLOCALISATION CORRIGÉE AVEC FALLBACK IP
+    // ✅ MÉTHODE DYNAMIQUE - Force la demande d'autorisation
     getUserLocation(): void {
         console.log('=== getUserLocation appelé ===');
         
@@ -74,63 +74,146 @@ export class Trips implements OnInit, AfterViewInit {
         this.locationError = null;
         this.locationSuccess = null;
         
-        // Timeout pour passer en fallback IP après 8 secondes
-        const timeoutId = setTimeout(() => {
-            console.log('Timeout GPS, tentative fallback IP...');
-            this.getLocationByIP();
-        }, 8000);
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        };
         
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                clearTimeout(timeoutId);
                 this.handlePositionSuccess(position.coords.latitude, position.coords.longitude);
             },
             (error) => {
-                clearTimeout(timeoutId);
                 console.error('Erreur GPS:', error);
                 
                 if (error.code === 1) {
                     this.isLoadingLocation = false;
-                    this.locationError = '❌ Accès refusé. Autorisez la géolocalisation dans les paramètres du site.';
+                    this.locationError = '🔒 Localisation bloquée. Cliquez sur le cadenas dans la barre d\'adresse et autorisez.';
+                    this.showPermissionDialog();
+                } else if (error.code === 2) {
+                    this.isLoadingLocation = false;
+                    this.locationError = '📡 Position indisponible. Vérifiez votre connexion WiFi.';
                     setTimeout(() => { this.locationError = null; }, 5000);
                 } else if (error.code === 3) {
-                    // Timeout - on utilise le fallback IP
-                    console.log('GPS Timeout, fallback IP...');
-                    this.getLocationByIP();
-                } else {
                     this.isLoadingLocation = false;
-                    this.locationError = '❌ Position indisponible. Essayez la simulation GPS (F12 → Capteurs)';
-                    setTimeout(() => { this.locationError = null; }, 5000);
+                    this.locationError = '⏱️ Délai dépassé. Nouvelle tentative...';
+                    setTimeout(() => {
+                        this.getUserLocation();
+                    }, 2000);
                 }
             },
-            { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+            options
         );
     }
     
-    // Fallback : géolocalisation par IP
-    getLocationByIP(): void {
-        console.log('Tentative de géolocalisation par IP...');
+    // ✅ Dialogue personnalisé
+    showPermissionDialog(): void {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+        modal.style.zIndex = '10000';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
         
-        fetch('https://ipapi.co/json/')
-            .then(response => {
-                if (!response.ok) throw new Error('Erreur API');
-                return response.json();
-            })
-            .then(data => {
-                console.log('Position IP obtenue:', data);
-                if (data.latitude && data.longitude) {
-                    this.handlePositionSuccess(data.latitude, data.longitude);
-                    this.locationSuccess = `📍 Position approximative (IP): ${data.city}, ${data.country_name}`;
-                    setTimeout(() => { this.locationSuccess = null; }, 5000);
-                } else {
-                    throw new Error('Pas de coordonnées');
+        modal.innerHTML = `
+            <div style="background: white; border-radius: 16px; padding: 24px; max-width: 400px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                <div style="font-size: 48px; margin-bottom: 16px;">📍</div>
+                <h3 style="margin: 0 0 8px 0; color: #212529;">Accès à la position requis</h3>
+                <p style="color: #6c757d; margin-bottom: 20px;">
+                    Pour vous localiser sur la carte, nous avons besoin d'accéder à votre position.
+                </p>
+                <div style="background: #f8f9fa; border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: left;">
+                    <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: bold;">🔧 Comment autoriser :</p>
+                    <p style="margin: 0 0 4px 0; font-size: 12px;">1. Cliquez sur le 🔒 <strong>cadenas</strong> dans la barre d'adresse</p>
+                    <p style="margin: 0 0 4px 0; font-size: 12px;">2. Trouvez <strong>"Localisation"</strong> ou <strong>"Géolocalisation"</strong></p>
+                    <p style="margin: 0; font-size: 12px;">3. Changez de <strong>"Bloquer"</strong> à <strong>"Autoriser"</strong></p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button id="cancel-permission" style="flex: 1; padding: 10px; border: 1px solid #dee2e6; background: white; border-radius: 8px; cursor: pointer;">Annuler</button>
+                    <button id="retry-permission" style="flex: 1; padding: 10px; background: #d4a574; color: white; border: none; border-radius: 8px; cursor: pointer;">J'ai autorisé, réessayer</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        document.getElementById('cancel-permission')?.addEventListener('click', () => {
+            modal.remove();
+        });
+        
+        document.getElementById('retry-permission')?.addEventListener('click', () => {
+            modal.remove();
+            setTimeout(() => {
+                this.getUserLocation();
+            }, 500);
+        });
+    }
+    
+    // ✅ Suivi en temps réel
+    startRealTimeTracking(): void {
+        if (this.isTracking) {
+            this.stopRealTimeTracking();
+        }
+        
+        this.isTracking = true;
+        this.locationSuccess = '📍 Suivi en temps réel activé';
+        setTimeout(() => { this.locationSuccess = null; }, 3000);
+        
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        };
+        
+        this.watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                if (this.mainMap) {
+                    this.mainMap.setView([lat, lng], 15);
+                    
+                    if (this.userMarker) {
+                        this.userMarker.setLatLng([lat, lng]);
+                    } else {
+                        const userIcon = L.divIcon({
+                            html: `<div style="background-color: #d4a574; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #d4a574;"></div>`,
+                            iconSize: [24, 24],
+                            className: 'user-marker'
+                        });
+                        this.userMarker = L.marker([lat, lng], { icon: userIcon })
+                            .addTo(this.mainMap)
+                            .bindPopup('<strong>📍 Votre position (temps réel)</strong>')
+                            .openPopup();
+                    }
                 }
-            })
-            .catch(() => {
-                this.isLoadingLocation = false;
-                this.locationError = '❌ Impossible de localiser. Utilisez la simulation GPS (F12 → Capteurs → Emplacement)';
-                setTimeout(() => { this.locationError = null; }, 8000);
-            });
+                
+                console.log('Position mise à jour:', lat, lng);
+            },
+            (error) => {
+                console.error('Erreur suivi:', error);
+                this.stopRealTimeTracking();
+                this.locationError = '❌ Suivi interrompu';
+                setTimeout(() => { this.locationError = null; }, 3000);
+            },
+            options
+        );
+    }
+    
+    stopRealTimeTracking(): void {
+        if (this.watchId !== null) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = null;
+        }
+        this.isTracking = false;
+        this.locationSuccess = '⏹️ Suivi en temps réel arrêté';
+        setTimeout(() => { this.locationSuccess = null; }, 3000);
     }
     
     // Traitement commun de la position
@@ -138,24 +221,18 @@ export class Trips implements OnInit, AfterViewInit {
         console.log('Position obtenue:', lat, lng);
         
         this.isLoadingLocation = false;
+        this.locationSuccess = `📍 Position trouvée ! Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+        setTimeout(() => { this.locationSuccess = null; }, 5000);
         
-        if (!this.locationSuccess) {
-            this.locationSuccess = `📍 Position trouvée ! Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
-            setTimeout(() => { this.locationSuccess = null; }, 5000);
-        }
-        
-        // Centrer la carte
         if (this.mainMap) {
             this.mainMap.setView([lat, lng], 13);
             
-            // Supprimer l'ancien marqueur
             if (this.userMarker) {
                 this.userMarker.remove();
             }
             
-            // Icône personnalisée pour l'utilisateur
             const userIcon = L.divIcon({
-                html: `<div style="background-color: #d4a574; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #d4a574; animation: pulse 1.5s infinite;"></div>`,
+                html: `<div style="background-color: #d4a574; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #d4a574;"></div>`,
                 iconSize: [24, 24],
                 className: 'user-marker'
             });
@@ -164,10 +241,6 @@ export class Trips implements OnInit, AfterViewInit {
                 .addTo(this.mainMap)
                 .bindPopup('<strong>📍 Votre position</strong>')
                 .openPopup();
-        } else {
-            console.error('Carte non trouvée');
-            this.locationError = '⚠️ Carte non initialisée, rechargez la page';
-            setTimeout(() => { this.locationError = null; }, 5000);
         }
     }
     
@@ -178,16 +251,13 @@ export class Trips implements OnInit, AfterViewInit {
             return;
         }
         
-        // Créer la carte centrée sur la Tunisie
         this.mainMap = L.map('mainMap').setView([33.97, 9.56], 7);
         
-        // Tuiles OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
         }).addTo(this.mainMap);
         
-        // Ajouter les marqueurs des trajets
         this.trips.forEach(trip => {
             if (trip.lat && trip.lng) {
                 const marker = L.marker([trip.lat, trip.lng]).addTo(this.mainMap);
@@ -208,7 +278,6 @@ export class Trips implements OnInit, AfterViewInit {
         const mapContainer = document.getElementById('routeMap');
         if (!mapContainer || !this.selectedTrip || typeof L === 'undefined') return;
         
-        // Vérifier si la carte existe déjà et la détruire
         if ((mapContainer as any)._leaflet_id) {
             const existingMap = (window as any).routeMap;
             if (existingMap) existingMap.remove();
@@ -227,5 +296,9 @@ export class Trips implements OnInit, AfterViewInit {
                         Poids: ${this.selectedTrip.weight}<br>
                         Gain: ${this.selectedTrip.earn} TND`)
             .openPopup();
+    }
+    
+    ngOnDestroy(): void {
+        this.stopRealTimeTracking();
     }
 }
