@@ -293,7 +293,7 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         }
     }
 
-    // ==================== TRI ====================
+    // ============ TRI ================
     
     sortByField(field: string): void {
         if (this.sortBy === field) {
