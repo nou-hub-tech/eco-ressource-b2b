@@ -69,7 +69,7 @@ export class QrModalComponent {
         }
     }
 
-    //  Imprimer le QR code
+    //  Imprimer  QR code
     printQRCode(): void {
         const img = document.getElementById('qrCodeImage') as HTMLImageElement;
         if (img && img.src) {
@@ -131,7 +131,7 @@ export class QrModalComponent {
         this.deliveryOrderService.updateStatut(this.order.idDelivery, StatutCommande.LIVREE).subscribe({
             next: () => {
                 this.isLoading = false;
-                alert(`✅ Commande #${this.order.idDelivery} livrée avec succès!`);
+                alert(` Commande #${this.order.idDelivery} livrée avec succès!`);
                 this.close();
                 window.location.reload();
             },
