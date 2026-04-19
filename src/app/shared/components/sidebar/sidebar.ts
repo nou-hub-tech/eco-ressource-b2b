@@ -80,22 +80,27 @@ export class Sidebar implements OnInit {
     { label: 'Treasury',     icon: 'earnings',      route: '/admin/treasury' },
     { label: 'Events',       icon: 'events',        route: '/admin/events' },
     { label: 'Solidarity',   icon: 'users',         route: '/admin/solidarity' },
+    { label: 'My Products', icon: 'listings', route: '/enterprise/my-products' },
   ];
 
   enterpriseNav: NavItem[] = [
-    { label: 'Home',          icon: 'home',          route: '/enterprise/dashboard' },
-    { section: 'Marketplace' },
-    { label: 'Browse Listings', icon: 'marketplace', route: '/enterprise/marketplace', badge: '247' },
-    { label: 'My Listings',   icon: 'listings',      route: '/enterprise/my-listings' },
-    { label: 'Requests',      icon: 'requests',      route: '/enterprise/requests' },
-    { section: 'Operations' },
-    { label: 'My Stock',      icon: 'stock',         route: '/enterprise/my-stock' },
-    { label: 'My Deliveries', icon: 'deliveries',    route: '/enterprise/my-deliveries' },
-    { label: 'Reservations',  icon: 'reservations',  route: '/enterprise/my-reservations' },
-    { section: 'Finance' },
-    { label: 'Transactions',  icon: 'transactions',  route: '/enterprise/transactions' },
-    { label: 'Reports',       icon: 'reports',       route: '/enterprise/reports' },
-  ];
+  { label: 'Home',          icon: 'home',          route: '/enterprise/dashboard' },
+  { section: 'Marketplace' },
+  { label: 'Browse Listings', icon: 'marketplace', route: '/enterprise/marketplace', badge: '247' },
+  { label: 'My Listings',   icon: 'listings',      route: '/enterprise/my-listings' },
+  { label: 'Requests',      icon: 'requests',      route: '/enterprise/requests' },
+  { section: 'Operations' },
+  { label: 'My Stock',      icon: 'stock',         route: '/enterprise/my-stock' },
+  { label: 'My Deliveries', icon: 'deliveries',    route: '/enterprise/my-deliveries' },
+  { label: 'Reservations',  icon: 'reservations',  route: '/enterprise/my-reservations' },
+  { label: 'My Products',   icon: 'listings',      route: '/enterprise/my-products' },  // ✅ ADD THIS LINE
+  { section: 'Finance' },
+  { label: 'Transactions',  icon: 'transactions',  route: '/enterprise/transactions' },
+  { label: 'Reports',       icon: 'reports',       route: '/enterprise/reports' },
+];
+
+
+
 
   transporterNav: NavItem[] = [
     { label: 'Dashboard',  icon: 'dashboard',  route: '/transporter/dashboard' },

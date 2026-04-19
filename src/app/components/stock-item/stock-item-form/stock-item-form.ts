@@ -47,8 +47,23 @@ export class StockItemFormComponent implements OnInit {
       this.isEditMode = true;
       this.stockItemService.getById(+id).subscribe(data => {
         this.stockItem = { ...data };
-        if (this.stockItem.image) {
-          this.imagePreviewUrl = this.fileUploadService.getImageUrl(this.stockItem.image);
+        // Clean invalid image values from database
+        if (this.stockItem.image && 
+            (this.stockItem.image === 'undefined' || 
+             this.stockItem.image === 'null' || 
+             this.stockItem.image === 'default.png')) {
+          this.stockItem.image = '';
+        }
+        // Build preview URL from filename
+        if (this.stockItem.image && this.stockItem.image.trim()) {
+          // Extract filename if it's a full URL
+          if (this.stockItem.image.includes('files/')) {
+            const filename = this.stockItem.image.split('files/')[1];
+            this.imagePreviewUrl = `http://localhost:8080/files/${filename}`;
+            this.stockItem.image = filename; // Store only filename
+          } else {
+            this.imagePreviewUrl = `http://localhost:8080/files/${this.stockItem.image}`;
+          }
         }
         this.cdr.detectChanges();
       });
@@ -80,6 +95,8 @@ export class StockItemFormComponent implements OnInit {
     if (this.selectedFile) {
       this.fileUploadService.upload(this.selectedFile).subscribe({
         next: (res) => {
+          // Backend returns filename
+          // Store just the filename (works with getImageUrl logic)
           this.stockItem.image = res.filename;
           this.saveStockItem();
         },
@@ -94,10 +111,19 @@ export class StockItemFormComponent implements OnInit {
   }
 
   saveStockItem(): void {
+  // Clean invalid values
+  if (!this.stockItem.image || 
+      this.stockItem.image === 'undefined' || 
+      this.stockItem.image === 'null' || 
+      this.stockItem.image === 'default.png') {
+    this.stockItem.image = '';
+  }
+
     if (this.isEditMode) {
       this.stockItemService.update(this.stockItem).subscribe({
-        next: () => { this.router.navigate(['/admin/stockitems']);
- },
+        next: () => {
+          this.router.navigate(['/admin/stockitems']);
+        },
         error: (err) => {
           if (err.status === 400) {
             this.serverErrors = Object.values(err.error).join(' | ');
@@ -107,7 +133,9 @@ export class StockItemFormComponent implements OnInit {
       });
     } else {
       this.stockItemService.add(this.stockItem).subscribe({
-        next: () => { this.router.navigate(['/admin/stockitems']); },
+        next: () => {
+          this.router.navigate(['/admin/stockitems']);
+        },
         error: (err) => {
           if (err.status === 400) {
             this.serverErrors = Object.values(err.error).join(' | ');
@@ -118,9 +146,15 @@ export class StockItemFormComponent implements OnInit {
     }
   }
 
+  cancel(): void {
+    this.router.navigate(['/admin/stockitems']);
+  }
 
-
-  
-
-  cancel(): void { this.router.navigate(['/admin/stockitems']); }
+  removeImage(event: Event): void {
+    event.stopPropagation();
+    this.imagePreviewUrl = '';
+    this.selectedFile = null;
+    this.stockItem.image = '';
+    this.cdr.detectChanges();
+  }
 }

@@ -1,61 +1,132 @@
-<div style="padding:30px; max-width:600px; margin:auto;">
-  <h2>🔍 Product Details</h2>
-
-  <div *ngIf="product" style="border:1px solid #ddd; border-radius:8px; padding:20px; margin-top:20px;">
-
-    <div style="text-align:center; margin-bottom:20px;">
-      <img *ngIf="product.image"
-           [src]="'http://localhost:8080/files/' + product.image"
-           alt="product image"
-           style="width:200px; height:200px; object-fit:cover; border-radius:8px; border:1px solid #ddd;">
-      <div *ngIf="!product.image" style="color:#999;">No image available</div>
-    </div>
-
-    <table width="100%" style="border-collapse:collapse;">
-      <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px; font-weight:bold; width:40%; color:#555;">ID</td>
-        <td style="padding:10px;">{{ product.id_product }}</td>
-      </tr>
-      <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px; font-weight:bold; color:#555;">Name</td>
-        <td style="padding:10px;">{{ product.name }}</td>
-      </tr>
-      <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px; font-weight:bold; color:#555;">Category</td>
-        <td style="padding:10px;">{{ product.category }}</td>
-      </tr>
-      <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px; font-weight:bold; color:#555;">Material Type</td>
-        <td style="padding:10px;">{{ product.materialType }}</td>
-      </tr>
-      <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px; font-weight:bold; color:#555;">Recyclable</td>
-        <td style="padding:10px;">{{ product.recyclable ? '✅ Yes' : '❌ No' }}</td>
-      </tr>
-      <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px; font-weight:bold; color:#555;">Description</td>
-        <td style="padding:10px;">{{ product.description }}</td>
-      </tr>
-    </table>
-
-    <div style="margin-top:20px; display:flex; gap:10px;">
-      <button (click)="back()"
-              style="padding:8px 20px; background:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;">
-        ⬅ Back
-      </button>
-      <button (click)="edit()"
-              style="padding:8px 20px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer;">
-        ✏️ Update
-      </button>
-      <button (click)="delete()"
-              style="padding:8px 20px; background:#dc3545; color:white; border:none; border-radius:4px; cursor:pointer;">
-        🗑 Delete
-      </button>
-    </div>
-
+<div class="product-detail-container">
+  <!-- Loading State -->
+  <div *ngIf="!product" class="loading-state">
+    <div class="pulse-loader"></div>
+    <p>Loading product details...</p>
   </div>
 
-  <div *ngIf="!product" style="color:#999; margin-top:20px;">
-    Loading...
+  <!-- Main Content -->
+  <div *ngIf="product" class="detail-card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <div class="header-left">
+        <button class="back-btn" (click)="back()">
+          <i class="fas fa-arrow-left"></i> Back to Products
+        </button>
+        <div class="product-badge">
+          <i class="fas fa-box"></i>
+          Product Details
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="recyclable-badge" [class.recyclable]="product.recyclable" [class.not-recyclable]="!product.recyclable">
+          <i class="fas" [class.fa-recycle]="product.recyclable" [class.fa-ban]="!product.recyclable"></i>
+          {{ product.recyclable ? 'Recyclable' : 'Not Recyclable' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Hero Section with Image -->
+    <div class="product-hero">
+      <div class="image-gallery">
+        <!-- Replace the main image block -->
+<div class="main-image">
+  <img *ngIf="getImageUrl(product.image)" 
+       [src]="getImageUrl(product.image)" 
+       [alt]="product.name"
+       (error)="handleImageError($event)">
+  <div *ngIf="!getImageUrl(product.image)" class="no-image-placeholder">
+    <i class="fas fa-image"></i>
+    <p>No Image Available</p>
+  </div>
+</div>
+      </div>
+      <div class="hero-info">
+        <h1 class="product-title">{{ product.name }}</h1>
+        <div class="product-meta">
+          <span class="meta-chip">
+            <i class="fas fa-tag"></i> ID: #{{ product.id_product }}
+          </span>
+          <span class="meta-chip">
+            <i class="fas fa-folder"></i> {{ product.category }}
+          </span>
+          <span class="meta-chip">
+            <i class="fas fa-cube"></i> {{ product.materialType }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Information Grid -->
+    <div class="info-section">
+      <h2 class="section-title">
+        <i class="fas fa-info-circle"></i>
+        Product Information
+      </h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-icon" style="background: rgba(102, 126, 234, 0.1);">
+            <i class="fas fa-barcode" style="color: #667eea;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Product ID</div>
+            <div class="info-value">#{{ product.id_product }}</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-icon" style="background: rgba(16, 185, 129, 0.1);">
+            <i class="fas fa-tag" style="color: #10b981;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Product Name</div>
+            <div class="info-value">{{ product.name }}</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-icon" style="background: rgba(245, 158, 11, 0.1);">
+            <i class="fas fa-folder" style="color: #f59e0b;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Category</div>
+            <div class="info-value">{{ product.category }}</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-icon" style="background: rgba(139, 92, 246, 0.1);">
+            <i class="fas fa-cube" style="color: #8b5cf6;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Material Type</div>
+            <div class="info-value">{{ product.materialType }}</div>
+          </div>
+        </div>
+
+        <div class="info-card info-card-full">
+          <div class="info-icon" style="background: rgba(236, 72, 153, 0.1);">
+            <i class="fas fa-align-left" style="color: #ec4899;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Description</div>
+            <div class="info-value description-text">{{ product.description || 'No description provided' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="btn btn-secondary" (click)="back()">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <button class="btn btn-primary" (click)="edit()">
+        <i class="fas fa-edit"></i> Edit Product
+      </button>
+      <button class="btn btn-danger" (click)="delete()">
+        <i class="fas fa-trash-alt"></i> Delete Product
+      </button>
+    </div>
   </div>
 </div>

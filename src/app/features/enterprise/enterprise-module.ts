@@ -14,6 +14,7 @@ import { Transactions } from './transactions/transactions';
 import { Reports } from './reports/reports';
 import { Requests } from './requests/requests';
 import { Events } from './events/events';
+import { MyProducts } from './my-products/my-products';
 
 const routes: Routes = [
   {
@@ -23,8 +24,8 @@ const routes: Routes = [
       { path: '',                redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard',       component: Dashboard },
       { path: 'marketplace',     component: Marketplace },
-      { path: 'my-stock',        component: MyStock },
-      { path: 'my-deliveries',   component: MyDeliveries },
+      { path: 'my-products', component: MyProducts },
+      { path: 'my-stock',    component: MyStock },      { path: 'my-deliveries',   component: MyDeliveries },
       { path: 'my-listings',     component: MyListings },
       { path: 'my-reservations', component: MyReservations },
       { path: 'transactions',    component: Transactions },
@@ -36,7 +37,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [Dashboard, Marketplace, MyStock, MyDeliveries, MyListings, MyReservations, Transactions, Reports, Requests, Events],
+  declarations: [Dashboard, Marketplace, MyStock,MyProducts, MyDeliveries, MyListings, MyReservations, Transactions, Reports, Requests, Events],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
 })
 export class EnterpriseModule {}

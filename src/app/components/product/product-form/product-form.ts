@@ -33,8 +33,23 @@ export class ProductFormComponent implements OnInit {
       this.isEditMode = true;
       this.productService.getById(+id).subscribe(data => {
         this.product = { ...data };
-        if (this.product.image) {
-          this.imagePreviewUrl = this.fileUploadService.getImageUrl(this.product.image);
+        // Clean invalid image values
+        if (this.product.image && 
+            (this.product.image === 'undefined' || 
+             this.product.image === 'null' || 
+             this.product.image === 'default.png')) {
+          this.product.image = '';
+        }
+        // Build preview URL from filename
+        if (this.product.image && this.product.image.trim()) {
+          // Extract filename if it's a full URL
+          if (this.product.image.includes('files/')) {
+            const filename = this.product.image.split('files/')[1];
+            this.imagePreviewUrl = `http://localhost:8080/files/${filename}`;
+            this.product.image = filename; // Store only filename
+          } else {
+            this.imagePreviewUrl = `http://localhost:8080/files/${this.product.image}`;
+          }
         }
         this.cdr.detectChanges();
       });
@@ -45,7 +60,6 @@ export class ProductFormComponent implements OnInit {
     const file: File = event.target.files[0];
     if (file) {
       this.selectedFile = file;
-      // Show preview immediately
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.imagePreviewUrl = e.target.result;
@@ -61,13 +75,14 @@ export class ProductFormComponent implements OnInit {
     this.serverErrors = '';
 
     if (this.selectedFile) {
-      // Upload image first, then save product
       this.fileUploadService.upload(this.selectedFile).subscribe({
         next: (res) => {
+          // Backend returns filename
+          // Store just the filename (works with getImageUrl logic)
           this.product.image = res.filename;
           this.saveProduct();
         },
-        error: (err) => {
+        error: () => {
           this.serverErrors = 'Image upload failed.';
           this.cdr.detectChanges();
         }
@@ -78,6 +93,14 @@ export class ProductFormComponent implements OnInit {
   }
 
   saveProduct(): void {
+    // Ensure recyclable is boolean
+    this.product.recyclable = !!this.product.recyclable;
+    
+    // Remove default.png if present
+    if (this.product.image === 'default.png') {
+      this.product.image = '';
+    }
+
     if (this.isEditMode) {
       this.productService.update(this.product).subscribe({
         next: () => { this.router.navigate(['/admin/products']); },
@@ -102,4 +125,12 @@ export class ProductFormComponent implements OnInit {
   }
 
   cancel(): void { this.router.navigate(['/admin/products']); }
+
+  removeImage(event: Event): void {
+    event.stopPropagation();
+    this.imagePreviewUrl = '';
+    this.selectedFile = null;
+    this.product.image = '';
+    this.cdr.detectChanges();
+  }
 }

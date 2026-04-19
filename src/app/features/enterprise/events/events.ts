@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'app-events',
+  selector: 'app-enterprise-events',
   standalone: false,
   templateUrl: './events.html',
   styleUrls: ['./events.css']

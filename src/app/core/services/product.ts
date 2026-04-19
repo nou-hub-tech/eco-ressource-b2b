@@ -9,6 +9,7 @@ export class ProductService {
 
   constructor(private http: HttpClient) {}
 
+
   getAll(): Observable<Product[]> {
     return this.http.get<Product[]>(`${this.api}/retrieve-all-products`);
   }
@@ -24,27 +25,27 @@ export class ProductService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.api}/remove-product/${id}`);
   }
- search(name: string, category: string, materialType: string) {
-  return this.http.get<Product[]>(
-    `${this.api}/search`,
-    {
-      params: {
-        name,
-        category,
-        materialType
+  search(name: string, category: string, materialType: string) {
+    return this.http.get<Product[]>(
+      `${this.api}/search`,
+      {
+        params: {
+          name,
+          category,
+          materialType
+        }
       }
-    }
-  );
-}
+    );
+  }
 
-getPaginated(page: number, size: number, sortBy: string, direction: string) {
-  return this.http.get<any>(`${this.api}/paginated`, {
-    params: {
-      page,
-      size,
-      sortBy,
-      direction
-    }
-  });
-}
+  getPaginated(page: number, size: number, sortBy: string, direction: string) {
+    return this.http.get<any>(`${this.api}/paginated`, {
+      params: {
+        page,
+        size,
+        sortBy,
+        direction
+      }
+    });
+  }
 }

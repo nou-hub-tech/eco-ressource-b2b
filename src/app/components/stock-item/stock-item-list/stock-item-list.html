@@ -19,6 +19,9 @@
       <button class="btn btn-primary" (click)="addStockItem()">
         + Add Item
       </button>
+      <button class="btn btn-outline" (click)="refreshData()" style="background: var(--primary); color: white;">
+        🔄 Refresh Data
+      </button>
     </div>
   </div>
 
@@ -40,28 +43,46 @@
   <!-- ========== STOCK LIST TAB ========== -->
   <div *ngIf="activeTab === 'list'">
 
-    <!-- Stat Cards -->
+    <!-- Loading Indicator -->
+    <div *ngIf="isLoading" class="loading-overlay" style="text-align: center; padding: 20px;">
+      <div class="spinner"></div>
+      <p>Loading stock data...</p>
+    </div>
+
+    <!-- STAT CARDS -->
     <div class="stats-grid">
+      
+      <!-- Total Value Card -->
       <div class="stat-card">
         <div class="stat-icon" style="background:rgba(5,150,105,.12)">💰</div>
-        <div class="stat-value">{{ totalStockValue | number:'1.2-2' }}</div>
+        <div id="totalValueDisplay" class="stat-value" style="color: #10b981;">
+          {{ totalStockValue | number:'1.2-2' }}
+        </div>
         <div class="stat-label">Total Stock Value (DT)</div>
       </div>
 
+      <!-- Expired Items Card -->
       <div class="stat-card" style="cursor:pointer" (click)="showExpired = !showExpired">
         <div class="stat-icon" style="background:rgba(220,38,38,.1)">🚨</div>
-        <div class="stat-value" style="color:var(--danger)">{{ expiredItems.length }}</div>
+        <div id="expiredCountDisplay" class="stat-value" style="color: #ef4444;">
+          {{ expiredItems.length }}
+        </div>
         <div class="stat-label">Expired Items</div>
         <div class="stat-change down" *ngIf="expiredItems.length > 0">Click to {{ showExpired ? 'hide' : 'view' }}</div>
       </div>
 
+      <!-- Near Expiry Card -->
       <div class="stat-card" style="cursor:pointer" (click)="showNearExpiry = !showNearExpiry">
         <div class="stat-icon" style="background:rgba(217,119,6,.1)">⚠️</div>
-        <div class="stat-value" style="color:var(--warning)">{{ nearExpiryItems.length }}</div>
+        <div id="nearExpiryCountDisplay" class="stat-value" style="color: #f59e0b;">
+          {{ nearExpiryItems.length }}
+        </div>
         <div class="stat-label">Expiring in 30 Days</div>
         <div class="stat-change" style="color:var(--warning)" *ngIf="nearExpiryItems.length > 0">Click to {{ showNearExpiry ? 'hide' : 'view' }}</div>
       </div>
     </div>
+
+   
 
     <!-- Expired Items Panel -->
     <div class="card" style="margin-bottom:16px;padding:0" *ngIf="showExpired && expiredItems.length > 0">
@@ -75,14 +96,14 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of expiredItems">
-            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.idStock }}</span></td>
-            <td><strong style="color:var(--text)">{{ s.product?.name }}</strong></td>
+            <td>#{{ s.idStock }}</td>
+            <td>{{ s.product?.name }}</td>
             <td>{{ s.quantity }}</td>
             <td><span class="badge badge-danger">{{ s.expirationDate }}</span></td>
-            <td><span style="color:var(--text3)">{{ s.location }}</span></td>
+            <td>{{ s.location }}</td>
           </tr>
         </tbody>
-      </table>
+       </table>
     </div>
 
     <!-- Near Expiry Panel -->
@@ -97,28 +118,28 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of nearExpiryItems">
-            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.idStock }}</span></td>
-            <td><strong style="color:var(--text)">{{ s.product?.name }}</strong></td>
+            <td>#{{ s.idStock }}</td>
+            <td>{{ s.product?.name }}</td>
             <td>{{ s.quantity }}</td>
             <td><span class="badge badge-warning">{{ s.expirationDate }}</span></td>
-            <td><span style="color:var(--text3)">{{ s.location }}</span></td>
+            <td>{{ s.location }}</td>
           </tr>
         </tbody>
-      </table>
+       </table>
     </div>
 
     <!-- Toolbar -->
     <div class="toolbar">
       <div class="search-box">
-        <span style="color:var(--muted);font-size:14px">🔍</span>
+        <span>🔍</span>
         <input type="text" placeholder="Search by product..." [(ngModel)]="searchProductName" (ngModelChange)="search()" />
       </div>
       <div class="search-box" style="max-width:180px">
-        <span style="color:var(--muted);font-size:14px">📊</span>
+        <span>📊</span>
         <input type="text" placeholder="Status..." [(ngModel)]="searchStatus" (ngModelChange)="search()" />
       </div>
       <div class="search-box" style="max-width:180px">
-        <span style="color:var(--muted);font-size:14px">📍</span>
+        <span>📍</span>
         <input type="text" placeholder="Location..." [(ngModel)]="searchLocation" (ngModelChange)="search()" />
       </div>
       <button class="btn btn-outline btn-sm" (click)="resetSearch()">↺ Reset</button>
@@ -132,77 +153,62 @@
     </div>
 
     <!-- Main Table -->
-<div class="card" style="padding:0;margin-bottom:18px;overflow-x:auto">      <table class="data-table">
+    <div class="card" style="padding:0;margin-bottom:18px;overflow-x:auto">
+      <table class="data-table">
         <thead>
-  <tr>
-    <th style="width:50px">ID</th>
-    <th style="cursor:pointer" (click)="sort('quantity')">
-      Qty {{ getSortIcon('quantity') }}
-    </th>
-    <th style="cursor:pointer" (click)="sort('unitPrice')">
-      Unit Price {{ getSortIcon('unitPrice') }}
-    </th>
-    <th>Total</th>
-    <th>Product</th>
-    <th>Unit</th>
-    <th style="cursor:pointer" (click)="sort('status')">
-      Status {{ getSortIcon('status') }}
-    </th>
-    <th style="cursor:pointer" (click)="sort('location')">
-      Location {{ getSortIcon('location') }}
-    </th>
-    <th style="cursor:pointer" (click)="sort('expirationDate')">
-      Expiry {{ getSortIcon('expirationDate') }}
-    </th>
-    <th>Condition</th>
-    <th style="width:60px">Image</th>
-    <th style="width:130px;text-align:right">Actions</th>
-  </tr>
-</thead>
+          <tr>
+            <th>ID</th>
+            <th style="cursor:pointer" (click)="sort('quantity')">Qty {{ getSortIcon('quantity') }}</th>
+            <th style="cursor:pointer" (click)="sort('unitPrice')">Unit Price {{ getSortIcon('unitPrice') }}</th>
+            <th>Total</th>
+            <th>Product</th>
+            <th>Unit</th>
+            <th style="cursor:pointer" (click)="sort('status')">Status {{ getSortIcon('status') }}</th>
+            <th style="cursor:pointer" (click)="sort('location')">Location {{ getSortIcon('location') }}</th>
+            <th style="cursor:pointer" (click)="sort('expirationDate')">Expiry {{ getSortIcon('expirationDate') }}</th>
+            <th>Condition</th>
+            <th>Image</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
         <tbody>
           <tr *ngFor="let s of stockItems">
-            <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ s.idStock }}</span></td>
-            <td><strong style="color:var(--text)">{{ s.quantity }}</strong></td>
-            <td><span style="color:var(--primary);font-weight:600">{{ s.unitPrice | number:'1.2-2' }} DT</span></td>
-            <td><span style="font-weight:600;color:var(--text)">{{ s.quantity * s.unitPrice | number:'1.2-2' }} DT</span></td>
-            <td><strong style="color:var(--text);font-size:13px">{{ s.product?.name }}</strong></td>
+            <td>#{{ s.idStock }}</td>
+            <td>{{ s.quantity }}</td>
+            <td>{{ s.unitPrice | number:'1.2-2' }} DT</td>
+            <td>{{ (s.quantity * s.unitPrice) | number:'1.2-2' }} DT</td>
+            <td>{{ s.product?.name }}</td>
             <td><span class="badge badge-neutral">{{ s.unit }}</span></td>
             <td>
               <span class="badge" [ngClass]="{
                 'badge-success': s.status === 'AVAILABLE' || s.status === 'available',
                 'badge-warning': s.status === 'LOW' || s.status === 'low',
                 'badge-danger': s.status === 'EXPIRED' || s.status === 'expired',
-                'badge-info': s.status === 'RESERVED' || s.status === 'reserved',
-                'badge-neutral': !['AVAILABLE','available','LOW','low','EXPIRED','expired','RESERVED','reserved'].includes(s.status)
+                'badge-info': s.status === 'RESERVED' || s.status === 'reserved'
               }">
                 {{ s.status }}
               </span>
             </td>
-            <td><span style="font-size:12px;color:var(--text3)">{{ s.location }}</span></td>
+            <td>{{ s.location }}</td>
             <td>
               <span class="badge" [ngClass]="isExpired(s.expirationDate) ? 'badge-danger' : isNearExpiry(s.expirationDate) ? 'badge-warning' : 'badge-success'">
                 {{ s.expirationDate }}
               </span>
             </td>
             <td><span class="badge badge-neutral">{{ s.condition }}</span></td>
-            <td>
-              <img *ngIf="s.image" [src]="'http://localhost:8080/files/' + s.image" [alt]="s.product?.name" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" />
-              <span *ngIf="!s.image" class="no-img">No img</span>
-            </td>
+            <!-- Inside the <tbody> loop, replace the image <td> with: -->
+<td>
+  <img *ngIf="getImageUrl(s.image)" 
+       [src]="getImageUrl(s.image)" 
+       style="width:40px;height:40px;object-fit:cover;border-radius:6px"
+       (error)="handleImageError(s)">
+  <span *ngIf="!getImageUrl(s.image)" class="no-img">No img</span>
+</td>
             <td>
               <div style="display:flex;gap:5px;justify-content:flex-end">
-                <button class="btn btn-ghost btn-sm btn-icon-sq" title="View"
-                  [disabled]="!s.idStock"
-                  (click)="s.idStock && detailStockItem(s.idStock)">🔍</button>
-                <button class="btn btn-outline btn-sm btn-icon-sq" title="Edit"
-                  [disabled]="!s.idStock"
-                  (click)="s.idStock && editStockItem(s.idStock)">✏️</button>
-                <button class="btn btn-danger btn-sm btn-icon-sq" title="Delete"
-                  [disabled]="!s.idStock"
-                  (click)="s.idStock && deleteStockItem(s.idStock)">🗑</button>
-                <button class="btn btn-ghost btn-sm btn-icon-sq" title="History"
-                  [disabled]="!s.idStock"
-                  (click)="s.idStock && router.navigate(['/stockitems/history', s.idStock])">📋</button>
+                <button class="btn btn-ghost btn-sm" (click)="detailStockItem(s.idStock!)">🔍</button>
+                <button class="btn btn-outline btn-sm" (click)="editStockItem(s.idStock!)">✏️</button>
+                <button class="btn btn-danger btn-sm" (click)="deleteStockItem(s.idStock!)">🗑</button>
               </div>
             </td>
           </tr>
@@ -210,25 +216,25 @@
       </table>
 
       <!-- Empty State -->
-      <div class="empty-state" *ngIf="stockItems.length === 0">
+      <div class="empty-state" *ngIf="stockItems.length === 0 && !isLoading">
         <span class="empty-icon">📦</span>
         <h3>No stock items found</h3>
         <p>Try adjusting your search filters or add a new item</p>
       </div>
     </div>
 
-    <!-- Pagination Footer -->
+    <!-- Pagination -->
     <div class="pagination-bar">
       <span class="pagination-info">
         Page <strong>{{ currentPage + 1 }}</strong> of <strong>{{ totalPages }}</strong>
-        &nbsp;—&nbsp; {{ totalElements }} items total
+        — {{ totalElements }} items total
       </span>
       <div class="pagination-controls">
-        <button class="pag-btn" (click)="goToPage(0)" [disabled]="currentPage === 0" title="First">⏮</button>
-        <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0" title="Previous">◀</button>
+        <button class="pag-btn" (click)="goToPage(0)" [disabled]="currentPage === 0">⏮</button>
+        <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0">◀</button>
         <button *ngFor="let p of getPages()" class="pag-btn" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p + 1 }}</button>
-        <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1" title="Next">▶</button>
-        <button class="pag-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1" title="Last">⏭</button>
+        <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">▶</button>
+        <button class="pag-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1">⏭</button>
       </div>
     </div>
 

@@ -6,10 +6,11 @@ import { Sidebar } from './components/sidebar/sidebar';
 import { Header } from './components/header/header';
 import { Layout } from './components/layout/layout';
 import { LanguageSwitcherComponent } from './components/language-switcher/language-switcher.component';
+import { DatepickerDirective } from '../shared/directives/datepicker.directive';
 
 @NgModule({
-  declarations: [Sidebar, Header, LanguageSwitcherComponent, Layout],
+  declarations: [Sidebar, Header, LanguageSwitcherComponent, Layout,DatepickerDirective],
   imports: [CommonModule, RouterModule, FormsModule],
-  exports: [Sidebar, Header, Layout, FormsModule, LanguageSwitcherComponent] // Add LanguageSwitcherComponent here
+  exports: [Sidebar, Header, Layout, FormsModule, LanguageSwitcherComponent, DatepickerDirective]
 })
 export class SharedModule {}

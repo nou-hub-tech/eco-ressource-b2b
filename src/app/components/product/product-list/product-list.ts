@@ -25,7 +25,7 @@ export class ProductListComponent implements OnInit {
   constructor(
     private productService: ProductService,
     private router: Router,
-    private cdr: ChangeDetectorRef   // ← ADD THIS
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -43,7 +43,7 @@ export class ProductListComponent implements OnInit {
       this.totalPages = data?.totalPages ?? 0;
       this.totalElements = data?.totalElements ?? 0;
       this.currentPage = data?.currentPage ?? 0;
-      this.cdr.detectChanges();   // ← ADD THIS
+      this.cdr.detectChanges();
     });
   }
 
@@ -58,7 +58,7 @@ export class ProductListComponent implements OnInit {
       this.searchMaterialType
     ).subscribe(data => {
       this.products = data ?? [];
-      this.cdr.detectChanges();   // ← ADD THIS
+      this.cdr.detectChanges();
     });
   }
 
@@ -108,16 +108,59 @@ export class ProductListComponent implements OnInit {
       this.productService.delete(id).subscribe(() => this.loadPaginated());
     }
   }
-  // Add these methods
-openChatbot(): void {
-  this.router.navigate(['/admin/chatbot']);
-}
 
-openBrokenProduct(): void {
-  this.router.navigate(['/admin/broken-product']);
-}
-openInventoryScanner(): void {
+  getImageUrl(imagePath: any): string {
+    // Handle null, undefined, empty values
+    if (imagePath === null || imagePath === undefined || imagePath === '') {
+      return '';
+    }
+    
+    // Convert to string and trim
+    const str = String(imagePath).trim();
+    
+    // Reject only known invalid values
+    if (!str || 
+        str === 'undefined' || 
+        str === 'null' || 
+        str === 'default.png' || 
+        str === '[object Object]') {
+      return '';
+    }
+    
+    // If it's already a valid full URL, return as-is
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      // Reject URLs with invalid path segments
+      if (str.includes('/files/undefined') || str.includes('/files/null')) {
+        return '';
+      }
+      return str;
+    }
+    
+    // If it contains 'files/', extract the filename
+    if (str.includes('files/')) {
+      const filename = str.split('files/')[1];
+      return `http://localhost:8080/files/${filename}`;
+    }
+    
+    // Otherwise, treat as filename and build the URL
+    return `http://localhost:8080/files/${str}`;
+  }
+
+  openChatbot(): void {
+    this.router.navigate(['/admin/chatbot']);
+  }
+
+  openBrokenProduct(): void {
+    this.router.navigate(['/admin/broken-product']);
+  }
+
+  openInventoryScanner(): void {
     this.router.navigate(['/admin/inventory']);
+  }
+  // Inside ProductListComponent class, add this method:
 
+handleImageError(product: Product): void {
+  product.image = '';  // Clear invalid image URL
+  this.cdr.detectChanges();
 }
 }

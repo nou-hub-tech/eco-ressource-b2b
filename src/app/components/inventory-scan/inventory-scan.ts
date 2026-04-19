@@ -1,16 +1,16 @@
 import { Component, OnInit, ChangeDetectorRef, AfterViewInit } from '@angular/core';
+import { Router } from '@angular/router';
 import JsBarcode from 'jsbarcode';
 import { InventoryService } from '../../core/services/inventory';
 import Quagga from '@ericblade/quagga2';
 import { PdfGeneratorService } from '../../core/services/pdf-generator.service';
+
 @Component({
   selector: 'app-inventory-scan',
   standalone: false,
   templateUrl: './inventory-scan.html',
   styleUrls: ['./inventory-scan.css']
 })
-
-
 export class InventoryScanComponent implements OnInit, AfterViewInit {
   products: any[] = [];
   history: any[] = [];
@@ -28,11 +28,15 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
   imageError = '';
   imageScanning = false;
   scannedImagePreview: string | null = null;
+  searchTerm: string = '';
+  statusFilter: string = '';
+  filteredProducts: any[] = [];
 
   constructor(
     private inventoryService: InventoryService,
     private cdr: ChangeDetectorRef,
-    private pdfGenerator: PdfGeneratorService
+    private pdfGenerator: PdfGeneratorService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -47,7 +51,7 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
   renderBarcodes() {
     setTimeout(() => {
       this.products.forEach(p => {
-        const code = p.product.barcode;
+        const code = p.product?.barcode;
         if (!code) return;
         const el = document.getElementById('bc_' + p.product.id_product);
         if (el) {
@@ -71,7 +75,7 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
     this.activeTab = tab;
     this.cdr.detectChanges();
     if (tab === 'products') {
-      this.renderBarcodes();
+      setTimeout(() => this.renderBarcodes(), 100);
     }
   }
 
@@ -79,8 +83,8 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
     this.inventoryService.getAllWithStock().subscribe({
       next: data => {
         this.products = data;
+        this.filteredProducts = [...data];
         this.cdr.detectChanges();
-        // Render barcodes after data loads and DOM updates
         this.renderBarcodes();
       },
       error: err => console.error('Failed to load products', err)
@@ -209,6 +213,7 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
     if (days < 60) return days + 'd left';
     return new Date(dlc).toLocaleDateString();
   }
+
   async exportInventoryToPDF() {
     this.generatingPDF = true;
     try {
@@ -247,5 +252,60 @@ export class InventoryScanComponent implements OnInit, AfterViewInit {
     } finally {
       this.generatingPDF = false;
     }
+  }
+
+  // Navigation Methods
+  goBackToProducts(): void {
+    this.router.navigate(['/admin/products']);
+  }
+
+  // Filter Methods
+  filterProducts(): void {
+    this.filteredProducts = this.products.filter(product => {
+      // Search filter
+      const matchesSearch = !this.searchTerm || 
+        product.product.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (product.product.barcode && product.product.barcode.toLowerCase().includes(this.searchTerm.toLowerCase()));
+      
+      // Status filter
+      let matchesStatus = true;
+      if (this.statusFilter === 'expiring') {
+        matchesStatus = this.dlcStatus(product.expirationDate) === 'warning';
+      } else if (this.statusFilter === 'expired') {
+        matchesStatus = this.dlcStatus(product.expirationDate) === 'expired';
+      } else if (this.statusFilter === 'healthy') {
+        matchesStatus = this.dlcStatus(product.expirationDate) === 'ok';
+      }
+      
+      return matchesSearch && matchesStatus;
+    });
+    this.cdr.detectChanges();
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = '';
+    this.filterProducts();
+  }
+
+  quickScanProduct(barcode: string): void {
+    if (barcode) {
+      this.barcode = barcode;
+      this.activeTab = 'scan';
+      this.cdr.detectChanges();
+      setTimeout(() => this.doScan(), 100);
+    }
+  }
+
+  getRandomGradient(id: number): string {
+    const gradients = [
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+    ];
+    return gradients[id % gradients.length];
   }
 }

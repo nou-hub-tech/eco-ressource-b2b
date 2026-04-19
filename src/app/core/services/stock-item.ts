@@ -9,6 +9,7 @@ export class StockItemService {
 
   constructor(private http: HttpClient) {}
 
+
   getAll(): Observable<StockItem[]> {
     return this.http.get<StockItem[]>(`${this.api}/retrieve-all-stockitems`);
   }
@@ -53,10 +54,9 @@ export class StockItemService {
     );
   }
   importFromExcel(rows: any[]): Observable<any> {
-  return this.http.post(`${this.api}/import`, rows);
-}
-// Add this method
-getAdvancedStats(): Observable<any> {
-  return this.http.get<any>(`${this.api}/advanced-stats`);
-}
+    return this.http.post(`${this.api}/import`, rows);
+  }
+  getAdvancedStats(): Observable<any> {
+    return this.http.get<any>(`${this.api}/advanced-stats`);
+  }
 }

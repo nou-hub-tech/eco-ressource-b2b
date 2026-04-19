@@ -63,58 +63,59 @@
 
     <!-- RIGHT DATA PANEL -->
     <div class="ed-hero-panel">
+
       <div class="ed-panel-price-block">
         <div class="ed-pprice-lbl">ASKING PRICE</div>
-        <div class="ed-pprice-val">{{currentHero.price}}</div>
+        <div class="ed-pprice-val">{{ currentHero?.price }}</div>
         <div class="ed-pprice-unit">TND PER TONNE</div>
         <div class="ed-pmatch-row">
           <span class="ed-pmatch-lbl">AI MATCH SCORE</span>
-          <span class="ed-pmatch-val" [style.color]="currentHero.matchColor">{{currentHero.match}}%</span>
+          <span class="ed-pmatch-val" [style.color]="currentHero?.matchColor">{{currentHero?.match}}%</span>
         </div>
         <div class="ed-pmatch-bar-bg">
           <div class="ed-pmatch-bar"
-            [style.width.%]="currentHero.match"
-            [style.background]="currentHero.matchColor">
+            [style.width.%]="currentHero?.match"
+            [style.background]="currentHero?.matchColor">
           </div>
         </div>
       </div>
 
       <div class="ed-pspecs">
-        <div class="ed-pspec" *ngFor="let sp of currentHero.specs">
+        <div class="ed-pspec" *ngFor="let sp of currentHero?.specs">
           <span class="ed-pspec-k">{{sp.k}}</span>
           <span class="ed-pspec-v">{{sp.v}}</span>
         </div>
       </div>
 
-      <button class="ed-ppanel-btn" [style.background]="currentHero.btnColor">
+      <button class="ed-ppanel-btn" [style.background]="currentHero?.btnColor">
         Contact Seller
       </button>
-    </div>
 
-    <!-- CONTROLS BAR -->
-    <div class="ed-hero-controls">
-      <div class="ed-dots">
-        <div class="ed-dot"
-          *ngFor="let s of heroSlides; let i = index"
-          [class.active]="i === currentSlide"
-          (click)="goTo(i)">
-          <div class="ed-dot-fill"
-            [style.width.%]="i === currentSlide ? slideProgress : (i < currentSlide ? 100 : 0)">
+      <!-- CONTROLS BAR -->
+      <div class="ed-hero-controls">
+        <div class="ed-dots">
+          <div class="ed-dot"
+            *ngFor="let s of heroSlides; let i = index"
+            [class.active]="i === currentSlide"
+            (click)="goTo(i)">
+            <div class="ed-dot-fill"
+              [style.width.%]="i === currentSlide ? slideProgress : (i < currentSlide ? 100 : 0)">
+            </div>
           </div>
         </div>
+        <div class="ed-hero-nav">
+          <button class="ed-nav-btn" (click)="prev()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="ed-nav-btn" (click)="next()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="ed-counter">{{slideCounter}}</div>
       </div>
 
-      <div class="ed-hero-nav">
-        <button class="ed-nav-btn" (click)="prev()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <button class="ed-nav-btn" (click)="next()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-      <div class="ed-counter">{{slideCounter}}</div>
-    </div>
-  </div>
+    </div><!-- /ed-hero-panel -->
+  </div><!-- /ed-hero -->
 
   <!-- ══ SEARCH + STATS ══ -->
   <div class="ed-below">
@@ -148,6 +149,8 @@
 
   <!-- ══ LISTINGS BODY ══ -->
   <div class="ed-body">
+
+    <!-- MAIN LISTINGS -->
     <div class="ed-main">
       <div class="ed-sec-hd">
         <div class="ed-sec-hd-l">
@@ -206,11 +209,12 @@
           <p>No listings match your filters</p>
         </div>
       </div>
-    </div>
+    </div><!-- /ed-main -->
 
     <!-- SIDE PANELS -->
     <div class="ed-side">
 
+      <!-- NEEDS ATTENTION -->
       <div class="ed-panel">
         <div class="ed-panel-hd">
           <div class="ed-panel-hd-l">
@@ -229,6 +233,7 @@
         </div>
       </div>
 
+      <!-- MY LISTINGS -->
       <div class="ed-panel">
         <div class="ed-panel-hd">
           <div class="ed-panel-hd-l">
@@ -264,6 +269,31 @@
         </button>
       </div>
 
+      <!-- MANAGE PRODUCTS -->
+      <div class="ed-panel">
+        <div class="ed-panel-hd">
+          <div class="ed-panel-hd-l">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            <span class="ed-panel-title">MY PRODUCTS</span>
+          </div>
+          <a class="ed-panel-link" routerLink="/enterprise/my-products">Manage →</a>
+        </div>
+        <div style="padding: 12px 16px 4px;">
+          <p style="font-size:12px; color: var(--text2, #6b7280); margin: 0 0 12px;">
+            Manage your product catalog and link items to your stock.
+          </p>
+        </div>
+        <button class="ed-add-btn" routerLink="/enterprise/my-products">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Manage Products
+        </button>
+        <button class="ed-add-btn" routerLink="/enterprise/my-stock" style="margin-top:6px; background: rgba(16,185,129,0.08); color: #059669;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+          View My Stock
+        </button>
+      </div>
+
+      <!-- WALLET -->
       <div class="ed-panel">
         <div class="ed-panel-hd">
           <div class="ed-panel-hd-l">
@@ -290,6 +320,7 @@
         </div>
       </div>
 
+      <!-- ACTIVE DELIVERIES -->
       <div class="ed-panel">
         <div class="ed-panel-hd">
           <div class="ed-panel-hd-l">
@@ -317,6 +348,7 @@
         </div>
       </div>
 
-    </div>
-  </div>
-</div>
+    </div><!-- /ed-side -->
+  </div><!-- /ed-body -->
+
+</div><!-- /ed -->
