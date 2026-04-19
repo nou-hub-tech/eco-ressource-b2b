@@ -225,7 +225,7 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         this.loadShipments();
     }
 
-    // ==================== CHARGEMENT ====================
+    // ============ CHARGEMENT ====================
     
     loadShipments(): void {
         this.isLoading = true;
