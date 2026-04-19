@@ -42,7 +42,7 @@ export class QrModalComponent {
         this.cd.detectChanges();
     }
 
-    // ✅ Télécharger le QR code
+    //  Télécharger le QR code
     downloadQRCode(): void {
         const img = document.getElementById('qrCodeImage') as HTMLImageElement;
         if (img && img.src) {
@@ -69,7 +69,7 @@ export class QrModalComponent {
         }
     }
 
-    // ✅ Imprimer le QR code
+    //  Imprimer le QR code
     printQRCode(): void {
         const img = document.getElementById('qrCodeImage') as HTMLImageElement;
         if (img && img.src) {
@@ -123,7 +123,7 @@ export class QrModalComponent {
         }
     }
 
-    // ✅ Confirmer la livraison avec un clic
+    //  Confirmer la livraison avec un clic
     confirmerLivraison(): void {
         if (!this.order) return;
         
