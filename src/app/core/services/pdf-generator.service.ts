@@ -37,7 +37,7 @@ export class PdfGeneratorService {
             ['Statut', this.getStatusText(shipment.statut)],
             ['Quantite', `${shipment.quantite} unite(s)`],
             ['ID Transporteur', shipment.idTransporter.toString()],
-            ['ID Produit', shipment.produitId.toString()]
+            
         ];
         
         autoTable(doc, {
@@ -105,7 +105,6 @@ export class PdfGeneratorService {
         
         const statusInfo = [
             ['Statut actuel', this.getStatusText(shipment.statut)],
-            ['Niveau', this.getStatusLevel(shipment.statut)],
             ['Progression', this.getProgressPercentage(shipment.statut) + '%'],
             ['Derniere mise a jour', new Date().toLocaleString('fr-FR')]
         ];
@@ -174,7 +173,6 @@ export class PdfGeneratorService {
             
             const additionalInfo = [
                 ['Type de document', 'Bon d\'expedition'],
-                ['Reference', `EXP-${shipment.id.toString().padStart(6, '0')}`],
                 ['Genere par', 'Systeme de gestion des expeditions'],
                 ['Signature requise', shipment.statut === StatutExpedition.LIVREE ? 'Oui' : 'Non']
             ];
