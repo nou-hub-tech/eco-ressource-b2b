@@ -34,32 +34,32 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   toastVisible = false;
   private toastTimer: any;
 
-  // 🗑️ Confirm
+  //  Confirm
   showConfirm = false;
   confirmMessage = '';
   private confirmCallback: (() => void) | null = null;
 
-  // 🔍 Search + Filter
+  //  Search + Filter
   searchQuery = '';
   activeFilter = 'ALL';
   readonly filterOptions = ['ALL', 'COMPLETED', 'PENDING', 'LOCKED', 'FAILED'];
 
-  // 📊 Sort
+  //  Sort
   sortCol: string | null = null;
   sortDir: 'asc' | 'desc' = 'asc';
 
-  // 📄 Pagination
+  //  Pagination
   currentPage = 1;
   readonly pageSize = 8;
 
-  // ⚠️ Cash Threshold Alert
+  //  Cash Threshold Alert
   cashThreshold = 50000;
 
-  // 🗂️ Onglets : 'data' (défaut) | 'stats'
+  // Onglets : 'data' (défaut) | 'stats'
   activeTab: 'data' | 'stats' = 'data';
 
 
-  // 📈 Chart instances
+  //  Chart instances
   private cashChartInstance: Chart | null = null;
   private projectChartInstance: Chart | null = null;
   private viewReady = false;
@@ -72,16 +72,16 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   ) {
     this.transactionForm = this.fb.group({
       project: ['', Validators.required],
-      type:    ['', Validators.required],
-      amount:  [0,  Validators.required],
-      status:  ['PENDING', Validators.required],
-      date:    ['']
+      type: ['', Validators.required],
+      amount: [0, Validators.required],
+      status: ['PENDING', Validators.required],
+      date: ['']
     });
     this.escrowForm = this.fb.group({
-      project:     ['', Validators.required],
-      amount:      [0,  [Validators.required, Validators.min(0.01)]],
-      status:      ['LOCKED', Validators.required],
-      createdAt:   [''],
+      project: ['', Validators.required],
+      amount: [0, [Validators.required, Validators.min(0.01)]],
+      status: ['LOCKED', Validators.required],
+      createdAt: [''],
       releaseDate: ['']
     });
   }
@@ -128,7 +128,7 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ── Escrow counters for KPI strip ──
-  get escrowLockedCount():   number { return this.escrowEntries.filter(e => e.status === 'LOCKED').length; }
+  get escrowLockedCount(): number { return this.escrowEntries.filter(e => e.status === 'LOCKED').length; }
   get escrowReleasedCount(): number { return this.escrowEntries.filter(e => e.status === 'RELEASED').length; }
   get escrowDisputedCount(): number { return this.escrowEntries.filter(e => e.status === 'DISPUTED').length; }
 
@@ -299,7 +299,7 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
     )].slice(0, 8);
     return {
       labels: projects,
-      income:   projects.map(p => this.transactions.filter(t => t.project === p && t.status === 'COMPLETED' && t.amount > 0).reduce((s, t) => s + t.amount, 0)),
+      income: projects.map(p => this.transactions.filter(t => t.project === p && t.status === 'COMPLETED' && t.amount > 0).reduce((s, t) => s + t.amount, 0)),
       expenses: projects.map(p => Math.abs(this.transactions.filter(t => t.project === p && t.status === 'COMPLETED' && t.amount < 0).reduce((s, t) => s + t.amount, 0)))
     };
   }
@@ -336,7 +336,7 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
       data: {
         labels: labels.length ? labels : ['Aucun projet'],
         datasets: [
-          { label: 'Recettes', data: income,   backgroundColor: 'rgba(5,150,105,0.75)', borderRadius: 6 },
+          { label: 'Recettes', data: income, backgroundColor: 'rgba(5,150,105,0.75)', borderRadius: 6 },
           { label: 'Dépenses', data: expenses, backgroundColor: 'rgba(220,38,38,0.70)', borderRadius: 6 }
         ]
       },
