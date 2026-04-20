@@ -1,1 +1,104 @@
 /* Mise en page : variables et classes globales (.page-wrapper, .data-table, .theme-transporter) */
+/* ========== PAGINATION STYLES ========== */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 15px 20px;
+    background: var(--card-bg, white);
+    border-radius: 8px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.pagination-info {
+    color: var(--text2, #6c757d);
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.pagination-btn {
+    background: var(--bg-light, #f8f9fa);
+    border: 1px solid var(--border, #dee2e6);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text, #212529);
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: var(--primary, #0d6efd);
+    border-color: var(--primary, #0d6efd);
+    color: white;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-numbers {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.page-number {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    background: var(--bg-light, #f8f9fa);
+    border: 1px solid var(--border, #dee2e6);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text, #212529);
+    font-size: 14px;
+}
+
+.page-number:hover:not(.active) {
+    background: var(--bg-hover, #e9ecef);
+    border-color: var(--primary, #0d6efd);
+}
+
+.page-number.active {
+    background: var(--primary, #0d6efd);
+    border-color: var(--primary, #0d6efd);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pagination-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .pagination-controls {
+        justify-content: center;
+    }
+    
+    .page-numbers {
+        order: -1;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .pagination-info {
+        text-align: center;
+    }
+}

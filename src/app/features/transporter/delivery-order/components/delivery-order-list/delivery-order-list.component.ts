@@ -6,6 +6,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, switchMap, startWith } from 'rxjs/operators';
 import { DeliveryOrderService } from '../../../../../core/services/delivery-order.service';
 import { AlertService } from '../../../../../core/services/alert.service';
+import { PdfGeneratorService } from '../../../../../core/services/pdf-generator.service';
 import { DeliveryOrder } from '../../../../../core/models/delivery-order';
 import { StatutCommande } from '../../../../../core/models/statut';
 import { QrModalComponent } from '../../../../../shared/components/qr-modal/qr-modal.component';
@@ -25,6 +26,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
     filteredOrders: DeliveryOrder[] = [];
     isLoading = false;
     errorMessage = '';
+    successMessage = '';
     searchForm: FormGroup;
     sortBy: string = 'date';
     sortOrder: string = 'desc';
@@ -32,6 +34,13 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
     statistiques: any = null;
     showStats = false;
     rechercheActive = false;
+    
+    // ========== PROPRIÉTÉS DE PAGINATION ==========
+    currentPage: number = 1;
+    itemsPerPage: number = 3;
+    totalItems: number = 0;
+    paginatedOrders: DeliveryOrder[] = [];
+    
     private subscriptions: Subscription = new Subscription();
     private refreshInterval: any;
 
@@ -40,7 +49,8 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         private alertService: AlertService,
         private router: Router,
         private fb: FormBuilder,
-        private cd: ChangeDetectorRef
+        private cd: ChangeDetectorRef,
+        private pdfGenerator: PdfGeneratorService
     ) {
         this.searchForm = this.fb.group({
             nomClient: [''],
@@ -57,7 +67,6 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         window.addEventListener('orderChanged', this.handleOrderChange.bind(this));
         window.addEventListener('focus', () => this.loadDeliveryOrders());
         
-        // ✅ METTRE À JOUR AUTOMATIQUEMENT TOUTES LES 5 SECONDES
         this.refreshInterval = setInterval(() => {
             this.refreshData();
         }, 5000);
@@ -71,11 +80,9 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         }
     }
 
-    // ✅ Rafraîchir les données sans perdre les filtres
     refreshData(): void {
         this.deliveryOrderService.getAll().subscribe({
             next: (data: any) => {
-                // Vérifier si des changements ont eu lieu
                 let hasChanges = false;
                 if (this.deliveryOrders.length !== data.length) {
                     hasChanges = true;
@@ -277,6 +284,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         } else {
             this.filteredOrders = [...this.deliveryOrders];
         }
+        this.updatePagination();
     }
 
     // ==================== TRI ====================
@@ -336,6 +344,67 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         this.loadStatistiques();
     }
 
+    // ==================== PAGINATION ====================
+    
+    updatePagination(): void {
+        this.totalItems = this.filteredOrders.length;
+        const maxPage = this.getTotalPages();
+        if (this.currentPage > maxPage && maxPage > 0) {
+            this.currentPage = maxPage;
+        } else if (this.currentPage < 1) {
+            this.currentPage = 1;
+        }
+        this.setPaginatedOrders();
+    }
+    
+    setPaginatedOrders(): void {
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        this.paginatedOrders = this.filteredOrders.slice(startIndex, endIndex);
+    }
+    
+    nextPage(): void {
+        if (this.currentPage < this.getTotalPages()) {
+            this.currentPage++;
+            this.setPaginatedOrders();
+        }
+    }
+    
+    previousPage(): void {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.setPaginatedOrders();
+        }
+    }
+    
+    goToPage(page: number): void {
+        if (page >= 1 && page <= this.getTotalPages()) {
+            this.currentPage = page;
+            this.setPaginatedOrders();
+        }
+    }
+    
+    getTotalPages(): number {
+        return Math.ceil(this.totalItems / this.itemsPerPage);
+    }
+    
+    getPageNumbers(): number[] {
+        const totalPages = this.getTotalPages();
+        const pages: number[] = [];
+        for (let i = 1; i <= totalPages; i++) {
+            pages.push(i);
+        }
+        return pages;
+    }
+    
+    getStartIndex(): number {
+        return (this.currentPage - 1) * this.itemsPerPage + 1;
+    }
+    
+    getEndIndex(): number {
+        return Math.min(this.currentPage * this.itemsPerPage, this.totalItems);
+    }
+
     // ============ QR CODE =================
     
     openQrCode(order: DeliveryOrder): void {
@@ -344,6 +413,67 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         } else {
             console.error('qrModal not found');
         }
+    }
+
+    // ============ GÉNÉRATION PDF =================
+    
+    onGeneratePDF(order: DeliveryOrder): void {
+        try {
+            this.pdfGenerator.generateDeliveryOrderPDF(order);
+            this.successMessage = `PDF généré pour la commande #${order.idDelivery}`;
+            setTimeout(() => {
+                this.successMessage = '';
+            }, 3000);
+        } catch (error) {
+            console.error('Erreur lors de la génération du PDF:', error);
+            this.errorMessage = 'Erreur lors de la génération du PDF';
+            setTimeout(() => {
+                this.errorMessage = '';
+            }, 3000);
+        }
+    }
+
+    generateAllPDFs(): void {
+        if (this.filteredOrders.length === 0) {
+            this.errorMessage = 'Aucune commande à exporter';
+            setTimeout(() => {
+                this.errorMessage = '';
+            }, 3000);
+            return;
+        }
+
+        const confirmation = confirm(`Générer ${this.filteredOrders.length} PDF(s) ?`);
+        if (!confirmation) return;
+
+        this.isLoading = true;
+        let count = 0;
+        let errors = 0;
+        
+        this.filteredOrders.forEach((order, index) => {
+            setTimeout(() => {
+                try {
+                    this.pdfGenerator.generateDeliveryOrderPDF(order);
+                    count++;
+                } catch (error) {
+                    console.error(`Erreur PDF pour commande ${order.idDelivery}:`, error);
+                    errors++;
+                }
+                
+                if (index === this.filteredOrders.length - 1) {
+                    this.isLoading = false;
+                    if (errors === 0) {
+                        this.successMessage = `${count} PDF(s) généré(s) avec succès !`;
+                    } else {
+                        this.errorMessage = `${count} PDF(s) généré(s), ${errors} erreur(s)`;
+                    }
+                    setTimeout(() => {
+                        this.successMessage = '';
+                        this.errorMessage = '';
+                    }, 3000);
+                    this.cd.detectChanges();
+                }
+            }, index * 300);
+        });
     }
 
     // ============= ACTIONS ===============
@@ -362,9 +492,16 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
                 next: () => {
                     this.loadDeliveryOrders();
                     this.loadStatistiques();
+                    this.successMessage = 'Commande supprimée avec succès';
+                    setTimeout(() => {
+                        this.successMessage = '';
+                    }, 3000);
                 },
                 error: () => {
                     this.errorMessage = 'Erreur lors de la suppression';
+                    setTimeout(() => {
+                        this.errorMessage = '';
+                    }, 3000);
                 }
             });
             this.subscriptions.add(sub);
