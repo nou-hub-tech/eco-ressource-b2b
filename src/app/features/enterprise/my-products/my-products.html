@@ -5,7 +5,12 @@
       <h1>My Products</h1>
       <p>Manage your enterprise product catalogue</p>
     </div>
-    <button class="btn btn-primary" (click)="openAdd()">+ Add Product</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" routerLink="/enterprise/my-inventory">
+        📦 Consult Inventory
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">+ Add Product</button>
+    </div>
   </div>
 
   <div *ngIf="error" style="color:red;margin-bottom:12px">{{ error }}</div>

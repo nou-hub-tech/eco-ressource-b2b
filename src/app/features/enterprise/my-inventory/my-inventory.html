@@ -1,0 +1,391 @@
+<div class="inv-wrapper">
+
+  <!-- HEADER -->
+  <div class="inv-header-row">
+    <div>
+      <h1 class="inv-title">📦 My Inventory</h1>
+      <p class="inv-subtitle">Barcode management &amp; physical audit for your products</p>
+    </div>
+    <div class="inv-header-actions">
+      <button class="inv-btn inv-btn-outline" (click)="openScan()">🔍 Scan &amp; Audit</button>
+      <button class="inv-btn inv-btn-outline" (click)="exportPDF()">📄 Export PDF</button>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="inv-kpi-row">
+    <div class="inv-kpi"><div class="inv-kpi-icon" style="background:rgba(99,102,241,0.1)">📦</div><div><div class="inv-kpi-val">{{totalProducts}}</div><div class="inv-kpi-lbl">Products</div></div></div>
+    <div class="inv-kpi"><div class="inv-kpi-icon" style="background:rgba(16,185,129,0.1)">🗃️</div><div><div class="inv-kpi-val">{{totalStockItems}}</div><div class="inv-kpi-lbl">Stock Lines</div></div></div>
+    <div class="inv-kpi"><div class="inv-kpi-icon" style="background:rgba(59,130,246,0.1)">💰</div><div><div class="inv-kpi-val">{{totalInventoryValue | number:'1.2-2'}} DT</div><div class="inv-kpi-lbl">Total Value</div></div></div>
+    <div class="inv-kpi"><div class="inv-kpi-icon" style="background:rgba(245,158,11,0.1)">⚠️</div><div><div class="inv-kpi-val" [class.alert-val]="expiringAlert>0">{{expiringAlert}}</div><div class="inv-kpi-lbl">Expiring (&lt;60d)</div></div></div>
+    <div class="inv-kpi"><div class="inv-kpi-icon" style="background:rgba(239,68,68,0.1)">🚫</div><div><div class="inv-kpi-val" [class.alert-val]="expiredAlert>0">{{expiredAlert}}</div><div class="inv-kpi-lbl">Expired</div></div></div>
+    <div class="inv-kpi"><div class="inv-kpi-icon" style="background:rgba(17,24,39,0.08)">🔖</div><div><div class="inv-kpi-val">{{productsWithBarcode}}/{{totalProducts}}</div><div class="inv-kpi-lbl">With Barcode</div></div></div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="inv-toolbar">
+    <div class="inv-search"><span>🔍</span><input type="text" placeholder="Search by name, barcode or category…" [(ngModel)]="search"></div>
+    <select [(ngModel)]="filterCategory" class="inv-select">
+      <option value="">All categories</option>
+      <option *ngFor="let c of categories" [value]="c">{{c}}</option>
+    </select>
+    <span class="inv-count">{{filtered.length}} product(s)</span>
+  </div>
+
+  <div *ngIf="loading" class="inv-empty">Loading inventory…</div>
+  <div *ngIf="!loading && filtered.length===0" class="inv-empty">No products found. Add products in <strong>My Products</strong> first.</div>
+
+  <!-- TABLE -->
+  <div class="inv-table-wrap" *ngIf="!loading && filtered.length>0">
+    <table class="inv-table">
+      <thead><tr>
+        <th style="width:40px"></th>
+        <th>Product</th><th>Barcode</th><th>Category</th>
+        <th style="text-align:right">Total Qty</th>
+        <th style="text-align:right">Total Value</th>
+        <th style="text-align:center">Status</th>
+        <th style="text-align:center">Actions</th>
+      </tr></thead>
+      <tbody>
+        <ng-container *ngFor="let row of filtered">
+          <tr class="inv-row" [class.inv-row-expanded]="row.expanded" (click)="row.expanded=!row.expanded">
+            <td class="inv-expand-cell"><span class="inv-chevron" [class.open]="row.expanded">›</span></td>
+            <td>
+              <div class="inv-prod-cell">
+                <div class="inv-thumb" *ngIf="getImageUrl(row.product.image)"><img [src]="getImageUrl(row.product.image)" [alt]="row.product.name"></div>
+                <div class="inv-thumb inv-thumb-empty" *ngIf="!getImageUrl(row.product.image)">📦</div>
+                <div><div class="inv-prod-name">{{row.product.name}}</div><div class="inv-prod-sub">{{row.product.materialType}} · {{row.product.recyclable ? '♻ Recyclable' : 'Non-recyclable'}}</div></div>
+              </div>
+            </td>
+            <td>
+              <span class="inv-barcode-val" *ngIf="row.product.barcode">{{row.product.barcode}}</span>
+              <span class="inv-no-barcode" *ngIf="!row.product.barcode">— No barcode —</span>
+            </td>
+            <td><span class="inv-badge-cat">{{row.product.category}}</span></td>
+            <td style="text-align:right;font-weight:600">{{row.totalQty}}</td>
+            <td style="text-align:right;font-weight:600">{{row.totalValue | number:'1.2-2'}} DT</td>
+            <td style="text-align:center">
+              <span class="inv-status inv-status-expired" *ngIf="row.expiredCount>0">🚫 {{row.expiredCount}} expired</span>
+              <span class="inv-status inv-status-warning" *ngIf="row.expiredCount===0 && row.expiringCount>0">⚠ {{row.expiringCount}} expiring</span>
+              <span class="inv-status inv-status-ok"      *ngIf="row.expiredCount===0 && row.expiringCount===0 && row.stockItems.length>0">✓ OK</span>
+              <span class="inv-status inv-status-empty"   *ngIf="row.stockItems.length===0">— No stock</span>
+            </td>
+            <td style="text-align:center" (click)="$event.stopPropagation()">
+              <button class="inv-act-btn" [disabled]="!row.product.barcode" (click)="openBarcode(row.product)">🔖 Barcode</button>
+            </td>
+          </tr>
+          <tr class="inv-detail-row" *ngIf="row.expanded">
+            <td colspan="8" class="inv-detail-cell">
+              <div *ngIf="row.stockItems.length===0" class="inv-no-stock">No stock items linked to this product.</div>
+              <table class="inv-sub-table" *ngIf="row.stockItems.length>0">
+                <thead><tr><th>Location</th><th>Quantity</th><th>Unit Price</th><th>Value</th><th>Condition</th><th>Expiration</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let s of row.stockItems"
+                      [class.sub-expired]="getExpiryClass(s.expirationDate||'')==='expired'"
+                      [class.sub-warning]="getExpiryClass(s.expirationDate||'')==='danger'||getExpiryClass(s.expirationDate||'')==='warning'">
+                    <td>📍 {{s.location||'—'}}</td>
+                    <td><strong>{{s.quantity}}</strong> <small>{{s.unit}}</small></td>
+                    <td>{{s.unitPrice | number:'1.2-2'}} DT</td>
+                    <td>{{s.quantity * s.unitPrice | number:'1.2-2'}} DT</td>
+                    <td>{{s.condition}}</td>
+                    <td>
+                      <span *ngIf="s.expirationDate" [class]="'expiry-badge expiry-'+getExpiryClass(s.expirationDate)">
+                        {{s.expirationDate | date:'dd/MM/yyyy'}}
+                        <small>({{getDaysUntilExpiry(s.expirationDate)}}d)</small>
+                      </span>
+                      <span *ngIf="!s.expirationDate" class="expiry-badge expiry-ok">No expiry</span>
+                    </td>
+                    <td><span class="sub-status" [class.sub-status-ok]="s.status==='available'" [class.sub-status-warn]="s.status==='reserved'" [class.sub-status-bad]="s.status==='expired'||s.status==='sold'">{{s.status}}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCAN & AUDIT MODAL — 4 steps
+══════════════════════════════════════════════ -->
+<div class="inv-modal-overlay" *ngIf="showScanModal" (click)="closeScan()">
+  <div class="inv-modal inv-modal-wide" (click)="$event.stopPropagation()">
+
+    <!-- STEP INDICATOR -->
+    <div class="scan-steps">
+      <div class="scan-step" [class.active]="scanStep==='input'" [class.done]="scanStep==='found'||scanStep==='audit'||scanStep==='report'">
+        <div class="scan-step-dot">1</div><span>Scan Barcode</span>
+      </div>
+      <div class="scan-step-line"></div>
+      <div class="scan-step" [class.active]="scanStep==='found'" [class.done]="scanStep==='audit'||scanStep==='report'">
+        <div class="scan-step-dot">2</div><span>Product Found</span>
+      </div>
+      <div class="scan-step-line"></div>
+      <div class="scan-step" [class.active]="scanStep==='audit'" [class.done]="scanStep==='report'">
+        <div class="scan-step-dot">3</div><span>Physical Audit</span>
+      </div>
+      <div class="scan-step-line"></div>
+      <div class="scan-step" [class.active]="scanStep==='report'">
+        <div class="scan-step-dot">4</div><span>Comparison Report</span>
+      </div>
+      <button class="inv-close-btn" style="margin-left:auto" (click)="closeScan()">✕</button>
+    </div>
+
+    <!-- ── STEP 1: SCAN INPUT ── -->
+    <div class="scan-body" *ngIf="scanStep==='input'">
+      <h2 class="scan-title">📸 Scan Barcode or Enter Manually</h2>
+      <p class="scan-sub">Upload a photo of the barcode label — it will be decoded automatically. Or type the barcode / product name below.</p>
+
+      <!-- Image upload zone -->
+      <div class="scan-upload-zone" (click)="imgInput.click()">
+        <input #imgInput type="file" accept="image/*" style="display:none" (change)="onBarcodeImageSelected($event)">
+        <div *ngIf="!scanImagePreview && !scanImageReading">
+          <div style="font-size:40px;margin-bottom:8px">📷</div>
+          <div style="font-weight:600;margin-bottom:4px">Click to upload barcode photo</div>
+          <div style="font-size:12px;color:var(--text3,#9ca3af)">JPG, PNG, WEBP accepted</div>
+        </div>
+        <div *ngIf="scanImageReading" style="text-align:center">
+          <div class="scan-spinner"></div>
+          <div style="margin-top:10px;font-size:13px">Reading barcode…</div>
+        </div>
+        <div *ngIf="scanImagePreview && !scanImageReading">
+          <img [src]="scanImagePreview" style="max-height:140px;max-width:100%;border-radius:8px;object-fit:contain">
+        </div>
+      </div>
+
+      <div class="scan-or"><span>— OR —</span></div>
+
+      <!-- Manual input -->
+      <div class="scan-manual-row">
+        <input class="inv-scan-input" type="text" [(ngModel)]="scanInput"
+               placeholder="Barcode number, product name or product ID…"
+               (keyup.enter)="doScan()">
+        <button class="inv-btn inv-btn-primary" (click)="doScan()">Search</button>
+      </div>
+
+      <div class="scan-error" *ngIf="scanError">⚠ {{scanError}}</div>
+    </div>
+
+    <!-- ── STEP 2: PRODUCT FOUND ── -->
+    <div class="scan-body" *ngIf="scanStep==='found' && scanResult">
+      <h2 class="scan-title">✅ Product Identified</h2>
+
+      <div class="found-card">
+        <div class="found-img" *ngIf="getImageUrl(scanResult.product.image)">
+          <img [src]="getImageUrl(scanResult.product.image)" [alt]="scanResult.product.name">
+        </div>
+        <div class="found-img found-img-empty" *ngIf="!getImageUrl(scanResult.product.image)">📦</div>
+        <div class="found-info">
+          <div class="found-name">{{scanResult.product.name}}</div>
+          <div class="found-meta">{{scanResult.product.category}} · {{scanResult.product.materialType}}</div>
+          <div class="found-barcode" *ngIf="scanResult.product.barcode">🔖 {{scanResult.product.barcode}}</div>
+        </div>
+      </div>
+
+      <div class="found-stats">
+        <div class="found-stat"><span>Platform Qty</span><strong>{{scanResult.totalQty}}</strong></div>
+        <div class="found-stat"><span>Stock Lines</span><strong>{{scanResult.stockItems.length}}</strong></div>
+        <div class="found-stat"><span>Total Value</span><strong>{{scanResult.totalValue | number:'1.2-2'}} DT</strong></div>
+        <div class="found-stat" *ngIf="scanResult.expiringCount>0"><span>Expiring Soon</span><strong style="color:#f59e0b">{{scanResult.expiringCount}}</strong></div>
+        <div class="found-stat" *ngIf="scanResult.expiredCount>0"><span>Expired</span><strong style="color:#ef4444">{{scanResult.expiredCount}}</strong></div>
+      </div>
+
+      <div *ngIf="scanResult.stockItems.length===0" class="scan-error" style="margin-top:12px">
+        This product has no stock items linked yet — nothing to audit.
+      </div>
+
+      <div class="scan-footer">
+        <button class="inv-btn inv-btn-outline" (click)="backToInput()">← Back</button>
+        <button class="inv-btn inv-btn-primary" (click)="startAudit()" [disabled]="scanResult.stockItems.length===0">
+          Start Physical Audit →
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: PHYSICAL AUDIT FORM ── -->
+    <div class="scan-body" *ngIf="scanStep==='audit'">
+      <h2 class="scan-title">📋 Physical Audit — Enter Real State</h2>
+      <p class="scan-sub">For each stock line, enter what you physically count and observe in the warehouse.</p>
+
+      <div class="audit-table-wrap">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Platform Qty<br><small style="font-weight:400;color:#9ca3af">System</small></th>
+              <th>Real Qty <span class="req">*</span></th>
+              <th>Platform Condition<br><small style="font-weight:400;color:#9ca3af">System</small></th>
+              <th>Real Condition <span class="req">*</span></th>
+              <th>Platform Expiry<br><small style="font-weight:400;color:#9ca3af">System</small></th>
+              <th>Real Expiry</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let line of auditLines; let i=index">
+              <td><strong>{{line.stockItem.location||'—'}}</strong><br><small style="color:#9ca3af">{{line.stockItem.unit}}</small></td>
+              <td class="sys-val">{{line.stockItem.quantity}}</td>
+              <td>
+                <input class="audit-input" type="number" min="0" step="1"
+                       [(ngModel)]="auditLines[i].realQty"
+                       placeholder="e.g. 48">
+              </td>
+              <td class="sys-val">{{line.stockItem.condition||'—'}}</td>
+              <td>
+                <select class="audit-select" [(ngModel)]="auditLines[i].realCondition">
+                  <option *ngFor="let c of conditions" [value]="c">{{c}}</option>
+                </select>
+              </td>
+              <td class="sys-val">{{line.stockItem.expirationDate ? (line.stockItem.expirationDate | date:'dd/MM/yyyy') : '—'}}</td>
+              <td>
+                <input class="audit-input" type="text" appDatepicker dateFormat="Y-m-d"
+                       [(ngModel)]="auditLines[i].realExpiration"
+                       placeholder="Select date">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="scan-footer">
+        <button class="inv-btn inv-btn-outline" (click)="backToFound()">← Back</button>
+        <button class="inv-btn inv-btn-primary" (click)="generateReport()">Generate Comparison Report →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: COMPARISON REPORT ── -->
+    <div class="scan-body" *ngIf="scanStep==='report'">
+      <div class="report-header">
+        <div>
+          <h2 class="scan-title" style="margin-bottom:2px">📊 Inventory Comparison Report</h2>
+          <p class="scan-sub" style="margin:0">{{reportProduct?.name}} · {{reportProduct?.barcode || 'No barcode'}} · {{reportLines.length}} stock line(s)</p>
+        </div>
+        <button class="inv-btn inv-btn-outline" (click)="exportReportPDF()">📄 Export PDF</button>
+      </div>
+
+      <!-- Summary pills -->
+      <div class="report-summary">
+        <div class="report-pill pill-ok">✓ OK: {{reportOkCount}}</div>
+        <div class="report-pill pill-disc" *ngIf="reportDiscCount>0">⚠ Discrepancies: {{reportDiscCount}}</div>
+        <div class="report-pill pill-exp"  *ngIf="reportExpiredCount>0">🚫 Expired: {{reportExpiredCount}}</div>
+        <div class="report-pill pill-ok" *ngIf="!reportHasDiscrepancy" style="background:#dcfce7;color:#16a34a">✅ All stock matches!</div>
+      </div>
+
+      <!-- Comparison rows -->
+      <div class="report-lines">
+        <div class="report-line" *ngFor="let line of reportLines"
+             [class.line-ok]="line.status==='ok'"
+             [class.line-disc]="line.status==='discrepancy'"
+             [class.line-exp]="line.status==='expired'">
+
+          <div class="line-status-bar"></div>
+
+          <div class="line-location">
+            📍 {{line.stockItem.location || '—'}}
+            <span class="line-badge" [class.badge-ok]="line.status==='ok'" [class.badge-disc]="line.status==='discrepancy'" [class.badge-exp]="line.status==='expired'">
+              {{line.status === 'ok' ? '✓ OK' : line.status === 'expired' ? '🚫 EXPIRED' : '⚠ DISCREPANCY'}}
+            </span>
+          </div>
+
+          <div class="line-grid">
+
+            <!-- Quantity -->
+            <div class="compare-block" [class.mismatch]="line.qtyDiff !== 0 && line.qtyDiff !== null">
+              <div class="compare-label">Quantity</div>
+              <div class="compare-row">
+                <div class="compare-side">
+                  <div class="compare-tag sys-tag">System</div>
+                  <div class="compare-val">{{line.stockItem.quantity}} {{line.stockItem.unit}}</div>
+                </div>
+                <div class="compare-arrow">→</div>
+                <div class="compare-side">
+                  <div class="compare-tag real-tag">Physical</div>
+                  <div class="compare-val" [style.color]="line.qtyDiff !== null && line.qtyDiff !== 0 ? '#ef4444' : '#16a34a'">
+                    {{line.realQty !== null ? line.realQty : '—'}} {{line.stockItem.unit}}
+                  </div>
+                </div>
+              </div>
+              <div class="diff-badge" *ngIf="line.qtyDiff !== null && line.qtyDiff !== 0"
+                   [style.background]="line.qtyDiff < 0 ? '#fee2e2' : '#dcfce7'"
+                   [style.color]="line.qtyDiff < 0 ? '#dc2626' : '#16a34a'">
+                {{line.qtyDiff > 0 ? '+' : ''}}{{line.qtyDiff}} units
+              </div>
+              <div class="diff-ok" *ngIf="line.qtyDiff === 0">✓ Match</div>
+            </div>
+
+            <!-- Condition -->
+            <div class="compare-block" [class.mismatch]="!line.conditionMatch">
+              <div class="compare-label">Condition</div>
+              <div class="compare-row">
+                <div class="compare-side">
+                  <div class="compare-tag sys-tag">System</div>
+                  <div class="compare-val">{{line.stockItem.condition || '—'}}</div>
+                </div>
+                <div class="compare-arrow">→</div>
+                <div class="compare-side">
+                  <div class="compare-tag real-tag">Physical</div>
+                  <div class="compare-val" [style.color]="!line.conditionMatch ? '#ef4444' : '#16a34a'">{{line.realCondition}}</div>
+                </div>
+              </div>
+              <div class="diff-badge" *ngIf="!line.conditionMatch" style="background:#fff7ed;color:#ea580c">⚠ Condition changed</div>
+              <div class="diff-ok" *ngIf="line.conditionMatch">✓ Match</div>
+            </div>
+
+            <!-- Expiration -->
+            <div class="compare-block" [class.mismatch]="!line.expirationMatch || line.status==='expired'">
+              <div class="compare-label">Expiration Date</div>
+              <div class="compare-row">
+                <div class="compare-side">
+                  <div class="compare-tag sys-tag">System</div>
+                  <div class="compare-val">{{line.stockItem.expirationDate ? (line.stockItem.expirationDate | date:'dd/MM/yyyy') : '—'}}</div>
+                </div>
+                <div class="compare-arrow">→</div>
+                <div class="compare-side">
+                  <div class="compare-tag real-tag">Physical</div>
+                  <div class="compare-val" [style.color]="line.status==='expired' ? '#ef4444' : !line.expirationMatch ? '#f59e0b' : '#16a34a'">
+                    {{line.realExpiration ? (line.realExpiration | date:'dd/MM/yyyy') : '—'}}
+                  </div>
+                </div>
+              </div>
+              <div class="diff-badge" *ngIf="line.status==='expired'" style="background:#fee2e2;color:#dc2626">🚫 Product is expired!</div>
+              <div class="diff-badge" *ngIf="line.status!=='expired' && !line.expirationMatch" style="background:#fff7ed;color:#ea580c">⚠ Date mismatch</div>
+              <div class="diff-ok" *ngIf="line.expirationMatch && line.status!=='expired'">✓ Match</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="scan-footer">
+        <button class="inv-btn inv-btn-outline" (click)="backToAudit()">← Redo Audit</button>
+        <button class="inv-btn inv-btn-outline" (click)="backToInput()">🔍 Scan Another</button>
+        <button class="inv-btn inv-btn-primary" (click)="closeScan()">Done ✓</button>
+      </div>
+    </div>
+
+  </div><!-- /inv-modal -->
+</div>
+
+<!-- BARCODE MODAL -->
+<div class="inv-modal-overlay" *ngIf="barcodeProduct" (click)="closeBarcode()">
+  <div class="inv-modal" (click)="$event.stopPropagation()" style="max-width:420px">
+    <div class="inv-modal-header">
+      <h2>🔖 Barcode</h2>
+      <button class="inv-close-btn" (click)="closeBarcode()">✕</button>
+    </div>
+    <div class="inv-modal-body" style="text-align:center;padding:32px 24px">
+      <div class="inv-bc-product-name">{{barcodeProduct.name}}</div>
+      <div class="inv-bc-meta">{{barcodeProduct.category}} · {{barcodeProduct.barcode}}</div>
+      <div class="inv-bc-canvas-wrap"><canvas #barcodeCanvas></canvas></div>
+      <div class="inv-bc-info">
+        <div class="inv-bc-info-row"><span>Material</span><span>{{barcodeProduct.materialType}}</span></div>
+        <div class="inv-bc-info-row"><span>Recyclable</span><span [style.color]="barcodeProduct.recyclable?'#16a34a':'#dc2626'">{{barcodeProduct.recyclable?'♻ Yes':'No'}}</span></div>
+      </div>
+    </div>
+    <div class="inv-modal-footer">
+      <button class="inv-btn inv-btn-outline" (click)="closeBarcode()">Close</button>
+      <button class="inv-btn inv-btn-primary" (click)="printBarcode()">🖨 Print</button>
+    </div>
+  </div>
+</div>
