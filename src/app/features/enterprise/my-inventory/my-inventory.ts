@@ -509,8 +509,5 @@ export class MyInventory implements OnInit, AfterViewChecked {
  
  
  
- 
- 
- 
   }
 }
