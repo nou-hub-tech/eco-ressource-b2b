@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   ReservationDto,
@@ -41,29 +42,78 @@ export interface SolidarityDto {
   mission: string;
   members: number;
   donations: number;
-  status: string;
-  ai: string;
+  statusLabel: string;
+  aiInsight: string;
+  goalAmount?: number;
 }
+
+export interface CreateAssociationRequest {
+  name: string;
+  mission: string;
+  members: number;
+  donations: number;
+  statusLabel: string;
+  aiInsight?: string;
+  goalAmount?: number;
+}
+
+export interface DonationDto {
+  id?: number;
+  amount: number;
+  message?: string;
+  associationId: number;
+  userId?: number;
+  createdAt?: string;
+}
+
+const REQUEST_TIMEOUT_MS = 10_000; // 10 seconds — fail fast if backend is unreachable
 
 @Injectable({ providedIn: 'root' })
 export class AdminApiService {
   private readonly apiUrl = environment.apiUrl;
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly http: HttpClient) { }
+
+  /** Wraps any request with a 10s timeout and detailed console error logging. */
+  private withTimeout<T>(obs: Observable<T>, label: string): Observable<T> {
+    return obs.pipe(
+      timeout({
+        each: REQUEST_TIMEOUT_MS,
+        with: () => throwError(() => ({
+          status: 0,
+          error: { message: `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s` }
+        }))
+      }),
+      catchError((err: HttpErrorResponse | any) => {
+        if (err?.status === 0) {
+          console.error(`[AdminAPI] ${label} — Backend unreachable or request timed out.`, err);
+        } else {
+          console.error(`[AdminAPI] ${label} — HTTP ${err?.status}`, err?.error ?? err);
+        }
+        return throwError(() => err);
+      })
+    );
+  }
 
   getUsers(): Observable<AdminUserDto[]> {
-    return this.http.get<AdminUserDto[]>(`${this.apiUrl}/users`);
+    return this.withTimeout(
+      this.http.get<AdminUserDto[]>(`${this.apiUrl}/users`),
+      'GET /users'
+    );
   }
 
   updateUserStatus(id: number, status: string): Observable<AdminUserDto> {
-    return this.http.patch<AdminUserDto>(
-      `${this.apiUrl}/users/${id}/status`,
-      { status }
+    return this.withTimeout(
+      this.http.patch<AdminUserDto>(`${this.apiUrl}/users/${id}/status`, { status }),
+      `PATCH /users/${id}/status`
     );
   }
 
   deleteUser(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/users/${id}`);
+    return this.withTimeout(
+      this.http.delete<void>(`${this.apiUrl}/users/${id}`),
+      `DELETE /users/${id}`
+    );
   }
 
   /** Parse USR-001 -> 1 */
@@ -73,26 +123,60 @@ export class AdminApiService {
   }
 
   getEvents(): Observable<EventDto[]> {
-    return this.http.get<EventDto[]>(`${this.apiUrl}/admin/events`);
+    return this.withTimeout(
+      this.http.get<EventDto[]>(`${this.apiUrl}/platform-events`),
+      'GET /platform-events'
+    );
   }
 
   getReservations(): Observable<ReservationDto[]> {
-    return this.http.get<ReservationDto[]>(
-      `${this.apiUrl}/admin/reservations`
+    return this.withTimeout(
+      this.http.get<ReservationDto[]>(`${this.apiUrl}/reservations`),
+      'GET /reservations'
     );
   }
 
   getSolidarity(): Observable<SolidarityDto[]> {
-    return this.http.get<SolidarityDto[]>(`${this.apiUrl}/admin/solidarity`);
+    return this.withTimeout(
+      this.http.get<SolidarityDto[]>(`${this.apiUrl}/solidarity-associations`),
+      'GET /solidarity-associations'
+    );
+  }
+
+  createSolidarity(data: CreateAssociationRequest): Observable<SolidarityDto> {
+    return this.withTimeout(
+      this.http.post<SolidarityDto>(`${this.apiUrl}/solidarity-associations`, data),
+      'POST /solidarity-associations'
+    );
+  }
+
+  createDonation(data: DonationDto): Observable<DonationDto> {
+    return this.withTimeout(
+      this.http.post<DonationDto>(`${this.apiUrl}/donations`, data),
+      'POST /donations'
+    );
+  }
+
+  getDonationsByAssociation(associationId: number): Observable<DonationDto[]> {
+    return this.withTimeout(
+      this.http.get<DonationDto[]>(`${this.apiUrl}/donations/association/${associationId}`),
+      `GET /donations/association/${associationId}`
+    );
   }
 
   getTreasuryTransactions(): Observable<WalletTransactionDto[]> {
-    return this.http.get<WalletTransactionDto[]>(
-      `${this.apiUrl}/admin/treasury/transactions`
+    return this.withTimeout(
+      this.http.get<WalletTransactionDto[]>(`${this.apiUrl}/wallet-transactions`),
+      'GET /wallet-transactions'
     );
   }
 
   getStockItems(): Observable<StockItemDto[]> {
-    return this.http.get<StockItemDto[]>(`${this.apiUrl}/admin/stock/items`);
+    return this.withTimeout(
+      this.http.get<StockItemDto[]>(`${this.apiUrl}/stock-items`),
+      'GET /stock-items'
+    );
   }
 }
+
+
