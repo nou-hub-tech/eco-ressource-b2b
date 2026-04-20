@@ -505,5 +505,12 @@ export class MyInventory implements OnInit, AfterViewChecked {
     if (!img || img === 'default.png' || img === 'undefined' || img === 'null') return '';
     if (img.startsWith('http')) return img;
     return `http://localhost:8080/files/${img}`;
+ 
+ 
+ 
+ 
+ 
+ 
+ 
   }
 }
