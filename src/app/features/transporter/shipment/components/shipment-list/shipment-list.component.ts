@@ -6,6 +6,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ShipmentService } from '../../../../../core/services/shipment.service';
 import { DeliveryOrderService } from '../../../../../core/services/delivery-order.service';
+import { PdfGeneratorService } from '../../../../../core/services/pdf-generator.service';
 import { Shipment } from '../../../../../core/models/shipment';
 import { DeliveryOrder } from '../../../../../core/models/delivery-order';
 import { StatutExpedition } from '../../../../../core/models/statut';
@@ -40,7 +41,8 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         private router: Router,
         private fb: FormBuilder,
         private cd: ChangeDetectorRef,
-        private zone: NgZone
+        private zone: NgZone,
+        private pdfGenerator: PdfGeneratorService  // Service PDF ajouté
     ) {
         this.searchForm = this.fb.group({
             produitId: [''],           
@@ -366,6 +368,78 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
             });
             this.subscriptions.add(sub);
         }
+    }
+
+    // ==================== GÉNÉRATION PDF ====================
+    
+    onGeneratePDF(shipmentId: number): void {
+        // Récupérer l'expédition concernée
+        const shipment = this.shipments.find(s => s.id === shipmentId);
+        
+        if (!shipment) {
+            console.error('Expédition non trouvée');
+            this.errorMessage = 'Impossible de générer le PDF : expédition non trouvée';
+            return;
+        }
+        
+        // Récupérer les détails de la commande associée
+        const orderId = shipment.deliveryOrder.idDelivery;
+        const deliveryOrder = this.deliveryOrders.get(orderId) || null;
+        
+        if (!deliveryOrder) {
+            console.warn('Commande non trouvée pour l\'ID:', orderId);
+        }
+        
+        // Générer le PDF
+        try {
+            this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder);
+        } catch (error) {
+            console.error('Erreur lors de la génération du PDF:', error);
+            this.errorMessage = 'Erreur lors de la génération du PDF';
+        }
+    }
+
+    // Option: Générer tous les PDFs des expéditions filtrées
+    generateAllPDFs(): void {
+        if (this.filteredShipments.length === 0) {
+            this.errorMessage = 'Aucune expédition à exporter';
+            return;
+        }
+
+        const confirmation = confirm(`Générer ${this.filteredShipments.length} PDF(s) ?`);
+        if (!confirmation) return;
+
+        this.isLoading = true;
+        let count = 0;
+        let errors = 0;
+        
+        this.filteredShipments.forEach((shipment, index) => {
+            const deliveryOrder = this.deliveryOrders.get(shipment.deliveryOrder.idDelivery) || null;
+            
+            setTimeout(() => {
+                try {
+                    this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder);
+                    count++;
+                } catch (error) {
+                    console.error(`Erreur PDF pour expédition ${shipment.id}:`, error);
+                    errors++;
+                }
+                
+                if (index === this.filteredShipments.length - 1) {
+                    this.runZone(() => {
+                        this.isLoading = false;
+                        if (errors === 0) {
+                            this.errorMessage = `${count} PDF(s) généré(s) avec succès !`;
+                        } else {
+                            this.errorMessage = `${count} PDF(s) généré(s), ${errors} erreur(s)`;
+                        }
+                        setTimeout(() => {
+                            this.errorMessage = '';
+                        }, 3000);
+                    });
+                }
+            }, index * 300); // Délai pour éviter les conflits
+        });
     }
 
     onCreateNew(): void {
