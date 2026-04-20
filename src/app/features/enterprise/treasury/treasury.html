@@ -1,17 +1,15 @@
 <div class="page-wrapper">
 
-  <!-- 🔔 TOAST -->
+  <!-- TOAST -->
   <div class="toast-container" [class.visible]="toastVisible">
-    <div class="toast"
-      [class.toast-success]="toastType==='success'"
-      [class.toast-error]="toastType==='error'"
+    <div class="toast" [class.toast-success]="toastType==='success'" [class.toast-error]="toastType==='error'"
       [class.toast-info]="toastType==='info'">
       <span class="toast-icon">{{ toastType==='success' ? '✓' : toastType==='error' ? '✕' : 'ℹ' }}</span>
       <span>{{ toastMessage }}</span>
     </div>
   </div>
 
-  <!-- 🗑️ CONFIRM -->
+  <!--  CONFIRM -->
   <div *ngIf="showConfirm" class="modal-overlay" (click)="onConfirmNo()">
     <div class="modal confirm-modal" (click)="$event.stopPropagation()">
       <div class="confirm-icon">⚠️</div>
@@ -24,7 +22,7 @@
     </div>
   </div>
 
-  <!-- ⚠️ CASH ALERT -->
+  <!--  CASH ALERT -->
   <div class="alert-banner" *ngIf="cashAlert">
     <span class="alert-icon">⚠️</span>
     <span>Cash disponible <strong>{{ computedCashOnHand | number:'1.0-0' }} TND</strong>
@@ -69,8 +67,8 @@
           </div>
           <div class="kpi-sub">Solde net − Escrow</div>
           <svg class="sparkline" viewBox="0 0 80 30" preserveAspectRatio="none">
-            <polyline [attr.points]="getSparklinePoints()" fill="none" stroke="currentColor"
-              stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline [attr.points]="getSparklinePoints()" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
       </div>
@@ -206,8 +204,7 @@
                 <small>Créé automatiquement à l'ajout d'une facture</small>
               </td>
             </tr>
-            <tr *ngFor="let esc of escrowEntries"
-              [class.escrow-locked-row]="esc.status==='LOCKED'"
+            <tr *ngFor="let esc of escrowEntries" [class.escrow-locked-row]="esc.status==='LOCKED'"
               [class.escrow-released-row]="esc.status==='RELEASED'"
               [class.escrow-disputed-row]="esc.status==='DISPUTED'">
               <td>
@@ -215,17 +212,15 @@
               </td>
               <td><strong style="font-size:12px">{{ esc.amount | number:'1.0-0' }} TND</strong></td>
               <td>
-                <span class="badge"
-                  [class.badge-success]="esc.status==='RELEASED'"
-                  [class.badge-warning]="esc.status==='LOCKED'"
-                  [class.badge-danger]="esc.status==='DISPUTED'">
+                <span class="badge" [class.badge-success]="esc.status==='RELEASED'"
+                  [class.badge-warning]="esc.status==='LOCKED'" [class.badge-danger]="esc.status==='DISPUTED'">
                   {{ esc.status }}
                 </span>
               </td>
               <td class="date-cell">{{ esc.createdAt }}</td>
               <td class="action-cell">
-                <button class="btn btn-release btn-sm" *ngIf="esc.status==='LOCKED'"
-                  title="Libérer" (click)="releaseEscrow(esc)">🔓</button>
+                <button class="btn btn-release btn-sm" *ngIf="esc.status==='LOCKED'" title="Libérer"
+                  (click)="releaseEscrow(esc)">🔓</button>
                 <button class="btn btn-ghost btn-sm" (click)="openEscrowForm(esc)">✏️</button>
                 <button class="btn btn-danger btn-sm" (click)="deleteEscrow(esc.id!)">🗑️</button>
               </td>
@@ -248,13 +243,13 @@
         <div class="table-toolbar">
           <div class="search-wrap">
             <span class="search-icon">🔍</span>
-            <input class="search-input" type="text" [(ngModel)]="searchQuery"
-              (input)="onSearch()" placeholder="Rechercher…">
+            <input class="search-input" type="text" [(ngModel)]="searchQuery" (input)="onSearch()"
+              placeholder="Rechercher…">
             <button *ngIf="searchQuery" class="search-clear" (click)="searchQuery=''; onSearch()">✕</button>
           </div>
           <div class="filter-bar">
-            <button *ngFor="let f of filterOptions" class="filter-btn"
-              [class.active]="activeFilter===f" (click)="setFilter(f)">
+            <button *ngFor="let f of filterOptions" class="filter-btn" [class.active]="activeFilter===f"
+              (click)="setFilter(f)">
               {{ f==='ALL'?'Tous':f }}
               <span class="filter-count">{{ f==='ALL' ? transactions.length : countByStatus(f) }}</span>
             </button>
@@ -285,8 +280,7 @@
                 </strong>
               </td>
               <td>
-                <span class="badge"
-                  [class.badge-success]="tx.status==='COMPLETED'"
+                <span class="badge" [class.badge-success]="tx.status==='COMPLETED'"
                   [class.badge-warning]="tx.status==='PENDING'||tx.status==='LOCKED'"
                   [class.badge-danger]="tx.status==='FAILED'">
                   {{ tx.status }}
@@ -302,10 +296,12 @@
         </table>
 
         <div class="pagination-bar" *ngIf="totalPages > 1">
-          <span class="page-info">{{ processedTransactions.length }} résultat(s) — page {{ currentPage }}/{{ totalPages }}</span>
+          <span class="page-info">{{ processedTransactions.length }} résultat(s) — page {{ currentPage }}/{{ totalPages
+            }}</span>
           <div class="page-btns">
             <button class="page-btn" [disabled]="currentPage===1" (click)="setPage(currentPage-1)">‹</button>
-            <button class="page-btn" *ngFor="let p of pageNumbers" [class.active]="p===currentPage" (click)="setPage(p)">{{ p }}</button>
+            <button class="page-btn" *ngFor="let p of pageNumbers" [class.active]="p===currentPage"
+              (click)="setPage(p)">{{ p }}</button>
             <button class="page-btn" [disabled]="currentPage===totalPages" (click)="setPage(currentPage+1)">›</button>
           </div>
         </div>
