@@ -507,5 +507,9 @@ export class MyInventory implements OnInit, AfterViewChecked {
     return `http://localhost:8080/files/${img}`;
  
 
+
+
+
+    
   }
 }
