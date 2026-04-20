@@ -39,6 +39,13 @@ export class Solidarity implements OnInit {
   selectedAssociationId: number | null = null;
   newDonation = { amount: 0, message: '' };
 
+  // ─── Details modal ────────────────────────────────────────────────────────
+  showDetailsModal = false;
+  detailsLoading = false;
+  detailsError: string | null = null;
+  selectedAssociationDetails: SolidarityDto | null = null;
+  associationDonations: DonationDto[] = [];
+
   constructor(private readonly adminApi: AdminApiService) {}
 
   ngOnInit(): void {
@@ -173,5 +180,38 @@ export class Solidarity implements OnInit {
         this.donating = false;
       }
     });
+  }
+
+  // ─── Details modal ────────────────────────────────────────────────────────
+  openDetailsModal(association: SolidarityDto): void {
+    this.selectedAssociationDetails = association;
+    this.showDetailsModal = true;
+    this.detailsLoading = true;
+    this.detailsError = null;
+    this.associationDonations = [];
+
+    this.adminApi.getDonationsByAssociation(association.id).subscribe({
+      next: (donations) => {
+        // Sort donations by date descending (newest first) if createdAt is present
+        this.associationDonations = donations.sort((a, b) => {
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        this.detailsLoading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load donations', err);
+        this.detailsError = 'Failed to load donation details.';
+        this.detailsLoading = false;
+      }
+    });
+  }
+
+  closeDetailsModal(): void {
+    this.showDetailsModal = false;
+    this.selectedAssociationDetails = null;
+    this.associationDonations = [];
+    this.detailsError = null;
   }
 }

@@ -48,7 +48,7 @@
       </div>
       <div style="margin-bottom:14px" *ngIf="a.aiInsight"><span class="ai-tip">🤖 {{a.aiInsight}}</span></div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-outline btn-sm">View Details</button>
+        <button class="btn btn-outline btn-sm" (click)="openDetailsModal(a)">View Details</button>
         <button class="btn btn-primary btn-sm" (click)="openDonateModal(a.id)">Donate</button>
       </div>
     </div>
@@ -214,5 +214,43 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ─── Details Modal ─────────────────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showDetailsModal" (click)="closeDetailsModal()">
+  <div class="modal" (click)="$event.stopPropagation()" style="max-width: 600px; width: 100%;">
+    <div class="modal-header">
+      <h2>{{selectedAssociationDetails?.name}} - Donations</h2>
+      <button class="btn btn-icon" (click)="closeDetailsModal()">✕</button>
+    </div>
+
+    <div *ngIf="detailsError"
+      style="margin:0 0 16px;padding:12px 16px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.4);border-radius:8px;color:#ef4444;font-size:13px;">
+      {{detailsError}}
+    </div>
+
+    <div *ngIf="detailsLoading" style="padding:40px; text-align:center;">
+      <p>Loading donations...</p>
+    </div>
+
+    <div *ngIf="!detailsLoading && !detailsError && associationDonations.length === 0" style="padding:40px; text-align:center; color:var(--text3)">
+      <p>No donations found for this association.</p>
+    </div>
+
+    <div *ngIf="!detailsLoading && associationDonations.length > 0" style="max-height: 400px; overflow-y: auto;">
+      <div *ngFor="let d of associationDonations" class="card" style="padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); box-shadow: none;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+          <h4 style="margin: 0; font-family: 'Syne', sans-serif; font-size: 16px; color: var(--primary);">{{d.amount | number:'1.0-2'}} TND</h4>
+          <span style="font-size: 11px; color: var(--text3);">{{d.createdAt | date:'medium'}}</span>
+        </div>
+        <p *ngIf="d.message" style="margin: 0; font-size: 13px; color: var(--text2); font-style: italic;">"{{d.message}}"</p>
+        <p *ngIf="!d.message" style="margin: 0; font-size: 13px; color: var(--text4);">No message provided</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" (click)="closeDetailsModal()">Close</button>
+    </div>
   </div>
 </div>
