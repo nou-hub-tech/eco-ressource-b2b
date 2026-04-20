@@ -244,6 +244,9 @@
           <h4 style="margin: 0; font-family: 'Syne', sans-serif; font-size: 16px; color: var(--primary);">{{d.amount | number:'1.0-2'}} TND</h4>
           <span style="font-size: 11px; color: var(--text3);">{{d.createdAt | date:'medium'}}</span>
         </div>
+        <div *ngIf="d.userName" style="font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px;">
+          👤 {{d.userName}}
+        </div>
         <p *ngIf="d.message" style="margin: 0; font-size: 13px; color: var(--text2); font-style: italic;">"{{d.message}}"</p>
         <p *ngIf="!d.message" style="margin: 0; font-size: 13px; color: var(--text4);">No message provided</p>
       </div>

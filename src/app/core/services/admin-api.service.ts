@@ -63,6 +63,7 @@ export interface DonationDto {
   message?: string;
   associationId: number;
   userId?: number;
+  userName?: string;
   createdAt?: string;
 }
 

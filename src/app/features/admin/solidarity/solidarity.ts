@@ -5,6 +5,7 @@ import {
   DonationDto,
   CreateAssociationRequest
 } from '../../../core/services/admin-api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-solidarity',
@@ -46,7 +47,10 @@ export class Solidarity implements OnInit {
   selectedAssociationDetails: SolidarityDto | null = null;
   associationDonations: DonationDto[] = [];
 
-  constructor(private readonly adminApi: AdminApiService) {}
+  constructor(
+    private readonly adminApi: AdminApiService,
+    private readonly authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.loadAssociations();
@@ -159,7 +163,10 @@ export class Solidarity implements OnInit {
     const payload: DonationDto = {
       associationId: this.selectedAssociationId,
       amount: Number(this.newDonation.amount),
-      message: this.newDonation.message?.trim() || undefined
+      message: this.newDonation.message?.trim() || undefined,
+      userId: this.authService.currentUser?.id
+        ? parseInt(this.authService.currentUser.id, 10)
+        : undefined
     };
 
     this.adminApi.createDonation(payload).subscribe({
