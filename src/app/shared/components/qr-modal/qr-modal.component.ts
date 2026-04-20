@@ -28,7 +28,7 @@ export class QrModalComponent {
         this.isLoading = false;
         this.errorMessage = '';
         
-        // Utilise l'URL ngrok
+        //  l'URL ngrok
         const ngrokUrl = 'https://exes-unreal-movable.ngrok-free.dev';
         this.lienConfirmation = `${ngrokUrl}/api/delivery-orders/update-by-qr/${this.order.idDelivery}`;
         
