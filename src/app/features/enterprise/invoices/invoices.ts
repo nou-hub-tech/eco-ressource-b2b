@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
 import { forkJoin } from 'rxjs';
@@ -14,7 +14,9 @@ Chart.register(...registerables);
   selector: 'app-invoices',
   templateUrl: './invoices.html',
   styleUrls: ['./invoices.css'],
-  standalone: false
+  standalone: false,
+  /* None = CSS global, body.dark-mode selectors fonctionnent comme dashboard */
+  encapsulation: ViewEncapsulation.None
 })
 export class Invoices implements OnInit, AfterViewInit, OnDestroy {
 

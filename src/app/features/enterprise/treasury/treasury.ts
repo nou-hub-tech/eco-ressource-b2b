@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
 import * as XLSX from 'xlsx';
@@ -11,7 +11,9 @@ Chart.register(...registerables);
   selector: 'app-treasury',
   templateUrl: './treasury.html',
   styleUrls: ['./treasury.css'],
-  standalone: false
+  standalone: false,
+  /* None = CSS global, body.dark-mode selectors fonctionnent comme dashboard */
+  encapsulation: ViewEncapsulation.None
 })
 export class Treasury implements OnInit, AfterViewInit, OnDestroy {
 
