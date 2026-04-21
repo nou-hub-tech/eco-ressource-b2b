@@ -1,45 +1,33 @@
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1>My Trips</h1>
-      <p>All your delivery routes and transport history</p>
-    </div>
-    <button class="btn btn-primary" (click)="openModal()">+ Log New Trip</button>
-  </div>
-
-  <!-- AI opportunity card -->
-  <div class="ai-card">
-    <div style="display:flex;align-items:center;gap:12px">
-      <span style="font-size:24px">🤖</span>
-      <div>
-        <div class="ai-label">AI Route Match</div>
-        <div class="ai-text">{{aiOpportunity.from}} → {{aiOpportunity.to}} · {{aiOpportunity.cargo}}</div>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px">
-      <span class="ai-earn">+{{aiOpportunity.earn}} TND</span>
-      <button class="btn btn-primary btn-sm">Accept</button>
+      <h1>📦 Trajets disponibles</h1>
+      <p>Trajets basés sur votre position et les commandes à livrer</p>
     </div>
   </div>
 
-  <!-- Carte OpenStreetMap avec boutons de localisation -->
+  <!-- Carte OpenStreetMap -->
   <div class="map-card">
     <div class="map-header">
       <i class="bi bi-map"></i>
-      <span>Map of Tunisia - Delivery Routes</span>
+      <span>Votre position - Carte des livraisons</span>
     </div>
     <div id="mainMap" class="map-container"></div>
     
-    <!-- Groupe de boutons de localisation -->
     <div class="button-group">
-      <button class="btn-locate" (click)="getUserLocation()" [disabled]="isLoadingLocation">
+      <button class="btn-locate btn-gps" (click)="getUserLocation()" [disabled]="isLoadingLocation">
         <i class="bi bi-crosshair"></i>
-        {{ isLoadingLocation ? 'Localisation...' : '📍 Ma position' }}
+        {{ isLoadingLocation ? 'Localisation...' : '📍 GPS' }}
       </button>
       
-      <button class="btn-locate btn-track" (click)="startRealTimeTracking()" [disabled]="isTracking" [class.active]="isTracking">
+      <button class="btn-locate btn-manual" (click)="enableManualLocationSelection()" [disabled]="isSelectingLocation">
+        <i class="bi bi-geo-alt"></i>
+        {{ isSelectingLocation ? 'Cliquez sur la carte...' : '✏️ Manuel' }}
+      </button>
+      
+      <button class="btn-locate btn-track" (click)="startRealTimeTracking()" [disabled]="isTracking">
         <i class="bi bi-play-fill"></i>
-        {{ isTracking ? 'Suivi actif...' : '▶️ Suivi temps réel' }}
+        {{ isTracking ? 'Suivi...' : '▶️ Temps réel' }}
       </button>
       
       <button class="btn-locate btn-stop" (click)="stopRealTimeTracking()" [disabled]="!isTracking">
@@ -49,148 +37,130 @@
     </div>
     
     <div class="map-footer">
-      <small>📍 Cliquez sur "Ma position" pour vous localiser | "Suivi temps réel" pour un suivi dynamique</small>
+      <small>📍 Votre position: Lat: {{userLat.toFixed(4)}}, Lng: {{userLng.toFixed(4)}}</small>
     </div>
   </div>
 
-  <!-- Message d'erreur de géolocalisation -->
+  <!-- Messages -->
   <div *ngIf="locationError" class="alert-warning">
-    <i class="bi bi-exclamation-triangle-fill"></i>
-    {{ locationError }}
+    <i class="bi bi-exclamation-triangle-fill"></i> {{ locationError }}
   </div>
 
-  <!-- Message de succès de géolocalisation -->
   <div *ngIf="locationSuccess" class="alert-success">
-    <i class="bi bi-check-circle-fill"></i>
-    {{ locationSuccess }}
+    <i class="bi bi-check-circle-fill"></i> {{ locationSuccess }}
   </div>
 
-  <!-- Indicateur de suivi actif -->
   <div *ngIf="isTracking" class="tracking-indicator">
-    <i class="bi bi-record-circle"></i>
-    Suivi en temps réel activé - La carte se met à jour automatiquement
+    <i class="bi bi-record-circle"></i> 📍 Suivi GPS activé
   </div>
 
-  <!-- Tableau des trajets -->
-  <div class="card" style="padding:0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Route</th>
-          <th>Cargo</th>
-          <th>Weight</th>
-          <th>CO₂ Saved</th>
-          <th>Earnings</th>
-          <th>Status</th>
-          <th>Date</th>
-          <th>Map</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let t of trips">
-          <td><code class="trip-id">{{t.id}}</code></td>
-          <td><strong class="trip-route">{{t.from}} → {{t.to}}</strong></td>
-          <td class="trip-cargo">{{t.cargo}}</td>
-          <td class="trip-weight">{{t.weight}}</td>
-          <td><span class="co2-badge">🌿 {{t.co2}}</span></td>
-          <td><strong class="earnings">{{t.earn}} TND</strong></td>
-          <td><span class="badge" [ngClass]="t.status==='delivered'?'badge-success':t.status==='in-transit'?'badge-info':'badge-warning'">{{t.status}}</span></td>
-          <td class="trip-date">{{t.date}}</td>
-          <td>
-            <button class="btn-map" (click)="openMapModal(t)" title="View on map">
-              <i class="bi bi-geo-alt-fill"></i>
-            </button>
-           </td>
-         </tr>
-      </tbody>
-    </table>
+  <!-- Liste des trajets -->
+  <div class="section-header">
+    <h2><i class="bi bi-truck"></i> Trajets disponibles</h2>
+    <span class="badge-count">{{ availableTrips.length }} trajet(s)</span>
   </div>
-</div>
 
-<!-- Modal pour ajouter un trajet -->
-<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>Log New Trip</h2>
-      <button class="btn btn-icon" (click)="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group">
-          <label>From</label>
-          <input type="text" placeholder="Departure city">
+  <div *ngIf="isLoadingTrips" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement des commandes...</p>
+  </div>
+
+  <div *ngIf="!isLoadingTrips && availableTrips.length === 0" class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <p>Aucun trajet disponible pour le moment</p>
+    <small>Définissez votre position ou attendez de nouvelles commandes</small>
+  </div>
+
+  <div class="trips-list">
+    <div class="trip-card" *ngFor="let trip of availableTrips">
+      <div class="trip-header">
+        <div class="trip-route">
+          <span class="from">{{ trip.from }}</span>
+          <i class="bi bi-arrow-right"></i>
+          <span class="to">{{ trip.to }}</span>
         </div>
-        <div class="form-group">
-          <label>To</label>
-          <input type="text" placeholder="Destination city">
+        <span class="trip-distance">{{ trip.distance }} km</span>
+      </div>
+      
+      <div class="trip-body">
+        <div class="trip-info">
+          <div class="info-row">
+            <i class="bi bi-person"></i>
+            <span>{{ trip.clientName }}</span>
+          </div>
+          <div class="info-row">
+            <i class="bi bi-geo-alt"></i>
+            <span class="address">{{ trip.address }}</span>
+          </div>
+          <div class="info-row">
+            <i class="bi bi-calendar"></i>
+            <span>{{ trip.date | date:'dd/MM/yyyy' }}</span>
+          </div>
+        </div>
+        
+        <div class="trip-impact">
+          <div class="impact-item">
+            <i class="bi bi-tree"></i>
+            <span>CO₂: {{ trip.co2 }}</span>
+          </div>
+          <div class="impact-item earnings">
+            <i class="bi bi-cash-stack"></i>
+            <span>{{ trip.earn }} TND</span>
+          </div>
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Cargo</label>
-          <input type="text" placeholder="What are you transporting?">
-        </div>
-        <div class="form-group">
-          <label>Weight (kg)</label>
-          <input type="number" placeholder="0">
-        </div>
+      
+      <div class="trip-actions">
+        <button class="btn-map-view" (click)="openMapModal(trip)">
+          <i class="bi bi-map"></i> Carte
+        </button>
+        <button class="btn-accept" (click)="acceptTrip(trip)">
+          <i class="bi bi-check-lg"></i> Accepter
+        </button>
+        <button class="btn-refuse" (click)="refuseTrip(trip)">
+          <i class="bi bi-x-lg"></i> Refuser
+        </button>
       </div>
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
-      <button class="btn btn-primary" (click)="closeModal()">Log Trip</button>
     </div>
   </div>
 </div>
 
-<!-- Modal pour afficher la carte du trajet -->
+<!-- Modal carte -->
 <div class="modal-overlay" *ngIf="showMapModal" (click)="closeMapModal()">
   <div class="modal map-modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>
         <i class="bi bi-geo-alt"></i>
-        Trip Details - {{selectedTrip?.from}} → {{selectedTrip?.to}}
+        Trajet: {{selectedTrip?.from}} → {{selectedTrip?.to}}
       </h2>
-      <button class="btn btn-icon" (click)="closeMapModal()">✕</button>
+      <button class="btn-icon" (click)="closeMapModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="trip-details">
-        <div class="detail-item">
-          <label>ID:</label>
-          <span>{{selectedTrip?.id}}</span>
+      <div class="trip-summary">
+        <div class="summary-item">
+          <label>Distance:</label>
+          <span>{{selectedTrip?.distance}} km</span>
         </div>
-        <div class="detail-item">
-          <label>Cargo:</label>
-          <span>{{selectedTrip?.cargo}}</span>
-        </div>
-        <div class="detail-item">
-          <label>Weight:</label>
-          <span>{{selectedTrip?.weight}}</span>
-        </div>
-        <div class="detail-item">
-          <label>Status:</label>
-          <span [class]="'badge ' + (selectedTrip?.status==='delivered'?'badge-success':selectedTrip?.status==='in-transit'?'badge-info':'badge-warning')">
-            {{selectedTrip?.status}}
-          </span>
-        </div>
-        <div class="detail-item">
-          <label>Earnings:</label>
+        <div class="summary-item">
+          <label>Gain:</label>
           <span class="earnings">{{selectedTrip?.earn}} TND</span>
         </div>
-        <div class="detail-item">
-          <label>CO₂ Saved:</label>
-          <span class="co2-badge">🌿 {{selectedTrip?.co2}}</span>
+        <div class="summary-item">
+          <label>Client:</label>
+          <span>{{selectedTrip?.clientName}}</span>
+        </div>
+        <div class="summary-item">
+          <label>Adresse:</label>
+          <span>{{selectedTrip?.address}}</span>
         </div>
       </div>
       <div id="routeMap" class="map-container route-map"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeMapModal()">Close</button>
+      <button class="btn-secondary" (click)="closeMapModal()">Fermer</button>
+      <button class="btn-primary" (click)="acceptTrip(selectedTrip); closeMapModal()">
+        Accepter
+      </button>
     </div>
   </div>
 </div>
