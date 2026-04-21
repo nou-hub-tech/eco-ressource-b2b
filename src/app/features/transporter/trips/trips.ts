@@ -309,7 +309,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
     }
     
-    // ======= MÉTHODE ACCEPTER AVEC GÉNÉRATION PDF =========
+    // ======= MÉTHODE ACCEPTER AVEC GÉNÉRATION PDF ========
     
     acceptTrip(trip: any): void {
         if (confirm(`Accepter le trajet vers ${trip.to} (${trip.distance} km) ? Un bon d'expédition sera généré.`)) {
