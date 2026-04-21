@@ -43,16 +43,21 @@ export interface PlatformEventDto {
   title: string;
   eventDate: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   participants: number;
   status: PlatformEventStatus;
   typeLabel: string;
   createdAt: string;
+  distance?: number;
 }
 
 export interface PlatformEventRequestPayload {
   title: string;
   eventDate: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   participants: number;
   status: string;
   typeLabel: string;
@@ -130,6 +135,23 @@ export class AdminApiService {
 
   deletePlatformEvent(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/platform-events/${id}`);
+  }
+
+  getNearbyEvents(
+    latitude: number,
+    longitude: number,
+    radius: number = 50.0
+  ): Observable<PlatformEventDto[]> {
+    return this.http.get<PlatformEventDto[]>(
+      `${this.apiUrl}/platform-events/nearby`,
+      {
+        params: {
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          radius: radius.toString()
+        }
+      }
+    );
   }
 
   getReservations(): Observable<ReservationDto[]> {

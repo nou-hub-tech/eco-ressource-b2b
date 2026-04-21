@@ -39,4 +39,12 @@ export class EventService {
   deletePlatformEvent(id: number): Observable<void> {
     return this.adminApi.deletePlatformEvent(id);
   }
+
+  getNearbyEvents(
+    latitude: number,
+    longitude: number,
+    radius: number = 50.0
+  ): Observable<PlatformEventDto[]> {
+    return this.adminApi.getNearbyEvents(latitude, longitude, radius);
+  }
 }

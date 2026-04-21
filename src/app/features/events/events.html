@@ -9,11 +9,36 @@
       <p *ngIf="isAdmin">Manage platform events (admin API)</p>
       <p *ngIf="!isAdmin">Browse and participate in B2B events and circular economy campaigns</p>
     </div>
-    <button *ngIf="isAdmin" class="btn btn-primary" type="button" (click)="openCreateModal()">+ Create Event</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div *ngIf="!isAdmin" class="nearby-controls" style="display:flex;gap:8px;align-items:center">
+        <select class="form-select" [(ngModel)]="radius" style="width:auto">
+          <option *ngFor="let r of radiusOptions" [ngValue]="r">{{r}} km</option>
+        </select>
+        <button 
+          class="btn btn-outline btn-sm" 
+          type="button" 
+          (click)="loadNearbyEvents()" 
+          [disabled]="nearbyLoading">
+          {{ nearbyLoading ? '…' : 'Near me' }}
+        </button>
+        <button 
+          *ngIf="showNearbyEvents" 
+          class="btn btn-outline btn-sm" 
+          type="button" 
+          (click)="showAllEvents()">
+          All Events
+        </button>
+      </div>
+      <button *ngIf="isAdmin" class="btn btn-primary" type="button" (click)="openCreateModal()">+ Create Event</button>
+    </div>
   </div>
 
   <p *ngIf="listError" style="color:#ef4444;font-size:13px;margin-bottom:12px">{{listError}}</p>
-  <p *ngIf="loading" style="font-size:13px;color:var(--text3)">Loading…</p>
+  <p *ngIf="geolocationError" style="color:#f59e0b;font-size:13px;margin-bottom:12px">{{geolocationError}}</p>
+  <p *ngIf="loading || nearbyLoading" style="font-size:13px;color:var(--text3)">Loading…</p>
+  <div *ngIf="showNearbyEvents" class="badge badge-info" style="margin-bottom:12px;display:inline-block">
+    📍 Showing events within {{radius}} km
+  </div>
 
   <div class="grid-2" *ngIf="!loading">
     <div class="card" *ngFor="let e of displayRows; trackBy: trackById" style="padding:20px">
@@ -30,6 +55,7 @@
         <span>&#128197; {{e.eventDate | date:'mediumDate'}}</span>
         <span>&#128205; {{e.location}}</span>
         <span>&#128101; {{e.participants}} participants</span>
+        <span *ngIf="e.distance != null" style="color:var(--primary)">📍 {{formatDistance(e.distance)}}</span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="isAdmin">
         <button class="btn btn-outline btn-sm" type="button" (click)="openEditModal(e)">Edit</button>
@@ -115,6 +141,7 @@
       <p><strong>Status</strong> {{ d.status }}</p>
       <p><strong>Date</strong> {{ d.eventDate | date:'mediumDate' }}</p>
       <p><strong>Location</strong> {{ d.location }}</p>
+      <p *ngIf="d.distance != null"><strong>Distance</strong> {{formatDistance(d.distance)}}</p>
       <p><strong>Participants</strong> {{ d.participants }}</p>
       <p><strong>Created</strong> {{ d.createdAt | date:'medium' }}</p>
     </div>

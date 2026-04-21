@@ -8,6 +8,7 @@ import {
 import { AuthService } from '../../core/services/auth';
 import { EventParticipationService } from '../../core/services/event-participation.service';
 import { EventService } from '../../core/services/event';
+import { GeolocationService } from '../../core/services/geolocation.service';
 
 type EventRow = PlatformEventDto & {
   isJoined: boolean;
@@ -43,12 +44,20 @@ export class Events implements OnInit {
   toastMessage: string | null = null;
   toastKind: 'success' | 'error' = 'success';
 
+  // Nearby events properties
+  showNearbyEvents = false;
+  radius = 50.0;
+  nearbyLoading = false;
+  geolocationError: string | null = null;
+  readonly radiusOptions = [10, 25, 50, 100, 200];
+
   form: PlatformEventRequestPayload = Events.emptyForm();
 
   constructor(
     private readonly auth: AuthService,
     private readonly eventService: EventService,
     private readonly participationService: EventParticipationService,
+    private readonly geolocationService: GeolocationService,
     private readonly cdr: ChangeDetectorRef
   ) {}
 
@@ -324,5 +333,78 @@ export class Events implements OnInit {
           this.showToast('Could not cancel participation.', 'error');
         }
       });
+  }
+
+  loadNearbyEvents(): void {
+    if (!this.geolocationService.isSupported()) {
+      this.geolocationError = 'Geolocation is not supported by your browser';
+      this.requestRender();
+      return;
+    }
+
+    this.nearbyLoading = true;
+    this.geolocationError = null;
+    this.requestRender();
+
+    this.geolocationService.getCurrentPosition().subscribe({
+      next: (position) => {
+        if (position.latitude === 0 && position.longitude === 0) {
+          this.geolocationError = 'Could not get your location';
+          this.nearbyLoading = false;
+          this.requestRender();
+          return;
+        }
+
+        const userId = this.auth.currentUser?.id;
+        const parts$ =
+          !this.isAdmin && userId
+            ? this.participationService.list(userId)
+            : of([] as unknown[]);
+
+        forkJoin({
+          events: this.eventService.getNearbyEvents(position.latitude, position.longitude, this.radius),
+          parts: parts$
+        })
+          .pipe(
+            finalize(() => {
+              this.nearbyLoading = false;
+              this.requestRender();
+            })
+          )
+          .subscribe({
+            next: ({ events, parts }) => {
+              this.displayRows = this.buildRows(
+                events,
+                parts as Array<Record<string, unknown>>
+              );
+              this.showNearbyEvents = true;
+              this.requestRender();
+            },
+            error: () => {
+              this.geolocationError = 'Unable to load nearby events.';
+              this.requestRender();
+            }
+          });
+      },
+      error: () => {
+        this.geolocationError = 'Unable to get your location. Please enable location services.';
+        this.nearbyLoading = false;
+        this.requestRender();
+      }
+    });
+  }
+
+  showAllEvents(): void {
+    this.showNearbyEvents = false;
+    this.geolocationError = null;
+    this.reloadEvents();
+  }
+
+  formatDistance(distance?: number): string {
+    if (distance == null) return '';
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)} m`;
+    }
+    return `${distance.toFixed(1)} km`;
   }
 }
