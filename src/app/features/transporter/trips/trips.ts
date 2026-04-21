@@ -1,7 +1,10 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { DeliveryOrderService } from '../../../core/services/delivery-order.service';
+import { PdfGeneratorService } from '../../../core/services/pdf-generator.service';
+import { ShipmentService } from '../../../core/services/shipment.service';
 import { DeliveryOrder } from '../../../core/models/delivery-order';
-import { StatutCommande } from '../../../core/models/statut';
+import { StatutCommande, StatutExpedition } from '../../../core/models/statut';
+import { Shipment } from '../../../core/models/shipment';
 
 declare var L: any;
 
@@ -29,12 +32,12 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     deliveryOrders: DeliveryOrder[] = [];
     availableTrips: any[] = [];
     isLoadingTrips = false;
-    
-    // Marqueurs sur la carte
     private orderMarkers: any[] = [];
     
     constructor(
-        private deliveryOrderService: DeliveryOrderService
+        private deliveryOrderService: DeliveryOrderService,
+        private pdfGenerator: PdfGeneratorService,
+        private shipmentService: ShipmentService
     ) {}
     
     ngOnInit(): void {
@@ -48,6 +51,12 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         
         this.loadSavedPosition();
         this.loadDeliveryOrders();
+        
+        setTimeout(() => {
+            if (this.mainMap) {
+                this.addOrderMarkersToMap();
+            }
+        }, 2000);
     }
     
     ngAfterViewInit(): void {
@@ -56,10 +65,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }, 500);
     }
     
-    // ========== CALCUL DE DISTANCE (Formule Haversine) ==========
-    
     calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-        const R = 6371; // Rayon de la Terre en km
+        const R = 6371;
         const dLat = this.deg2rad(lat2 - lat1);
         const dLon = this.deg2rad(lon2 - lon1);
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -73,32 +80,29 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         return deg * (Math.PI / 180);
     }
     
-    // ========== CHARGEMENT DES COMMANDES ==========
-    
     loadDeliveryOrders(): void {
         console.log('Chargement des commandes...');
         this.isLoadingTrips = true;
         
         this.deliveryOrderService.getAll().subscribe({
             next: (orders: DeliveryOrder[]) => {
-                console.log('Commandes reçues:', orders.length);
+                console.log('Commandes reçues:', orders);
                 this.deliveryOrders = orders;
                 this.calculateAvailableTrips();
-                this.addOrderMarkersToMap();
                 this.isLoadingTrips = false;
+                
+                setTimeout(() => {
+                    this.addOrderMarkersToMap();
+                }, 1000);
             },
             error: (error) => {
                 console.error('Erreur:', error);
-                this.locationError = 'Erreur de chargement des commandes';
                 this.isLoadingTrips = false;
-                setTimeout(() => this.locationError = null, 5000);
-                // Données de test en cas d'erreur
                 this.loadMockData();
             }
         });
     }
     
-    // Données de test si l'API ne répond pas
     loadMockData(): void {
         console.log('Chargement des données de test');
         this.availableTrips = [
@@ -109,7 +113,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 cargo: 'Équipements électroniques',
                 weight: '250 kg',
                 co2: '8 kg',
-                earn: 180,
                 status: 'EN_ATTENTE',
                 date: new Date(),
                 lat: 36.8065,
@@ -126,7 +129,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 cargo: 'Pièces détachées',
                 weight: '500 kg',
                 co2: '18 kg',
-                earn: 320,
                 status: 'EN_ATTENTE',
                 date: new Date(),
                 lat: 34.7406,
@@ -143,7 +145,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 cargo: 'Textile',
                 weight: '300 kg',
                 co2: '12 kg',
-                earn: 230,
                 status: 'EN_ATTENTE',
                 date: new Date(),
                 lat: 35.8256,
@@ -155,7 +156,10 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             }
         ];
         this.availableTrips.sort((a, b) => a.distance - b.distance);
-        this.addOrderMarkersToMap();
+        
+        setTimeout(() => {
+            this.addOrderMarkersToMap();
+        }, 1000);
     }
     
     calculateAvailableTrips(): void {
@@ -167,7 +171,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             return;
         }
         
-        // Coordonnées des villes tunisiennes
         const tunisiaCities: { [key: string]: { lat: number; lng: number } } = {
             'Tunis': { lat: 36.8065, lng: 10.1815 },
             'Sfax': { lat: 34.7406, lng: 10.7603 },
@@ -175,20 +178,15 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             'Bizerte': { lat: 37.2744, lng: 9.8739 },
             'Gabès': { lat: 33.8815, lng: 10.0982 },
             'Nabeul': { lat: 36.4561, lng: 10.7376 },
-            'Kairouan': { lat: 35.6781, lng: 10.0964 },
-            'Médenine': { lat: 33.3545, lng: 10.5055 },
-            'Gafsa': { lat: 34.4250, lng: 8.7842 },
-            'Monastir': { lat: 35.7780, lng: 10.8260 }
+            'Kairouan': { lat: 35.6781, lng: 10.0964 }
         };
         
         this.deliveryOrders.forEach(order => {
-            // Inclure toutes les commandes non livrées
             if (order.statut !== StatutCommande.LIVREE) {
                 let cityLat: number | null = null;
                 let cityLng: number | null = null;
                 let cityName = '';
                 
-                // Chercher la ville dans l'adresse
                 for (const [city, coords] of Object.entries(tunisiaCities)) {
                     if (order.adresseLivraison && order.adresseLivraison.toLowerCase().includes(city.toLowerCase())) {
                         cityLat = coords.lat;
@@ -198,17 +196,13 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     }
                 }
                 
-                // Si ville non trouvée, utiliser Tunis par défaut
                 if (!cityLat) {
                     cityLat = 36.8065;
                     cityLng = 10.1815;
                     cityName = 'Tunis';
                 }
                 
-                // Calculer la distance
                 const distance = this.calculateDistance(this.userLat, this.userLng, cityLat, cityLng);
-                const co2 = Math.round(distance * 0.2);
-                const earnings = Math.round(distance * 3 + 50);
                 
                 this.availableTrips.push({
                     id: order.idDelivery,
@@ -216,8 +210,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     to: cityName,
                     cargo: 'Marchandise',
                     weight: 'N/A',
-                    co2: co2 + ' kg',
-                    earn: earnings,
+                    co2: Math.round(distance * 0.2) + ' kg',
                     status: order.statut,
                     date: order.datePrevue || new Date(),
                     lat: cityLat,
@@ -225,12 +218,12 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     address: order.adresseLivraison,
                     clientName: order.nomClient,
                     telephone: order.telephoneClient,
-                    distance: distance
+                    distance: distance,
+                    order: order
                 });
             }
         });
         
-        // Trier par distance
         this.availableTrips.sort((a, b) => a.distance - b.distance);
         console.log('Trajets disponibles:', this.availableTrips.length);
     }
@@ -251,77 +244,126 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         return 'Ma position';
     }
     
-    // ========== AJOUT DES MARQUEURS SUR LA CARTE ==========
-    
     addOrderMarkersToMap(): void {
-        if (!this.mainMap) return;
+        console.log('addOrderMarkersToMap appelé');
         
-        // Supprimer les anciens marqueurs
+        if (!this.mainMap) {
+            console.log('Carte non initialisée, attente...');
+            setTimeout(() => this.addOrderMarkersToMap(), 1000);
+            return;
+        }
+        
         this.orderMarkers.forEach(marker => {
-            this.mainMap.removeLayer(marker);
+            if (this.mainMap) this.mainMap.removeLayer(marker);
         });
         this.orderMarkers = [];
         
-        // Créer  icône personnalisée pour les commandes
+        if (!this.availableTrips || this.availableTrips.length === 0) {
+            console.log('Aucun trajet à afficher');
+            return;
+        }
+        
+        console.log('Ajout de', this.availableTrips.length, 'marqueurs');
+        
         const orderIcon = L.divIcon({
-            html: `<div style="background-color: #dc3545; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px #dc3545;"></div>`,
-            iconSize: [18, 18],
+            html: `<div style="background-color: #dc3545; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold;">📦</div>`,
+            iconSize: [24, 24],
             className: 'order-marker'
         });
         
-        // Ajouter les marqueurs pour chaque commande
-        this.availableTrips.forEach(trip => {
+        this.availableTrips.forEach((trip, index) => {
+            console.log(`Ajout marqueur ${index + 1}:`, trip.to, trip.lat, trip.lng);
+            
             if (trip.lat && trip.lng) {
                 const marker = L.marker([trip.lat, trip.lng], { icon: orderIcon })
                     .addTo(this.mainMap)
                     .bindPopup(`
-                        <strong>📍 ${trip.to}</strong><br>
-                        <b>Client:</b> ${trip.clientName}<br>
-                        <b>Adresse:</b> ${trip.address}<br>
-                        <b>Distance:</b> ${trip.distance} km<br>
-                        <b>Gain:</b> ${trip.earn} TND<br>
-                        <button onclick="document.querySelector('app-trips')?.acceptTripManually(${trip.id})" 
-                                style="margin-top:8px; padding:4px 12px; background:#28a745; color:white; border:none; border-radius:4px; cursor:pointer;">
-                            ✅ Accepter
-                        </button>
+                        <div style="min-width: 200px;">
+                            <strong style="color: #dc3545;">📍 ${trip.to}</strong><br>
+                            <b>Client:</b> ${trip.clientName}<br>
+                            <b>Adresse:</b> ${trip.address}<br>
+                            <b>Distance:</b> ${trip.distance} km<br>
+                            <button onclick="document.querySelector('app-trips').acceptTripById(${trip.id})" 
+                                    style="margin-top:8px; padding:5px 12px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">
+                                ✅ Accepter ce trajet
+                            </button>
+                        </div>
                     `);
                 
                 this.orderMarkers.push(marker);
             }
         });
         
+        if (this.orderMarkers.length > 0) {
+            const group = L.featureGroup(this.orderMarkers);
+            this.mainMap.fitBounds(group.getBounds().pad(0.2));
+        }
+        
         console.log('Marqueurs ajoutés:', this.orderMarkers.length);
     }
     
-    // Méthode pour accepter un trajet depuis le popup
-    acceptTripManually(tripId: number): void {
+    acceptTripById(tripId: number): void {
         const trip = this.availableTrips.find(t => t.id === tripId);
         if (trip) {
             this.acceptTrip(trip);
         }
     }
     
-    // ========== ACTIONS ==========
+    // ======= MÉTHODE ACCEPTER AVEC GÉNÉRATION PDF ==========
     
     acceptTrip(trip: any): void {
-        const distanceKm = trip.distance;
-        const earnAmount = trip.earn;
-        
-        if (confirm(`📦 Trajet vers ${trip.to}\n📏 Distance: ${distanceKm} km\n💰 Gain estimé: ${earnAmount} TND\n\nVoulez-vous accepter ce trajet ?`)) {
+        if (confirm(`Accepter le trajet vers ${trip.to} (${trip.distance} km) ? Un bon d'expédition sera généré.`)) {
+            
+            // 1. Mettre à jour le statut de la commande
             this.deliveryOrderService.updateStatut(trip.id, StatutCommande.EN_COURS).subscribe({
                 next: () => {
-                    this.locationSuccess = `✅ Trajet accepté vers ${trip.to} ! Distance: ${distanceKm} km, Gain: ${earnAmount} TND`;
-                    setTimeout(() => this.locationSuccess = null, 5000);
-                    
-                    // Retirer le marqueur de la carte
-                    const index = this.availableTrips.indexOf(trip);
-                    if (index > -1) {
-                        this.availableTrips.splice(index, 1);
-                        this.addOrderMarkersToMap(); // Rafraîchir les marqueurs
-                    }
+                    // 2. Récupérer la commande complète
+                    this.deliveryOrderService.getById(trip.id).subscribe({
+                        next: (deliveryOrder: DeliveryOrder) => {
+                            
+                            // 3. Créer une nouvelle expédition
+                            const newShipment: Shipment = {
+                                id: 0,
+                                deliveryOrder: { idDelivery: trip.id },
+                                produitId: 1,
+                                quantite: 1,
+                                idTransporter: 1,
+                                dateDepart: new Date().toISOString(),
+                                statut: StatutExpedition.EN_COURS
+                            };
+                            
+                            // 4. Sauvegarder l'expédition
+                            this.shipmentService.create(newShipment).subscribe({
+                                next: (shipment: Shipment) => {
+                                    // 5. Générer le PDF d'expédition
+                                    this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder);
+                                    
+                                    this.locationSuccess = `✅ Trajet accepté vers ${trip.to} ! Bon d'expédition généré.`;
+                                    setTimeout(() => this.locationSuccess = null, 5000);
+                                    
+                                    // 6. Retirer le trajet de la liste
+                                    const index = this.availableTrips.indexOf(trip);
+                                    if (index > -1) {
+                                        this.availableTrips.splice(index, 1);
+                                        this.addOrderMarkersToMap();
+                                    }
+                                },
+                                error: (error) => {
+                                    console.error('Erreur création expédition:', error);
+                                    this.locationError = '❌ Erreur lors de la création de l\'expédition';
+                                    setTimeout(() => this.locationError = null, 3000);
+                                }
+                            });
+                        },
+                        error: (error) => {
+                            console.error('Erreur récupération commande:', error);
+                            this.locationError = '❌ Erreur lors de la récupération de la commande';
+                            setTimeout(() => this.locationError = null, 3000);
+                        }
+                    });
                 },
                 error: (error) => {
-                    console.error('Erreur:', error);
+                    console.error('Erreur mise à jour statut:', error);
                     this.locationError = '❌ Erreur lors de l\'acceptation';
                     setTimeout(() => this.locationError = null, 3000);
                 }
@@ -331,17 +373,15 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     
     refuseTrip(trip: any): void {
         if (confirm(`Refuser le trajet vers ${trip.to} ?`)) {
-            this.locationSuccess = `❌ Trajet vers ${trip.to} refusé`;
+            this.locationSuccess = `❌ Trajet refusé`;
             setTimeout(() => this.locationSuccess = null, 3000);
             const index = this.availableTrips.indexOf(trip);
             if (index > -1) {
                 this.availableTrips.splice(index, 1);
-                this.addOrderMarkersToMap(); // Rafraîchir les marqueurs
+                this.addOrderMarkersToMap();
             }
         }
     }
-    
-    // ========== GESTION DE LA POSITION ==========
     
     savePosition(lat: number, lng: number): void {
         this.userLat = lat;
@@ -349,8 +389,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         localStorage.setItem('userLat', lat.toString());
         localStorage.setItem('userLng', lng.toString());
         this.calculateAvailableTrips();
-        this.addOrderMarkersToMap(); // Rafraîchir les marqueurs avec les nouvelles distances
         this.updateMapPosition(lat, lng);
+        this.addOrderMarkersToMap();
     }
     
     loadSavedPosition(): void {
@@ -360,12 +400,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         if (savedLat && savedLng) {
             this.userLat = parseFloat(savedLat);
             this.userLng = parseFloat(savedLng);
-            setTimeout(() => {
-                if (this.mainMap) {
-                    this.updateMapPosition(this.userLat, this.userLng);
-                    this.addOrderMarkersToMap();
-                }
-            }, 1000);
         }
     }
     
@@ -393,7 +427,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     
     getUserLocation(): void {
         if (!navigator.geolocation) {
-            this.locationError = '❌ GPS non supporté. Utilisez "Manuel"';
+            this.locationError = '❌ GPS non supporté';
             this.enableManualLocationSelection();
             return;
         }
@@ -403,14 +437,14 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 this.savePosition(position.coords.latitude, position.coords.longitude);
-                this.locationSuccess = `📍 Position GPS trouvée ! Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`;
+                this.locationSuccess = `📍 Position GPS trouvée !`;
                 setTimeout(() => this.locationSuccess = null, 5000);
                 this.isLoadingLocation = false;
             },
             (error) => {
                 console.error('Erreur GPS:', error);
                 this.isLoadingLocation = false;
-                this.locationError = '❌ GPS indisponible, utilisez "Manuel"';
+                this.locationError = '❌ GPS indisponible';
                 setTimeout(() => this.locationError = null, 5000);
                 this.enableManualLocationSelection();
             }
@@ -492,13 +526,17 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             if (this.isSelectingLocation) {
                 this.savePosition(e.latlng.lat, e.latlng.lng);
                 this.disableManualLocationSelection();
-                this.locationSuccess = `📍 Position manuelle définie ! Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`;
+                this.locationSuccess = `📍 Position manuelle définie !`;
                 setTimeout(() => this.locationSuccess = null, 3000);
             }
         });
         
         this.updateMapPosition(this.userLat, this.userLng);
-        this.addOrderMarkersToMap();
+        
+        setTimeout(() => {
+            this.addOrderMarkersToMap();
+        }, 1000);
+        
         console.log('Carte initialisée');
     }
     
@@ -524,21 +562,17 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             attribution: '© OpenStreetMap'
         }).addTo(map);
         
-        // Marqueur de départ
         L.marker([this.userLat, this.userLng]).addTo(map)
             .bindPopup('<strong>📍 Votre position</strong>')
             .openPopup();
         
-        // Marqueur de destination
         L.marker([this.selectedTrip.lat, this.selectedTrip.lng]).addTo(map)
             .bindPopup(`<strong>${this.selectedTrip.to}</strong><br>
                         Client: ${this.selectedTrip.clientName}<br>
                         Adresse: ${this.selectedTrip.address}<br>
-                        Distance: ${this.selectedTrip.distance} km<br>
-                        Gain: ${this.selectedTrip.earn} TND`)
+                        Distance: ${this.selectedTrip.distance} km`)
             .openPopup();
         
-        // Tracer la ligne
         const latlngs = [[this.userLat, this.userLng], [this.selectedTrip.lat, this.selectedTrip.lng]];
         const polyline = L.polyline(latlngs, { color: '#d4a574', weight: 3 }).addTo(map);
         map.fitBounds(polyline.getBounds());

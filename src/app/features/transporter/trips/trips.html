@@ -103,17 +103,11 @@
             <i class="bi bi-tree"></i>
             <span>CO₂: {{ trip.co2 }}</span>
           </div>
-          <div class="impact-item earnings">
-            <i class="bi bi-cash-stack"></i>
-            <span>{{ trip.earn }} TND</span>
-          </div>
         </div>
       </div>
       
       <div class="trip-actions">
-        <button class="btn-map-view" (click)="openMapModal(trip)">
-          <i class="bi bi-map"></i> Carte
-        </button>
+        
         <button class="btn-accept" (click)="acceptTrip(trip)">
           <i class="bi bi-check-lg"></i> Accepter
         </button>
@@ -140,10 +134,6 @@
         <div class="summary-item">
           <label>Distance:</label>
           <span>{{selectedTrip?.distance}} km</span>
-        </div>
-        <div class="summary-item">
-          <label>Gain:</label>
-          <span class="earnings">{{selectedTrip?.earn}} TND</span>
         </div>
         <div class="summary-item">
           <label>Client:</label>
