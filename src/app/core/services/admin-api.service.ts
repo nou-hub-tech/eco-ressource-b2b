@@ -18,7 +18,7 @@ export interface AdminUserDto {
   phone: string;
   city: string;
   joined: string;
-  date: string; // For template compatibility
+  date: string; 
   listings: number;
   orders: number;
   revenue: string;
@@ -61,6 +61,29 @@ export interface PlatformEventRequestPayload {
   participants: number;
   status: string;
   typeLabel: string;
+}
+
+export interface EventSearchRequest {
+  searchTerm?: string;
+  statuses?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  minParticipants?: number;
+  maxParticipants?: number;
+  sortBy: string;
+  sortDirection: string;
+  page: number;
+  size: number;
+}
+
+export interface EventSearchResponse {
+  content: PlatformEventDto[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
 }
 
 export interface SolidarityDto {
@@ -151,6 +174,13 @@ export class AdminApiService {
           radius: radius.toString()
         }
       }
+    );
+  }
+
+  searchEvents(searchRequest: EventSearchRequest): Observable<EventSearchResponse> {
+    return this.http.post<EventSearchResponse>(
+      `${this.apiUrl}/platform-events/search`,
+      searchRequest
     );
   }
 

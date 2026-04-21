@@ -29,18 +29,113 @@
           All Events
         </button>
       </div>
+      <button 
+        class="btn btn-outline btn-sm" 
+        type="button" 
+        (click)="toggleSearch()">
+        {{ showSearch ? 'Hide Search' : 'Search' }}
+      </button>
       <button *ngIf="isAdmin" class="btn btn-primary" type="button" (click)="openCreateModal()">+ Create Event</button>
     </div>
   </div>
 
   <p *ngIf="listError" style="color:#ef4444;font-size:13px;margin-bottom:12px">{{listError}}</p>
   <p *ngIf="geolocationError" style="color:#f59e0b;font-size:13px;margin-bottom:12px">{{geolocationError}}</p>
-  <p *ngIf="loading || nearbyLoading" style="font-size:13px;color:var(--text3)">Loading…</p>
+  <p *ngIf="searchError" style="color:#ef4444;font-size:13px;margin-bottom:12px">{{searchError}}</p>
+  <p *ngIf="loading || nearbyLoading || searchLoading" style="font-size:13px;color:var(--text3)">Loading…</p>
   <div *ngIf="showNearbyEvents" class="badge badge-info" style="margin-bottom:12px;display:inline-block">
     📍 Showing events within {{radius}} km
   </div>
+  <div *ngIf="showSearch && totalElements > 0" class="badge badge-info" style="margin-bottom:12px;display:inline-block">
+    🔍 Found {{totalElements}} events
+  </div>
 
-  <div class="grid-2" *ngIf="!loading">
+  <!-- Search/Filter/Sort Panel -->
+  <div class="card" *ngIf="showSearch" style="margin-bottom:20px;padding:20px">
+    <h3 style="margin:0 0 16px 0;font-size:16px">Search & Filter Events</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Search Term</label>
+        <input type="text" name="searchTerm" [(ngModel)]="searchForm.searchTerm" placeholder="Search title, location, or type...">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="statuses" [(ngModel)]="searchForm.statuses" multiple style="height:80px">
+          <option *ngFor="let status of searchStatusOptions" [ngValue]="status">{{status}}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date From</label>
+        <input type="date" name="dateFrom" [(ngModel)]="searchForm.dateFrom">
+      </div>
+      <div class="form-group">
+        <label>Date To</label>
+        <input type="date" name="dateTo" [(ngModel)]="searchForm.dateTo">
+      </div>
+      <div class="form-group">
+        <label>Min Participants</label>
+        <input type="number" name="minParticipants" [(ngModel)]="searchForm.minParticipants" min="0">
+      </div>
+      <div class="form-group">
+        <label>Max Participants</label>
+        <input type="number" name="maxParticipants" [(ngModel)]="searchForm.maxParticipants" min="0">
+      </div>
+      <div class="form-group">
+        <label>Sort By</label>
+        <select name="sortBy" [(ngModel)]="searchForm.sortBy" (change)="onSortChange()">
+          <option *ngFor="let option of sortOptions" [ngValue]="option.value">{{option.label}}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Sort Direction</label>
+        <select name="sortDirection" [(ngModel)]="searchForm.sortDirection" (change)="onSortChange()">
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary" type="button" (click)="performSearch()" [disabled]="searchLoading">
+        {{ searchLoading ? '…' : 'Search' }}
+      </button>
+      <button class="btn btn-outline" type="button" (click)="resetSearch()">Reset</button>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="showSearch && totalPages > 1" style="display:flex;justify-content:center;gap:8px;margin-bottom:20px">
+    <button 
+      class="btn btn-outline btn-sm" 
+      type="button" 
+      (click)="onPageChange(0)" 
+      [disabled]="searchForm.page === 0">
+      First
+    </button>
+    <button 
+      class="btn btn-outline btn-sm" 
+      type="button" 
+      (click)="onPageChange(searchForm.page - 1)" 
+      [disabled]="searchForm.page === 0">
+      Previous
+    </button>
+    <span style="padding:8px">Page {{searchForm.page + 1}} of {{totalPages}}</span>
+    <button 
+      class="btn btn-outline btn-sm" 
+      type="button" 
+      (click)="onPageChange(searchForm.page + 1)" 
+      [disabled]="searchForm.page === totalPages - 1">
+      Next
+    </button>
+    <button 
+      class="btn btn-outline btn-sm" 
+      type="button" 
+      (click)="onPageChange(totalPages - 1)" 
+      [disabled]="searchForm.page === totalPages - 1">
+      Last
+    </button>
+  </div>
+
+  <div class="grid-2" *ngIf="!loading && !searchLoading">
     <div class="card" *ngFor="let e of displayRows; trackBy: trackById" style="padding:20px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <span class="badge badge-info">{{e.typeLabel}}</span>

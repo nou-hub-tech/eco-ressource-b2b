@@ -3,6 +3,8 @@ import { Observable } from 'rxjs';
 import {
   AdminApiService,
   EventDto,
+  EventSearchRequest,
+  EventSearchResponse,
   PlatformEventDto,
   PlatformEventRequestPayload
 } from './admin-api.service';
@@ -46,5 +48,9 @@ export class EventService {
     radius: number = 50.0
   ): Observable<PlatformEventDto[]> {
     return this.adminApi.getNearbyEvents(latitude, longitude, radius);
+  }
+
+  searchEvents(searchRequest: EventSearchRequest): Observable<EventSearchResponse> {
+    return this.adminApi.searchEvents(searchRequest);
   }
 }

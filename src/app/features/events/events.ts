@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import {
+  EventSearchRequest,
   PlatformEventDto,
   PlatformEventRequestPayload
 } from '../../core/services/admin-api.service';
@@ -50,6 +51,33 @@ export class Events implements OnInit {
   nearbyLoading = false;
   geolocationError: string | null = null;
   readonly radiusOptions = [10, 25, 50, 100, 200];
+
+  // Search/Filter/Sort properties
+ searchForm: EventSearchRequest = {
+  searchTerm: '',
+  statuses: [],
+  dateFrom: '',
+  dateTo: '',
+  minParticipants: undefined,
+  maxParticipants: undefined,
+  sortBy: 'eventDate',
+  sortDirection: 'asc',
+  page: 0,
+  size: 20
+};
+  showSearch = false;
+
+  searchLoading = false;
+  searchError: string | null = null;
+  totalElements = 0;
+  totalPages = 0;
+  readonly sortOptions = [
+    { value: 'eventDate', label: 'Event Date' },
+    { value: 'title', label: 'Title' },
+    { value: 'participants', label: 'Participants' },
+    { value: 'createdAt', label: 'Created Date' }
+  ];
+  readonly searchStatusOptions = ['upcoming', 'ongoing', 'done'];
 
   form: PlatformEventRequestPayload = Events.emptyForm();
 
@@ -406,5 +434,71 @@ export class Events implements OnInit {
       return `${Math.round(distance * 1000)} m`;
     }
     return `${distance.toFixed(1)} km`;
+  }
+
+  toggleSearch(): void {
+    this.showSearch = !this.showSearch;
+    if (!this.showSearch) {
+      this.resetSearch();
+      this.reloadEvents();
+    }
+  }
+
+  resetSearch(): void {
+    this.searchForm = {
+      sortBy: 'eventDate',
+      sortDirection: 'asc',
+      page: 0,
+      size: 20
+    };
+    this.searchError = null;
+  }
+
+  performSearch(): void {
+    this.searchLoading = true;
+    this.searchError = null;
+    this.requestRender();
+
+    const userId = this.auth.currentUser?.id;
+    const parts$ =
+      !this.isAdmin && userId
+        ? this.participationService.list(userId)
+        : of([] as unknown[]);
+
+    forkJoin({
+      search: this.eventService.searchEvents(this.searchForm),
+      parts: parts$
+    })
+      .pipe(
+        finalize(() => {
+          this.searchLoading = false;
+          this.requestRender();
+        })
+      )
+      .subscribe({
+        next: ({ search, parts }) => {
+          this.displayRows = this.buildRows(
+            search.content,
+            parts as Array<Record<string, unknown>>
+          );
+          this.totalElements = search.totalElements;
+          this.totalPages = search.totalPages;
+          this.requestRender();
+        },
+        error: () => {
+          this.searchError = 'Unable to search events.';
+          this.requestRender();
+        }
+      });
+  }
+
+  onPageChange(page: number): void {
+    this.searchForm.page = page;
+    this.performSearch();
+  }
+
+  onSortChange(): void {
+    this.searchForm.page = 0;
+    this.performSearch();
   }
 }
