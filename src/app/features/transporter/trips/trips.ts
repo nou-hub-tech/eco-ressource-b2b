@@ -580,7 +580,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     });
                     
                     // MISE À JOUR LOCALE DYNAMIQUE
-                    // 1. Marquer le trajet comme terminé dans acceptedTrips
+                    // 1. Marque le trajet comme terminé dans acceptedTrips
                     if (this.acceptedTrips.has(tripId)) {
                         const updatedTrip = this.acceptedTrips.get(tripId);
                         updatedTrip.completed = true;
