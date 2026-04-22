@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'app-events',
+  selector: 'app-admin-events',
   standalone: false,
   templateUrl: './events.html',
   styleUrls: ['./events.css']
 })
-export class Events implements OnInit {
+export class AdminEvents implements OnInit {
   showModal = false;
   events = [
     { title:'B2B Industrial Fair 2025',  date:'2025-04-10', location:'Tunis',   participants:42, status:'upcoming', type:'Conference' },

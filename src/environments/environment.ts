@@ -1,6 +1,10 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8080/api',
+  /**
+   * Chemins relatifs → le même origine que `ng serve` évite le CORS en dev.
+   * Redirigés vers Spring par `proxy.conf.json` (voir racine du projet).
+   */
+  apiUrl: '/api',
   /** API Spring « gestion produit » (CRUD catalogue) */
-  productApiUrl: 'http://localhost:8080/product'
+  productApiUrl: '/product'
 };

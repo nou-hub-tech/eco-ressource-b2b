@@ -6,7 +6,7 @@ import { SharedModule } from '../../shared/shared-module';
 import { Layout } from '../../shared/components/layout/layout';
 import { Dashboard } from './dashboard/dashboard';
 import { Users } from './users/users';
-import { Events } from './events/events';
+import { AdminEvents } from './events/events';
 import { Stock } from './stock/stock';
 import { Deliveries } from './deliveries/deliveries';
 import { Listings } from './listings/listings';
@@ -37,7 +37,7 @@ const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: Dashboard },
       { path: 'users', component: Users },
-      { path: 'events', component: Events },
+      { path: 'events', component: AdminEvents },
       { path: 'stock', component: Stock },
       { path: 'deliveries', component: Deliveries },
       { path: 'listings', component: Listings },
@@ -66,7 +66,7 @@ const routes: Routes = [
   declarations: [
     Dashboard,
     Users,
-    Events,
+    AdminEvents,
     Stock,
     Deliveries,
     Listings,

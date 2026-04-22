@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { CreateListingRequest, ListingResponse } from '../../../core/models/annonces.interfaces';
+import { normalizeListing, unwrapApiArray } from './api-normalize';
 
 @Injectable({ providedIn: 'root' })
 export class ResourceListingService {
@@ -15,11 +17,15 @@ export class ResourceListingService {
   }
 
   findAll(): Observable<ListingResponse[]> {
-    return this.http.get<ListingResponse[]>(this.baseUrl);
+    return this.http.get<unknown>(this.baseUrl).pipe(
+      map((body) => unwrapApiArray(body).map(normalizeListing))
+    );
   }
 
   getById(id: number): Observable<ListingResponse> {
-    return this.http.get<ListingResponse>(`${this.baseUrl}/${id}`);
+    return this.http.get<unknown>(`${this.baseUrl}/${id}`).pipe(
+      map((body) => normalizeListing(body as Record<string, unknown>))
+    );
   }
 
   search(params: {
@@ -35,7 +41,9 @@ export class ResourceListingService {
     if (params.maxPrice !== undefined && params.maxPrice !== null) {
       httpParams = httpParams.set('maxPrice', params.maxPrice.toString());
     }
-    return this.http.get<ListingResponse[]>(`${this.baseUrl}/search`, { params: httpParams });
+    return this.http.get<unknown>(`${this.baseUrl}/search`, { params: httpParams }).pipe(
+      map((body) => unwrapApiArray(body).map(normalizeListing))
+    );
   }
 
   update(id: number, companyId: number, req: CreateListingRequest): Observable<ListingResponse> {

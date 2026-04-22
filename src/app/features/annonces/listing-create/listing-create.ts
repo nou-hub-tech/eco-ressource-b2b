@@ -1,10 +1,13 @@
 import { Component, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ResourceListingService } from '../services/resource-listing.service';
 import { ProductAnnoncesService } from '../services/product-annonces.service';
 import { Product, ListingType } from '../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../core/services/auth.service';
+import { ProductService } from '../../../core/services/product';
+import { httpErrorMessage, normalizeProduct, unwrapApiArray } from '../services/api-normalize';
 
 @Component({
   selector: 'app-listing-create',
@@ -17,6 +20,9 @@ export class ListingCreate implements OnInit {
   totalSteps = 6;
   form!: FormGroup;
   products: Product[] = [];
+  /** True si la liste provient de `productApiUrl` après refus d’accès à `/api/products`. */
+  productsFromCatalogFallback = false;
+  productsLoadError: string | null = null;
   loading = false;
   submitting = false;
   error = '';
@@ -34,7 +40,8 @@ export class ListingCreate implements OnInit {
     private readonly fb: FormBuilder,
     private readonly router: Router,
     private readonly listingService: ResourceListingService,
-    private readonly productService: ProductAnnoncesService,
+    private readonly productAnnoncesService: ProductAnnoncesService,
+    private readonly catalogProductService: ProductService,
     private readonly authService: AuthService
   ) {}
 
@@ -63,10 +70,46 @@ export class ListingCreate implements OnInit {
 
   loadProducts(): void {
     this.loading = true;
-    this.productService.findAll().subscribe({
-      next: (data) => { this.products = data; this.loading = false; },
-      error: () => { this.loading = false; }
+    this.productsLoadError = null;
+    this.productsFromCatalogFallback = false;
+    this.productAnnoncesService.findAll().subscribe({
+      next: (data) => this.applyLoadedProducts(data, false),
+      error: (err: unknown) => {
+        if (err instanceof HttpErrorResponse && err.status === 403) {
+          this.catalogProductService.getAll().subscribe({
+            next: (catalog: unknown) => {
+              const mapped = unwrapApiArray(catalog).map(normalizeProduct);
+              this.applyLoadedProducts(mapped, true);
+            },
+            error: (catalogErr: unknown) => {
+              this.productsLoadError =
+                'Accès refusé au catalogue « produits annonces » (/api/products). ' +
+                `Impossible non plus de charger le catalogue général : ${httpErrorMessage(catalogErr)}`;
+              this.products = [];
+              this.productsFromCatalogFallback = false;
+              this.loading = false;
+            }
+          });
+          return;
+        }
+        this.productsLoadError = httpErrorMessage(err);
+        this.products = [];
+        this.loading = false;
+      }
     });
+  }
+
+  private applyLoadedProducts(data: Product[], fromCatalog: boolean): void {
+    this.productsFromCatalogFallback = fromCatalog;
+    this.products = data.filter((p) => p.idProduct > 0 && p.name);
+    this.loading = false;
+    if (this.products.length === 0) {
+      this.productsLoadError = fromCatalog
+        ? 'Aucun produit dans le catalogue général. Ajoutez-en via la gestion produit, ou demandez l’accès à l’API /api/products pour les produits du module annonces.'
+        : 'Aucun produit retourné par l’API. Créez d’abord des produits (module Produits annonces ou backend), ou vérifiez que vous êtes bien connecté.';
+    } else {
+      this.productsLoadError = null;
+    }
   }
 
   selectType(type: ListingType): void {
@@ -157,8 +200,8 @@ export class ListingCreate implements OnInit {
         this.submitting = false;
         this.router.navigate(['/enterprise/annonces', res.id]);
       },
-      error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de la création';
+      error: (err: unknown) => {
+        this.error = httpErrorMessage(err);
         this.submitting = false;
       }
     });

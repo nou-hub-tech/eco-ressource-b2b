@@ -61,6 +61,11 @@
     </div>
   </div>
 
+  <div class="alert alert-danger" *ngIf="loadError" style="margin-bottom:16px;padding:12px 16px;border-radius:8px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:var(--danger,#dc2626);">
+    <strong>Impossible de charger les annonces.</strong><br/>
+    {{ loadError }}
+  </div>
+
   <!-- Loading -->
   <div class="ll-loading" *ngIf="loading">
     <div class="spinner-lg"></div>
@@ -73,7 +78,7 @@
   </div>
 
   <!-- Empty -->
-  <div class="empty-state" *ngIf="!loading && filtered.length === 0">
+  <div class="empty-state" *ngIf="!loading && !loadError && filtered.length === 0">
     <span class="empty-icon">📦</span>
     <h3>Aucune annonce trouvée</h3>
     <p *ngIf="hasActiveFilters">Essayez de modifier vos filtres</p>

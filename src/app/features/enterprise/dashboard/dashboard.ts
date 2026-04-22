@@ -143,77 +143,95 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadDashboardData(): void {
-    // Load all listings for marketplace
-    this.listingService.getAllListings().subscribe(listings => {
-      // Map listings to include template-compatible properties
-      this.listings = listings.map(l => ({
-        ...l,
-        match: l.match || Math.floor(Math.random() * 30) + 70,
-        enq: l.enquiries || Math.floor(Math.random() * 10),
-        trend: Math.random() > 0.5,
-        time: l.posted || 'Recently',
-        initials: l.initials || (l.company ? l.company.substring(0, 2).toUpperCase() : 'UN'),
-        verified: l.verified || Math.random() > 0.3,
-        rating: l.rating || (4 + Math.random()).toFixed(1),
-        priceDisplay: l.price ? l.price.toString() : '0',
-        sub: l.sub || `${l.category} · Available`,
-        specs: [
-          { k: 'QUANTITY', v: l.qty || 'Available' },
-          { k: 'CATEGORY', v: l.category },
-          { k: 'STATUS', v: l.status },
-          { k: 'PRICE', v: l.price ? l.price.toString() : '0' },
-          { k: 'DELIVERY', v: 'Available' }
-        ],
-        btnColor: this.getCategoryColor(l.category),
-        tag: this.getCategoryTag(l.category),
-        tagColor: this.getCategoryColor(l.category),
-        titleAccent: this.getCategoryAccent(l.category),
-        accentColor: this.getCategoryColor(l.category),
-        coColor: this.getCategoryColor(l.category),
-        location: 'Tunisia',
-        matchColor: l.match >= 90 ? '#34d399' : l.match >= 75 ? '#f59e0b' : '#ef4444'
-      }));
-      
-      this.heroSlides = this.listings.slice(0, 4);
-      this.updateCategoriesCount(this.listings);
-      this.quickStats[0].val = this.listings.length.toString();
-      this.quickStats[1].val = Math.floor(this.listings.length * 0.05).toString();
-      this.updateTicker(this.listings);
-      this.cdr.detectChanges();
+    this.listingService.getAllListings().subscribe({
+      next: (listings) => {
+        this.listings = listings.map((l) => ({
+          ...l,
+          match: l.match || Math.floor(Math.random() * 30) + 70,
+          enq: l.enquiries || Math.floor(Math.random() * 10),
+          trend: Math.random() > 0.5,
+          time: l.posted || 'Recently',
+          initials: l.initials || (l.company ? l.company.substring(0, 2).toUpperCase() : 'UN'),
+          verified: l.verified || Math.random() > 0.3,
+          rating: l.rating || (4 + Math.random()).toFixed(1),
+          priceDisplay: l.price ? l.price.toString() : '0',
+          sub: l.sub || `${l.category} · Available`,
+          specs: [
+            { k: 'QUANTITY', v: l.qty || 'Available' },
+            { k: 'CATEGORY', v: l.category },
+            { k: 'STATUS', v: l.status },
+            { k: 'PRICE', v: l.price ? l.price.toString() : '0' },
+            { k: 'DELIVERY', v: 'Available' }
+          ],
+          btnColor: this.getCategoryColor(l.category),
+          tag: this.getCategoryTag(l.category),
+          tagColor: this.getCategoryColor(l.category),
+          titleAccent: this.getCategoryAccent(l.category),
+          accentColor: this.getCategoryColor(l.category),
+          coColor: this.getCategoryColor(l.category),
+          location: 'Tunisia',
+          matchColor: l.match >= 90 ? '#34d399' : l.match >= 75 ? '#f59e0b' : '#ef4444'
+        }));
+
+        this.heroSlides = this.listings.slice(0, 4);
+        this.updateCategoriesCount(this.listings);
+        this.quickStats[0].val = this.listings.length.toString();
+        this.quickStats[1].val = Math.floor(this.listings.length * 0.05).toString();
+        this.updateTicker(this.listings);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cdr.detectChanges();
+      }
     });
 
-    // Load my listings
-    this.listingService.getMyListings().subscribe(myListings => {
-      this.myListings = myListings.map(l => ({
-        ...l,
-        match: l.match || Math.floor(Math.random() * 30) + 70,
-        enq: l.enquiries || Math.floor(Math.random() * 10),
-        trend: Math.random() > 0.5,
-        time: l.posted || 'Recently',
-        initials: l.initials || (l.company ? l.company.substring(0, 2).toUpperCase() : 'UN'),
-        verified: l.verified || Math.random() > 0.3,
-        rating: l.rating || (4 + Math.random()).toFixed(1),
-        priceDisplay: l.price ? l.price.toString() : '0',
-        sub: l.sub || `${l.category} · Available`
-      }));
-      const activeCount = this.myListings.filter(l => l.status === 'active').length;
-      this.quickStats[2].val = activeCount.toString();
-      this.cdr.detectChanges();
+    this.listingService.getMyListings().subscribe({
+      next: (myListings) => {
+        this.myListings = myListings.map((l) => ({
+          ...l,
+          match: l.match || Math.floor(Math.random() * 30) + 70,
+          enq: l.enquiries || Math.floor(Math.random() * 10),
+          trend: Math.random() > 0.5,
+          time: l.posted || 'Recently',
+          initials: l.initials || (l.company ? l.company.substring(0, 2).toUpperCase() : 'UN'),
+          verified: l.verified || Math.random() > 0.3,
+          rating: l.rating || (4 + Math.random()).toFixed(1),
+          priceDisplay: l.price ? l.price.toString() : '0',
+          sub: l.sub || `${l.category} · Available`
+        }));
+        const activeCount = this.myListings.filter((l) => l.status === 'active').length;
+        this.quickStats[2].val = activeCount.toString();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cdr.detectChanges();
+      }
     });
 
-    // Load deliveries
-    this.transportService.getEnterpriseDeliveries().subscribe(deliveries => {
-      this.deliveries = deliveries;
-      const inTransitCount = deliveries.filter(d => d.status === 'in-transit').length;
-      this.quickStats[3].val = inTransitCount.toString();
-      this.cdr.detectChanges();
+    this.transportService.getEnterpriseDeliveries().subscribe({
+      next: (deliveries) => {
+        this.deliveries = deliveries;
+        const inTransitCount = deliveries.filter((d) => d.status === 'in-transit').length;
+        this.quickStats[3].val = inTransitCount.toString();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cdr.detectChanges();
+      }
     });
 
-    // Load wallet transactions
-    this.listingService.getWalletTransactions().subscribe(transactions => {
-      const balance = transactions.reduce((sum, t) => sum + (t.positive ? t.amount : -t.amount), 0);
-      this.quickStats[4].val = balance.toString();
-      this.cdr.detectChanges();
+    this.listingService.getWalletTransactions().subscribe({
+      next: (transactions) => {
+        const balance = transactions.reduce(
+          (sum, t) => sum + (t.positive ? t.amount : -t.amount),
+          0
+        );
+        this.quickStats[4].val = balance.toString();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cdr.detectChanges();
+      }
     });
   }
 

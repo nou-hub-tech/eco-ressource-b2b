@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ResourceListingService } from '../services/resource-listing.service';
 import { FavoriteService } from '../services/favorite.service';
+import { httpErrorMessage } from '../services/api-normalize';
 import { ListingResponse, FavoriteResponse } from '../../../core/models/annonces.interfaces';
 
 @Component({
@@ -16,6 +17,8 @@ export class ListingList implements OnInit {
   favoriteIds = new Set<number>();
 
   loading = true;
+  /** Erreur API / réseau (distinct d’une liste vide réelle). */
+  loadError: string | null = null;
   filterType = '';
   filterCategory = '';
   filterLocation = '';
@@ -38,6 +41,7 @@ export class ListingList implements OnInit {
 
   loadData(): void {
     this.loading = true;
+    this.loadError = null;
     this.listingService.findAll().subscribe({
       next: (data) => {
         this.listings = data;
@@ -45,12 +49,21 @@ export class ListingList implements OnInit {
         this.applyFilters();
         this.loading = false;
       },
-      error: () => { this.loading = false; }
+      error: (err: unknown) => {
+        this.loadError = httpErrorMessage(err);
+        this.listings = [];
+        this.filtered = [];
+        this.paged = [];
+        this.loading = false;
+      }
     });
 
     this.favoriteService.myFavorites().subscribe({
       next: (favs: FavoriteResponse[]) => {
         this.favoriteIds = new Set(favs.map(f => f.listingId));
+      },
+      error: () => {
+        this.favoriteIds = new Set();
       }
     });
   }
