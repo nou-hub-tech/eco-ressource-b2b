@@ -607,7 +607,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     this.addOrderMarkersToMap();
                     this.drawAllAcceptedRoutes();
                     
-                    // 6. Forcer la détection des changements
+                    // 6. Force la détection des changements
                     this.cd.detectChanges();
                     
                     this.locationSuccess = `✅ Livraison terminée pour ${trip.to} ! Vous pouvez accepter de nouveaux trajets.`;
