@@ -595,14 +595,14 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                         availableTrip.accepted = true;
                     }
                     
-                    // 3. Réinitialiser état actif
+                    // 3. Réinitialiser létat actif
                     this.hasActiveTrip = false;
                     this.currentAcceptedTrip = null;
                     
                     // 4. Sauvegarde dans localStorage
                     this.saveAcceptedTripsToStorage();
                     
-                    // 5. Mettre à jour l'affichage dynamiquement
+                    // 5. Mettre  jour l'affichage dynamiquement
                     this.calculateAvailableTrips();
                     this.addOrderMarkersToMap();
                     this.drawAllAcceptedRoutes();
