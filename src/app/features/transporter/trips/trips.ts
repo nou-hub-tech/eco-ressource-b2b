@@ -595,7 +595,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                         availableTrip.accepted = true;
                     }
                     
-                    // 3. Réinitialiser l'état actif
+                    // 3. Réinitialiser état actif
                     this.hasActiveTrip = false;
                     this.currentAcceptedTrip = null;
                     
