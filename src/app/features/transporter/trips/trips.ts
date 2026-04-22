@@ -579,7 +579,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                         error: (err) => console.error('Erreur recherche expédition:', err)
                     });
                     
-                    // MISE À JOUR LOCALE DYNAMIQUE
+                    // MISE  JOUR LOCALE DYNAMIQUE
                     // 1. Marquer le trajet comme terminé dans acceptedTrips
                     if (this.acceptedTrips.has(tripId)) {
                         const updatedTrip = this.acceptedTrips.get(tripId);
