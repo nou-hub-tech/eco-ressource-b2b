@@ -599,7 +599,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     this.hasActiveTrip = false;
                     this.currentAcceptedTrip = null;
                     
-                    // 4. Sauvegarder dans localStorage
+                    // 4. Sauvegarde dans localStorage
                     this.saveAcceptedTripsToStorage();
                     
                     // 5. Mettre à jour l'affichage dynamiquement
