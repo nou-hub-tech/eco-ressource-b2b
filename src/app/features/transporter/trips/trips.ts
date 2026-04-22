@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { DeliveryOrderService } from '../../../core/services/delivery-order.service';
 import { PdfGeneratorService } from '../../../core/services/pdf-generator.service';
 import { ShipmentService } from '../../../core/services/shipment.service';
@@ -31,13 +31,18 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     userLng: number = 10.1815;
     deliveryOrders: DeliveryOrder[] = [];
     availableTrips: any[] = [];
+    acceptedTrips: Map<number, any> = new Map();
     isLoadingTrips = false;
     private orderMarkers: any[] = [];
+    private routeLines: any[] = [];
+    hasActiveTrip: boolean = false;
+    currentAcceptedTrip: any = null;
     
     constructor(
         private deliveryOrderService: DeliveryOrderService,
         private pdfGenerator: PdfGeneratorService,
-        private shipmentService: ShipmentService
+        private shipmentService: ShipmentService,
+        private cd: ChangeDetectorRef
     ) {}
     
     ngOnInit(): void {
@@ -50,11 +55,15 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         });
         
         this.loadSavedPosition();
+        this.loadAcceptedTripsFromStorage();
         this.loadDeliveryOrders();
         
         setTimeout(() => {
             if (this.mainMap) {
                 this.addOrderMarkersToMap();
+                setTimeout(() => {
+                    this.drawAllAcceptedRoutes();
+                }, 500);
             }
         }, 2000);
     }
@@ -80,6 +89,52 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         return deg * (Math.PI / 180);
     }
     
+    saveAcceptedTripsToStorage(): void {
+        const acceptedData = Array.from(this.acceptedTrips.entries()).map(([id, trip]) => ({
+            id: id,
+            to: trip.to,
+            lat: trip.lat,
+            lng: trip.lng,
+            clientName: trip.clientName,
+            address: trip.address,
+            distance: trip.distance,
+            date: trip.date,
+            acceptedAt: trip.acceptedAt,
+            completed: trip.completed || false
+        }));
+        localStorage.setItem('acceptedTrips', JSON.stringify(acceptedData));
+        localStorage.setItem('hasActiveTrip', JSON.stringify(this.hasActiveTrip));
+        if (this.currentAcceptedTrip) {
+            localStorage.setItem('currentAcceptedTrip', JSON.stringify(this.currentAcceptedTrip));
+        } else {
+            localStorage.removeItem('currentAcceptedTrip');
+        }
+    }
+    
+    loadAcceptedTripsFromStorage(): void {
+        const saved = localStorage.getItem('acceptedTrips');
+        if (saved) {
+            const acceptedData = JSON.parse(saved);
+            acceptedData.forEach((data: any) => {
+                this.acceptedTrips.set(data.id, {
+                    ...data,
+                    accepted: true
+                });
+            });
+        }
+        
+        const savedActive = localStorage.getItem('hasActiveTrip');
+        this.hasActiveTrip = savedActive === 'true';
+        
+        const savedCurrent = localStorage.getItem('currentAcceptedTrip');
+        if (savedCurrent) {
+            this.currentAcceptedTrip = JSON.parse(savedCurrent);
+        }
+        
+        console.log('Trajets acceptés chargés:', this.acceptedTrips.size);
+        console.log('Trajet actif:', this.hasActiveTrip);
+    }
+    
     loadDeliveryOrders(): void {
         console.log('Chargement des commandes...');
         this.isLoadingTrips = true;
@@ -93,6 +148,10 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 
                 setTimeout(() => {
                     this.addOrderMarkersToMap();
+                    setTimeout(() => {
+                        this.drawAllAcceptedRoutes();
+                    }, 500);
+                    this.cd.detectChanges();
                 }, 1000);
             },
             error: (error) => {
@@ -120,7 +179,9 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 address: 'Zone Industrielle, Tunis',
                 clientName: 'TechStore Tunisie',
                 telephone: '71 123 456',
-                distance: this.calculateDistance(this.userLat, this.userLng, 36.8065, 10.1815)
+                distance: this.calculateDistance(this.userLat, this.userLng, 36.8065, 10.1815),
+                accepted: false,
+                completed: false
             },
             {
                 id: 1002,
@@ -136,7 +197,9 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 address: 'Route de Gabès, Sfax',
                 clientName: 'AutoPièces Sfax',
                 telephone: '74 456 789',
-                distance: this.calculateDistance(this.userLat, this.userLng, 34.7406, 10.7603)
+                distance: this.calculateDistance(this.userLat, this.userLng, 34.7406, 10.7603),
+                accepted: false,
+                completed: false
             },
             {
                 id: 1003,
@@ -152,13 +215,19 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 address: 'Zone Touristique, Sousse',
                 clientName: 'Mode Méditerranée',
                 telephone: '73 789 012',
-                distance: this.calculateDistance(this.userLat, this.userLng, 35.8256, 10.6367)
+                distance: this.calculateDistance(this.userLat, this.userLng, 35.8256, 10.6367),
+                accepted: false,
+                completed: false
             }
         ];
         this.availableTrips.sort((a, b) => a.distance - b.distance);
         
         setTimeout(() => {
             this.addOrderMarkersToMap();
+            setTimeout(() => {
+                this.drawAllAcceptedRoutes();
+            }, 500);
+            this.cd.detectChanges();
         }, 1000);
     }
     
@@ -203,6 +272,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 }
                 
                 const distance = this.calculateDistance(this.userLat, this.userLng, cityLat, cityLng);
+                const isAccepted = this.acceptedTrips.has(order.idDelivery);
+                const isCompleted = this.acceptedTrips.get(order.idDelivery)?.completed || false;
                 
                 this.availableTrips.push({
                     id: order.idDelivery,
@@ -219,13 +290,16 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     clientName: order.nomClient,
                     telephone: order.telephoneClient,
                     distance: distance,
-                    order: order
+                    order: order,
+                    accepted: isAccepted,
+                    completed: isCompleted
                 });
             }
         });
         
         this.availableTrips.sort((a, b) => a.distance - b.distance);
         console.log('Trajets disponibles:', this.availableTrips.length);
+        this.cd.detectChanges();
     }
     
     getCurrentCityName(): string {
@@ -244,6 +318,36 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         return 'Ma position';
     }
     
+    drawAllAcceptedRoutes(): void {
+        if (!this.mainMap) return;
+        
+        this.routeLines.forEach(line => {
+            if (this.mainMap) this.mainMap.removeLayer(line);
+        });
+        this.routeLines = [];
+        
+        this.acceptedTrips.forEach((trip) => {
+            if (!trip.completed) {
+                this.drawRoute(trip.lat, trip.lng);
+            }
+        });
+    }
+    
+    drawRoute(destLat: number, destLng: number): void {
+        if (!this.mainMap) return;
+        if (!this.userLat || !this.userLng || !destLat || !destLng) return;
+        
+        const latlngs = [[this.userLat, this.userLng], [destLat, destLng]];
+        const routeLine = L.polyline(latlngs, { 
+            color: '#d4a574', 
+            weight: 4, 
+            opacity: 0.8,
+            dashArray: '8, 8'
+        }).addTo(this.mainMap);
+        
+        this.routeLines.push(routeLine);
+    }
+    
     addOrderMarkersToMap(): void {
         console.log('addOrderMarkersToMap appelé');
         
@@ -258,12 +362,17 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         });
         this.orderMarkers = [];
         
-        if (!this.availableTrips || this.availableTrips.length === 0) {
-            console.log('Aucun trajet à afficher');
-            return;
-        }
+        const allTrips = [...this.availableTrips];
         
-        console.log('Ajout de', this.availableTrips.length, 'marqueurs');
+        this.acceptedTrips.forEach((trip) => {
+            if (!allTrips.find(t => t.id === trip.id)) {
+                allTrips.push({
+                    ...trip,
+                    accepted: true,
+                    completed: trip.completed || false
+                });
+            }
+        });
         
         const orderIcon = L.divIcon({
             html: `<div style="background-color: #dc3545; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold;">📦</div>`,
@@ -271,57 +380,107 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             className: 'order-marker'
         });
         
-        this.availableTrips.forEach((trip, index) => {
-            console.log(`Ajout marqueur ${index + 1}:`, trip.to, trip.lat, trip.lng);
-            
+        const acceptedIcon = L.divIcon({
+            html: `<div style="background-color: #28a745; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold;">✅</div>`,
+            iconSize: [24, 24],
+            className: 'accepted-marker'
+        });
+        
+        const completedIcon = L.divIcon({
+            html: `<div style="background-color: #17a2b8; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold;">✓</div>`,
+            iconSize: [24, 24],
+            className: 'completed-marker'
+        });
+        
+        allTrips.forEach((trip) => {
             if (trip.lat && trip.lng) {
-                const marker = L.marker([trip.lat, trip.lng], { icon: orderIcon })
-                    .addTo(this.mainMap)
-                    .bindPopup(`
-                        <div style="min-width: 200px;">
-                            <strong style="color: #dc3545;">📍 ${trip.to}</strong><br>
-                            <b>Client:</b> ${trip.clientName}<br>
-                            <b>Adresse:</b> ${trip.address}<br>
-                            <b>Distance:</b> ${trip.distance} km<br>
-                            <button onclick="document.querySelector('app-trips').acceptTripById(${trip.id})" 
-                                    style="margin-top:8px; padding:5px 12px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">
-                                ✅ Accepter ce trajet
-                            </button>
+                let icon = orderIcon;
+                
+                if (trip.completed) {
+                    icon = completedIcon;
+                } else if (trip.accepted) {
+                    icon = acceptedIcon;
+                }
+                
+                let popupContent = `
+                    <div style="min-width: 200px;">
+                        <strong style="color: ${trip.completed ? '#17a2b8' : (trip.accepted ? '#28a745' : '#dc3545')};">📍 ${trip.to}</strong><br>
+                        <b>Client:</b> ${trip.clientName}<br>
+                        <b>Adresse:</b> ${trip.address}<br>
+                        <b>Distance:</b> ${trip.distance} km<br>
+                `;
+                
+                if (!trip.accepted && !this.hasActiveTrip) {
+                    popupContent += `
+                        <button onclick="document.querySelector('app-trips').acceptTripById(${trip.id})" 
+                                style="margin-top:8px; padding:5px 12px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">
+                            ✅ Accepter ce trajet
+                        </button>
+                    `;
+                } else if (!trip.accepted && this.hasActiveTrip) {
+                    popupContent += `
+                        <div style="margin-top:8px; padding:5px; background:#ffc107; color:#856404; border-radius:5px; text-align:center;">
+                            ⚠️ Trajet en cours
                         </div>
-                    `);
+                    `;
+                } else if (trip.accepted && !trip.completed) {
+                    popupContent += `
+                        <div style="margin-top:8px; padding:5px; background:#28a745; color:white; border-radius:5px; text-align:center;">
+                            🚚 Trajet en cours
+                        </div>
+                        <button onclick="document.querySelector('app-trips').completeTrip(${trip.id})" 
+                                style="margin-top:8px; padding:5px 12px; background:#17a2b8; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">
+                            ✅ Terminer la livraison
+                        </button>
+                    `;
+                } else {
+                    popupContent += `
+                        <div style="margin-top:8px; padding:5px; background:#17a2b8; color:white; border-radius:5px; text-align:center;">
+                            ✅ Livraison terminée
+                        </div>
+                    `;
+                }
+                
+                popupContent += `</div>`;
+                
+                const marker = L.marker([trip.lat, trip.lng], { icon: icon })
+                    .addTo(this.mainMap)
+                    .bindPopup(popupContent);
                 
                 this.orderMarkers.push(marker);
             }
         });
-        
-        if (this.orderMarkers.length > 0) {
-            const group = L.featureGroup(this.orderMarkers);
-            this.mainMap.fitBounds(group.getBounds().pad(0.2));
-        }
         
         console.log('Marqueurs ajoutés:', this.orderMarkers.length);
     }
     
     acceptTripById(tripId: number): void {
         const trip = this.availableTrips.find(t => t.id === tripId);
-        if (trip) {
+        if (trip && !trip.accepted) {
             this.acceptTrip(trip);
         }
     }
     
-    // ======= MÉTHODE ACCEPTER AVEC GÉNÉRATION PDF =======
-    
     acceptTrip(trip: any): void {
+        if (this.hasActiveTrip) {
+            this.locationError = '❌ Vous avez déjà un trajet en cours. Terminez-le avant d\'en accepter un nouveau.';
+            setTimeout(() => this.locationError = null, 5000);
+            return;
+        }
+        
+        if (trip.accepted) {
+            this.locationError = '❌ Ce trajet a déjà été accepté';
+            setTimeout(() => this.locationError = null, 3000);
+            return;
+        }
+        
         if (confirm(`Accepter le trajet vers ${trip.to} (${trip.distance} km) ? Un bon d'expédition sera généré.`)) {
             
-            // 1. Mettre à jour le statut de la commande
             this.deliveryOrderService.updateStatut(trip.id, StatutCommande.EN_COURS).subscribe({
                 next: () => {
-                    // 2. Récupérer la commande complète
                     this.deliveryOrderService.getById(trip.id).subscribe({
                         next: (deliveryOrder: DeliveryOrder) => {
                             
-                            // 3. Créer une nouvelle expédition
                             const newShipment: Shipment = {
                                 id: 0,
                                 deliveryOrder: { idDelivery: trip.id },
@@ -332,38 +491,56 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                 statut: StatutExpedition.EN_COURS
                             };
                             
-                            // 4. Sauvegarder l'expédition
                             this.shipmentService.create(newShipment).subscribe({
                                 next: (shipment: Shipment) => {
-                                    // 5. Générer le PDF d'expédition
                                     this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder);
+                                    
+                                    // Mise à jour locale
+                                    trip.accepted = true;
+                                    trip.completed = false;
+                                    this.hasActiveTrip = true;
+                                    this.currentAcceptedTrip = {
+                                        id: trip.id,
+                                        to: trip.to,
+                                        lat: trip.lat,
+                                        lng: trip.lng,
+                                        clientName: trip.clientName,
+                                        address: trip.address,
+                                        distance: trip.distance,
+                                        date: trip.date,
+                                        acceptedAt: new Date().toISOString(),
+                                        completed: false
+                                    };
+                                    
+                                    this.acceptedTrips.set(trip.id, this.currentAcceptedTrip);
+                                    this.saveAcceptedTripsToStorage();
+                                    this.calculateAvailableTrips();
+                                    this.addOrderMarkersToMap();
+                                    
+                                    setTimeout(() => {
+                                        this.drawRoute(trip.lat, trip.lng);
+                                    }, 500);
                                     
                                     this.locationSuccess = `✅ Trajet accepté vers ${trip.to} ! Bon d'expédition généré.`;
                                     setTimeout(() => this.locationSuccess = null, 5000);
-                                    
-                                    // 6. Retirer le trajet de la liste
-                                    const index = this.availableTrips.indexOf(trip);
-                                    if (index > -1) {
-                                        this.availableTrips.splice(index, 1);
-                                        this.addOrderMarkersToMap();
-                                    }
+                                    this.cd.detectChanges();
                                 },
                                 error: (error) => {
-                                    console.error('Erreur création expédition:', error);
-                                    this.locationError = '❌ Erreur lors de la création de l\'expédition';
+                                    console.error('Erreur:', error);
+                                    this.locationError = '❌ Erreur lors de la création';
                                     setTimeout(() => this.locationError = null, 3000);
                                 }
                             });
                         },
                         error: (error) => {
-                            console.error('Erreur récupération commande:', error);
-                            this.locationError = '❌ Erreur lors de la récupération de la commande';
+                            console.error('Erreur:', error);
+                            this.locationError = '❌ Erreur lors de la récupération';
                             setTimeout(() => this.locationError = null, 3000);
                         }
                     });
                 },
                 error: (error) => {
-                    console.error('Erreur mise à jour statut:', error);
+                    console.error('Erreur:', error);
                     this.locationError = '❌ Erreur lors de l\'acceptation';
                     setTimeout(() => this.locationError = null, 3000);
                 }
@@ -371,14 +548,96 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
     }
     
+    completeTrip(tripId: number): void {
+        const trip = this.acceptedTrips.get(tripId) || this.availableTrips.find(t => t.id === tripId);
+        
+        if (!trip) {
+            this.locationError = '❌ Trajet non trouvé';
+            setTimeout(() => this.locationError = null, 3000);
+            return;
+        }
+        
+        if (confirm(`Confirmez-vous la livraison terminée pour ${trip.to} ?`)) {
+            
+            // Mettre à jour le statut de la commande à LIVREE
+            this.deliveryOrderService.updateStatut(tripId, StatutCommande.LIVREE).subscribe({
+                next: () => {
+                    // Mettre à jour l'expédition
+                    this.shipmentService.getAll().subscribe({
+                        next: (shipments: Shipment[]) => {
+                            const shipment = shipments.find(s => s.deliveryOrder.idDelivery === tripId);
+                            if (shipment) {
+                                shipment.statut = StatutExpedition.LIVREE;
+                                this.shipmentService.update(shipment.id, shipment).subscribe({
+                                    next: () => {
+                                        console.log('Expédition mise à jour');
+                                    },
+                                    error: (err) => console.error('Erreur mise à jour expédition:', err)
+                                });
+                            }
+                        },
+                        error: (err) => console.error('Erreur recherche expédition:', err)
+                    });
+                    
+                    // MISE À JOUR LOCALE DYNAMIQUE
+                    // 1. Marquer le trajet comme terminé dans acceptedTrips
+                    if (this.acceptedTrips.has(tripId)) {
+                        const updatedTrip = this.acceptedTrips.get(tripId);
+                        updatedTrip.completed = true;
+                        updatedTrip.completedAt = new Date().toISOString();
+                        this.acceptedTrips.set(tripId, updatedTrip);
+                    }
+                    
+                    // 2. Mettre à jour dans availableTrips
+                    const availableTrip = this.availableTrips.find(t => t.id === tripId);
+                    if (availableTrip) {
+                        availableTrip.completed = true;
+                        availableTrip.accepted = true;
+                    }
+                    
+                    // 3. Réinitialiser l'état actif
+                    this.hasActiveTrip = false;
+                    this.currentAcceptedTrip = null;
+                    
+                    // 4. Sauvegarder dans localStorage
+                    this.saveAcceptedTripsToStorage();
+                    
+                    // 5. Mettre à jour l'affichage dynamiquement
+                    this.calculateAvailableTrips();
+                    this.addOrderMarkersToMap();
+                    this.drawAllAcceptedRoutes();
+                    
+                    // 6. Forcer la détection des changements
+                    this.cd.detectChanges();
+                    
+                    this.locationSuccess = `✅ Livraison terminée pour ${trip.to} ! Vous pouvez accepter de nouveaux trajets.`;
+                    setTimeout(() => this.locationSuccess = null, 5000);
+                },
+                error: (error) => {
+                    console.error('Erreur:', error);
+                    this.locationError = '❌ Erreur lors de la finalisation';
+                    setTimeout(() => this.locationError = null, 3000);
+                }
+            });
+        }
+    }
+    
     refuseTrip(trip: any): void {
+        if (trip.accepted) {
+            this.locationError = '❌ Ce trajet a déjà été accepté';
+            setTimeout(() => this.locationError = null, 3000);
+            return;
+        }
+        
         if (confirm(`Refuser le trajet vers ${trip.to} ?`)) {
             this.locationSuccess = `❌ Trajet refusé`;
             setTimeout(() => this.locationSuccess = null, 3000);
+            
             const index = this.availableTrips.indexOf(trip);
             if (index > -1) {
                 this.availableTrips.splice(index, 1);
                 this.addOrderMarkersToMap();
+                this.cd.detectChanges();
             }
         }
     }
@@ -391,6 +650,10 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         this.calculateAvailableTrips();
         this.updateMapPosition(lat, lng);
         this.addOrderMarkersToMap();
+        setTimeout(() => {
+            this.drawAllAcceptedRoutes();
+        }, 500);
+        this.cd.detectChanges();
     }
     
     loadSavedPosition(): void {
@@ -535,6 +798,9 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         
         setTimeout(() => {
             this.addOrderMarkersToMap();
+            setTimeout(() => {
+                this.drawAllAcceptedRoutes();
+            }, 500);
         }, 1000);
         
         console.log('Carte initialisée');

@@ -96,6 +96,10 @@
             <i class="bi bi-calendar"></i>
             <span>{{ trip.date | date:'dd/MM/yyyy' }}</span>
           </div>
+          <div class="info-row" *ngIf="trip.telephone">
+            <i class="bi bi-telephone"></i>
+            <span>{{ trip.telephone }}</span>
+          </div>
         </div>
         
         <div class="trip-impact">
@@ -106,14 +110,34 @@
         </div>
       </div>
       
-      <div class="trip-actions">
-        
+      <!-- Cas 1: Trajet non accepté et aucun trajet actif -->
+      <div class="trip-actions" *ngIf="!trip.accepted && !hasActiveTrip">
         <button class="btn-accept" (click)="acceptTrip(trip)">
           <i class="bi bi-check-lg"></i> Accepter
         </button>
         <button class="btn-refuse" (click)="refuseTrip(trip)">
           <i class="bi bi-x-lg"></i> Refuser
         </button>
+      </div>
+      
+      <!-- Cas 2: Trajet non accepté mais un trajet actif existe -->
+      <div class="trip-disabled-message" *ngIf="!trip.accepted && hasActiveTrip">
+        <i class="bi bi-exclamation-triangle-fill"></i> ⚠️ Trajet en cours - Terminez votre livraison en cours
+      </div>
+      
+      <!-- Cas 3: Trajet accepté et en cours -->
+      <div class="trip-active-message" *ngIf="trip.accepted && !trip.completed">
+        <div class="message-content">
+          <i class="bi bi-truck"></i> 🚚 Trajet en cours - Livraison en progression
+        </div>
+        <button class="btn-complete" (click)="completeTrip(trip.id)">
+          <i class="bi bi-check-circle"></i> Terminer la livraison
+        </button>
+      </div>
+      
+      <!-- Cas 4: Trajet terminé -->
+      <div class="trip-completed-message" *ngIf="trip.completed">
+        <i class="bi bi-check-circle-fill"></i> ✅ Livraison terminée
       </div>
     </div>
   </div>
@@ -140,17 +164,48 @@
           <span>{{selectedTrip?.clientName}}</span>
         </div>
         <div class="summary-item">
+          <label>Téléphone:</label>
+          <span>{{selectedTrip?.telephone || 'Non renseigné'}}</span>
+        </div>
+        <div class="summary-item">
           <label>Adresse:</label>
           <span>{{selectedTrip?.address}}</span>
+        </div>
+        <div class="summary-item">
+          <label>Date:</label>
+          <span>{{selectedTrip?.date | date:'dd/MM/yyyy'}}</span>
+        </div>
+        <div class="summary-item">
+          <label>CO₂:</label>
+          <span>{{selectedTrip?.co2}}</span>
         </div>
       </div>
       <div id="routeMap" class="map-container route-map"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" (click)="closeMapModal()">Fermer</button>
-      <button class="btn-primary" (click)="acceptTrip(selectedTrip); closeMapModal()">
-        Accepter
+      
+      <button class="btn-primary" (click)="acceptTrip(selectedTrip); closeMapModal()" 
+              *ngIf="selectedTrip && !selectedTrip.accepted && !hasActiveTrip">
+        <i class="bi bi-check-lg"></i> Accepter
       </button>
+      
+      <button class="btn-complete-modal" (click)="completeTrip(selectedTrip.id); closeMapModal()" 
+              *ngIf="selectedTrip && selectedTrip.accepted && !selectedTrip.completed">
+        <i class="bi bi-check-circle"></i> Terminer la livraison
+      </button>
+      
+      <div *ngIf="selectedTrip && selectedTrip.completed" class="accepted-badge-modal">
+        <i class="bi bi-check-circle-fill"></i> ✅ Livraison terminée
+      </div>
+      
+      <div *ngIf="selectedTrip && selectedTrip.accepted && !selectedTrip.completed && !hasActiveTrip" class="active-badge-modal">
+        <i class="bi bi-truck"></i> 🚚 Trajet en cours
+      </div>
+      
+      <div *ngIf="selectedTrip && !selectedTrip.accepted && hasActiveTrip" class="disabled-badge-modal">
+        <i class="bi bi-exclamation-triangle-fill"></i> ⚠️ Trajet en cours
+      </div>
     </div>
   </div>
 </div>
