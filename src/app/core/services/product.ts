@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { AdminApiService } from './admin-api.service';
 import { ListingService, StockItemDto } from './listing.service';
 import { Product } from '../models/product.model';
@@ -16,7 +17,7 @@ export interface PaginatedProducts {
 /** Catalog / CRUD API (gestion produit) + stock listing bridge (annonces). */
 @Injectable({ providedIn: 'root' })
 export class ProductService {
-  private readonly productApi = 'http://localhost:8080/product';
+  private readonly productApi = environment.productApiUrl;
 
   constructor(
     private readonly listing: ListingService,

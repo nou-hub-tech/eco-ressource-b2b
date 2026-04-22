@@ -87,6 +87,7 @@ export class Sidebar implements OnInit {
     { section: 'Marketplace' },
     { label: 'Browse Listings', icon: 'marketplace', route: '/enterprise/marketplace', badge: '247' },
     { label: 'My Listings',   icon: 'listings',      route: '/enterprise/my-listings' },
+    { label: 'Annonces',      icon: 'events',        route: '/enterprise/annonces' },
     { label: 'Requests',      icon: 'requests',      route: '/enterprise/requests' },
     { section: 'Operations' },
     { label: 'My Stock',      icon: 'stock',         route: '/enterprise/my-stock' },
