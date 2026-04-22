@@ -1,52 +1,5 @@
 <div class="page-wrapper">
-  <div class="page-header-row">
-    <div class="page-header" style="margin:0"><h1>My Stock</h1><p>Track your industrial products and recyclable materials</p></div>
-    <button class="btn btn-primary" (click)="openModal()">+ Add Product</button>
-  </div>
-  <div class="toolbar">
-    <div class="search-box"><span>🔍</span><input type="text" placeholder="Search products..." [(ngModel)]="search"></div>
-    <div class="spacer"></div>
-    <span class="toolbar-count">{{filtered.length}} products</span>
-  </div>
-  <div class="card" style="padding:0">
-    <table class="data-table">
-      <thead><tr><th>Product</th><th>Category</th><th>Quantity</th><th>Condition</th><th>Status</th><th>AI Insight</th><th>Actions</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let i of filtered">
-          <td><strong style="color:var(--text)">{{i.name}}</strong></td>
-          <td><span class="badge badge-neutral">{{i.category}}</span></td>
-          <td><strong style="color:var(--text)">{{i.qty}}</strong> <span style="color:var(--text3);font-size:11px">{{i.unit}}</span></td>
-          <td style="color:var(--text2)">{{i.condition}}</td>
-          <td>
-            <span class="badge" [ngClass]="i.status==='listed'?'badge-success':i.status==='reserved'?'badge-warning':'badge-neutral'">{{i.status}}</span>
-          </td>
-          <td><span class="ai-tip">🤖 {{i.ai}}</span></td>
-          <td>
-            <div style="display:flex;gap:6px">
-              <button class="btn btn-primary btn-sm" *ngIf="i.status==='unlisted'">List Now</button>
-              <button class="btn btn-outline btn-sm">Edit</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-header"><h2>Add Product</h2><button class="btn btn-icon" (click)="closeModal()">✕</button></div>
-    <div class="form-row">
-      <div class="form-group"><label>Product Name</label><input type="text" placeholder="e.g. Aluminum Scrap"></div>
-      <div class="form-group"><label>Category</label><select><option>Metal</option><option>Plastic</option><option>Paper</option><option>Glass</option><option>Textile</option></select></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Quantity (kg)</label><input type="number" placeholder="0"></div>
-      <div class="form-group"><label>Condition</label><select><option>New</option><option>Good</option><option>Fair</option></select></div>
-    </div>
-    <div class="form-group"><label>Description</label><textarea placeholder="Describe the product..."></textarea></div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
-      <button class="btn btn-primary" (click)="closeModal()">Add Product</button>
-    </div>
+  <div style="text-align: center; padding: 50px;">
+    <p>Redirecting to stock management…</p>
   </div>
 </div>

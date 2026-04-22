@@ -1,0 +1,241 @@
+<div class="chatbot-wrapper">
+  
+  <!-- Navigation Header with Back Button -->
+  <div class="chatbot-nav">
+    <button class="back-nav-btn" (click)="goToProducts()">
+      <i class="fas fa-arrow-left"></i>
+      <span>Back to Products</span>
+    </button>
+    <div class="nav-actions">
+      <button class="action-icon-btn" (click)="clearChat()" title="Clear conversation">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+      <button class="action-icon-btn" (click)="refreshSuggestions()" title="Refresh suggestions">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Chat Container -->
+  <div class="chatbot-container">
+    
+    <!-- Header Section -->
+    <div class="chatbot-header">
+      <div class="header-icon">
+        <i class="fas fa-robot"></i>
+      </div>
+      <div class="header-text">
+        <h1>AI Product Assistant</h1>
+        <p>Your intelligent product finder - describe what you need and I'll find the perfect match</p>
+      </div>
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span>Online</span>
+      </div>
+    </div>
+
+    <!-- Language Selector -->
+    <div class="language-selector">
+      <i class="fas fa-language"></i>
+      <span>Voice language:</span>
+      <div class="language-buttons">
+        <button *ngFor="let lang of supportedLanguages" 
+                class="lang-btn" 
+                [class.active]="currentLanguage === lang"
+                (click)="changeLanguage(lang)">
+          {{ getLanguageName(lang) }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Chat Card -->
+    <div class="chat-card">
+      
+      <!-- Messages Container -->
+      <div #scrollMe class="messages-container" (scroll)="onScroll()">
+        
+        <!-- Empty State -->
+        <div *ngIf="messages.length === 0" class="empty-chat">
+          <div class="empty-icon">
+            <i class="fas fa-comment-dots"></i>
+          </div>
+          <div class="empty-title">Start a conversation</div>
+          <div class="empty-text">Ask me about products, materials, recycling options, or specific features</div>
+          <div class="empty-examples">
+            <div class="example-chip" (click)="quickSend('Show me eco-friendly products')">
+              🌱 Eco-friendly products
+            </div>
+            <div class="example-chip" (click)="quickSend('Products made of recycled plastic')">
+              ♻️ Recycled plastic
+            </div>
+            <div class="example-chip" (click)="quickSend('Sustainable packaging solutions')">
+              📦 Sustainable packaging
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Loop -->
+        <div *ngFor="let m of messages; let i = index" 
+             class="message-wrapper" 
+             [class.message-wrapper-bot]="m.role === 'bot'" 
+             [class.message-wrapper-user]="m.role === 'user'"
+             [class.message-animate]="i === messages.length - 1">
+          
+          <!-- Bot Avatar -->
+          <div class="message-avatar" *ngIf="m.role === 'bot'">
+            <i class="fas fa-robot"></i>
+          </div>
+          
+          <div class="message-content">
+            <div class="bubble" [class.bubble-bot]="m.role === 'bot'" [class.bubble-user]="m.role === 'user'">
+              
+              <!-- Display uploaded image if present -->
+              <div *ngIf="m.image" class="uploaded-image">
+                <img [src]="m.image" alt="Uploaded">
+              </div>
+              
+              <!-- Message text with formatting -->
+              <div class="message-text" [innerHTML]="formatMessage(m.text)" *ngIf="!loading || i !== messages.length - 1 || m.role !== 'bot'">
+              </div>
+              
+              <!-- Product Cards -->
+              <div *ngIf="m.cards && m.cards.length > 0" class="products-section">
+                <div class="products-header">
+                  <i class="fas fa-box"></i>
+                  <span>Recommended Products</span>
+                </div>
+                <div class="products-carousel">
+                  <div *ngFor="let p of m.cards" class="product-card-enhanced" (click)="viewProduct(p.id_product!)">
+                    <div class="product-card-image" *ngIf="p.image">
+                      <img [src]="'http://localhost:8080/files/' + p.image" [alt]="p.name">
+                    </div>
+                    <div class="product-card-initial" *ngIf="!p.image">
+                      {{ p.name.slice(0,2).toUpperCase() }}
+                    </div>
+                    <div class="product-card-info">
+                      <h4 class="product-card-name">{{ p.name }}</h4>
+                      <p class="product-card-desc">{{ truncateText(p.description, 80) }}</p>
+                      <div class="product-card-tags">
+                        <span class="tag tag-category">
+                          <i class="fas fa-folder"></i> {{ p.category }}
+                        </span>
+                        <span class="tag tag-material">
+                          <i class="fas fa-cube"></i> {{ p.materialType }}
+                        </span>
+                        <span *ngIf="p.recyclable" class="tag tag-recyclable">
+                          <i class="fas fa-recycle"></i> Recyclable
+                        </span>
+                      </div>
+                      <button class="view-product-btn" (click)="viewProduct(p.id_product!); $event.stopPropagation()">
+                        View Details <i class="fas fa-arrow-right"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="message-meta" *ngIf="m.role === 'bot'">
+              <span class="message-time">{{ getCurrentTime() }}</span>
+            </div>
+          </div>
+          
+          <!-- User Avatar -->
+          <div class="message-avatar user-avatar" *ngIf="m.role === 'user'">
+            <i class="fas fa-user"></i>
+          </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div *ngIf="loading && messages.length > 0 && messages[messages.length - 1]?.role !== 'bot'" class="loading-message">
+          <div class="loading-avatar">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div class="loading-bubble">
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="loading-text">AI is thinking...</div>
+          </div>
+        </div>
+
+        <!-- Voice Listening Indicator -->
+        <div *ngIf="isListening" class="listening-indicator">
+          <div class="listening-wave">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <span>Listening... Speak now</span>
+        </div>
+      </div>
+
+      <!-- Quick Suggestions -->
+      <div class="suggestions-section" *ngIf="!loading && messages.length > 0">
+        <div class="suggestions-header">
+          <i class="fas fa-lightbulb"></i>
+          <span>Quick suggestions</span>
+          <button class="refresh-suggestions" (click)="refreshSuggestions()">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        <div class="suggestions-grid">
+          <div class="suggestion-chip" (click)="quickSend('Show me recyclable products')">
+            <i class="fas fa-recycle"></i> Recyclable products
+          </div>
+          <div class="suggestion-chip" (click)="quickSend('Products made of plastic')">
+            <i class="fas fa-box"></i> Plastic materials
+          </div>
+          <div class="suggestion-chip" (click)="quickSend('Sustainable packaging')">
+            <i class="fas fa-leaf"></i> Sustainable packaging
+          </div>
+          <div class="suggestion-chip" (click)="quickSend('Eco-friendly materials')">
+            <i class="fas fa-globe"></i> Eco-friendly materials
+          </div>
+          <div class="suggestion-chip" (click)="quickSend('Biodegradable products')">
+            <i class="fas fa-seedling"></i> Biodegradable
+          </div>
+          <div class="suggestion-chip" (click)="quickSend('Products under 50 DT')">
+            <i class="fas fa-tag"></i> Budget friendly
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="input-area-enhanced">
+        <div class="input-actions">
+          <!-- Paperclip button - now working -->
+          <label class="input-action-btn" title="Upload product image">
+            <i class="fas fa-paperclip"></i>
+            <input type="file" accept="image/*" (change)="onImageSelected($event)" style="display: none">
+          </label>
+          
+          <!-- Microphone button - now working -->
+          <button class="input-action-btn" 
+                  [class.listening]="isListening"
+                  (click)="startListening()" 
+                  (mouseleave)="stopListening()"
+                  title="Voice input">
+            <i class="fas" [class.fa-microphone]="!isListening" [class.fa-microphone-slash]="isListening"></i>
+          </button>
+        </div>
+        <div class="input-wrapper">
+          <textarea
+            [(ngModel)]="userInput"
+            (keydown)="onEnter($event)"
+            placeholder="Describe the product you're looking for... or click the microphone to speak"
+            class="message-input-enhanced"
+            rows="1"
+            (input)="autoResize($event)">
+          </textarea>
+          <button
+            (click)="send()"
+            [disabled]="loading || !userInput.trim()"
+            class="send-button-enhanced">
+            <i class="fas" [class.fa-paper-plane]="!loading" [class.fa-spinner]="loading" [class.fa-spin]="loading"></i>
+            <span *ngIf="!loading">Send</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

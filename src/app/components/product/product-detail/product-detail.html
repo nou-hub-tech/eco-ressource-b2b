@@ -1,0 +1,132 @@
+<div class="product-detail-container">
+  <!-- Loading State -->
+  <div *ngIf="!product" class="loading-state">
+    <div class="pulse-loader"></div>
+    <p>Loading product details...</p>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="product" class="detail-card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <div class="header-left">
+        <button class="back-btn" (click)="back()">
+          <i class="fas fa-arrow-left"></i> Back to Products
+        </button>
+        <div class="product-badge">
+          <i class="fas fa-box"></i>
+          Product Details
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="recyclable-badge" [class.recyclable]="product.recyclable" [class.not-recyclable]="!product.recyclable">
+          <i class="fas" [class.fa-recycle]="product.recyclable" [class.fa-ban]="!product.recyclable"></i>
+          {{ product.recyclable ? 'Recyclable' : 'Not Recyclable' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Hero Section with Image -->
+    <div class="product-hero">
+      <div class="image-gallery">
+        <!-- Replace the main image block -->
+<div class="main-image">
+  <img *ngIf="getImageUrl(product.image)" 
+       [src]="getImageUrl(product.image)" 
+       [alt]="product.name"
+       (error)="handleImageError($event)">
+  <div *ngIf="!getImageUrl(product.image)" class="no-image-placeholder">
+    <i class="fas fa-image"></i>
+    <p>No Image Available</p>
+  </div>
+</div>
+      </div>
+      <div class="hero-info">
+        <h1 class="product-title">{{ product.name }}</h1>
+        <div class="product-meta">
+          <span class="meta-chip">
+            <i class="fas fa-tag"></i> ID: #{{ product.id_product }}
+          </span>
+          <span class="meta-chip">
+            <i class="fas fa-folder"></i> {{ product.category }}
+          </span>
+          <span class="meta-chip">
+            <i class="fas fa-cube"></i> {{ product.materialType }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Information Grid -->
+    <div class="info-section">
+      <h2 class="section-title">
+        <i class="fas fa-info-circle"></i>
+        Product Information
+      </h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-icon" style="background: rgba(102, 126, 234, 0.1);">
+            <i class="fas fa-barcode" style="color: #667eea;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Product ID</div>
+            <div class="info-value">#{{ product.id_product }}</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-icon" style="background: rgba(16, 185, 129, 0.1);">
+            <i class="fas fa-tag" style="color: #10b981;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Product Name</div>
+            <div class="info-value">{{ product.name }}</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-icon" style="background: rgba(245, 158, 11, 0.1);">
+            <i class="fas fa-folder" style="color: #f59e0b;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Category</div>
+            <div class="info-value">{{ product.category }}</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-icon" style="background: rgba(139, 92, 246, 0.1);">
+            <i class="fas fa-cube" style="color: #8b5cf6;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Material Type</div>
+            <div class="info-value">{{ product.materialType }}</div>
+          </div>
+        </div>
+
+        <div class="info-card info-card-full">
+          <div class="info-icon" style="background: rgba(236, 72, 153, 0.1);">
+            <i class="fas fa-align-left" style="color: #ec4899;"></i>
+          </div>
+          <div class="info-content">
+            <div class="info-label">Description</div>
+            <div class="info-value description-text">{{ product.description || 'No description provided' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="btn btn-secondary" (click)="back()">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <button class="btn btn-primary" (click)="edit()">
+        <i class="fas fa-edit"></i> Edit Product
+      </button>
+      <button class="btn btn-danger" (click)="delete()">
+        <i class="fas fa-trash-alt"></i> Delete Product
+      </button>
+    </div>
+  </div>
+</div>

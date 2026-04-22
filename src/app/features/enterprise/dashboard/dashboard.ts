@@ -1,4 +1,11 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ViewEncapsulation } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  AfterViewInit,
+  ViewEncapsulation,
+  ChangeDetectorRef
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ThemeService } from '../../../core/services/theme';
 import { AuthService, User } from '../../../core/services/auth';
@@ -49,8 +56,12 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   heroSlides: ListingDto[] = [];
 
-  get currentHero() { return this.heroSlides[this.currentSlide]; }
-  get slideCounter() {
+  get currentHero(): ListingDto | null {
+    return this.heroSlides.length > 0 ? this.heroSlides[this.currentSlide] : null;
+  }
+
+  get slideCounter(): string {
+    if (this.heroSlides.length === 0) return '00 / 00';
     return `${String(this.currentSlide + 1).padStart(2, '0')} / ${String(this.heroSlides.length).padStart(2, '0')}`;
   }
 
@@ -87,14 +98,26 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
 
   deliveries: DeliveryDto[] = [];
 
-  goTo(i: number): void { this.currentSlide = i; this.resetProgress(); }
-  prev(): void { this.goTo((this.currentSlide - 1 + this.heroSlides.length) % this.heroSlides.length); }
-  next(): void { this.goTo((this.currentSlide + 1) % this.heroSlides.length); }
+  goTo(i: number): void {
+    this.currentSlide = i;
+    this.resetProgress();
+  }
+
+  prev(): void {
+    if (this.heroSlides.length === 0) return;
+    this.goTo((this.currentSlide - 1 + this.heroSlides.length) % this.heroSlides.length);
+  }
+
+  next(): void {
+    if (this.heroSlides.length === 0) return;
+    this.goTo((this.currentSlide + 1) % this.heroSlides.length);
+  }
   setCategory(name: string): void { this.activeCategory = name; }
 
   private resetProgress(): void {
     clearInterval(this.progressTimer);
     this.slideProgress = 0;
+    if (this.heroSlides.length === 0) return;
     this.progressTimer = setInterval(() => {
       this.slideProgress += 100 / 120;
       if (this.slideProgress >= 100) {
@@ -105,7 +128,13 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     }, 50);
   }
 
-  constructor(public themeService: ThemeService, private authService: AuthService, private listingService: ListingService, private transportService: TransportService) {}
+  constructor(
+    public themeService: ThemeService,
+    private authService: AuthService,
+    private listingService: ListingService,
+    private transportService: TransportService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.subs.add(this.themeService.isDark$.subscribe(d => this.isDark = d));
@@ -150,6 +179,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       this.quickStats[0].val = this.listings.length.toString();
       this.quickStats[1].val = Math.floor(this.listings.length * 0.05).toString();
       this.updateTicker(this.listings);
+      this.cdr.detectChanges();
     });
 
     // Load my listings
@@ -168,6 +198,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       }));
       const activeCount = this.myListings.filter(l => l.status === 'active').length;
       this.quickStats[2].val = activeCount.toString();
+      this.cdr.detectChanges();
     });
 
     // Load deliveries
@@ -175,12 +206,14 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       this.deliveries = deliveries;
       const inTransitCount = deliveries.filter(d => d.status === 'in-transit').length;
       this.quickStats[3].val = inTransitCount.toString();
+      this.cdr.detectChanges();
     });
 
     // Load wallet transactions
     this.listingService.getWalletTransactions().subscribe(transactions => {
       const balance = transactions.reduce((sum, t) => sum + (t.positive ? t.amount : -t.amount), 0);
       this.quickStats[4].val = balance.toString();
+      this.cdr.detectChanges();
     });
   }
 

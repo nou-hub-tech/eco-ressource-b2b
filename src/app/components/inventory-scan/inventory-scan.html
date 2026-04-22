@@ -1,0 +1,421 @@
+<div class="inventory-scan-container">
+  
+  <!-- Navigation Header with Back Button -->
+  <div class="navigation-header">
+    <button class="back-button" (click)="goBackToProducts()">
+      <i class="fas fa-arrow-left"></i>
+      <span>Back to Products</span>
+    </button>
+    <div class="header-actions">
+      <button class="action-btn" (click)="exportFullReport()" [disabled]="generatingPDF">
+        <i class="fas fa-file-pdf"></i>
+        <span>Full Report</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Header -->
+  <div class="main-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <i class="fas fa-qrcode"></i>
+      </div>
+      <div class="header-text">
+        <h1>Inventory Scanner</h1>
+        <p>Compare physical inventory with digital records through barcode scanning</p>
+      </div>
+    </div>
+    <div class="quick-stats">
+      <div class="stat-badge">
+        <i class="fas fa-boxes"></i>
+        <span>{{ products.length }}</span>
+        <label>Products</label>
+      </div>
+      <div class="stat-badge">
+        <i class="fas fa-barcode"></i>
+        <span>{{ withBarcodeCount }}</span>
+        <label>Barcoded</label>
+      </div>
+      <div class="stat-badge warning">
+        <i class="fas fa-clock"></i>
+        <span>{{ expiringSoonCount }}</span>
+        <label>Expiring Soon</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-wrapper">
+    <div class="tabs-container">
+      <button class="tab-btn" [class.active]="activeTab === 'products'" (click)="switchTab('products')">
+        <i class="fas fa-box"></i>
+        <span>All Products</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'scan'" (click)="switchTab('scan')">
+        <i class="fas fa-qrcode"></i>
+        <span>Scan Barcode</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="switchTab('history')">
+        <i class="fas fa-history"></i>
+        <span>Audit Log</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========== PRODUCTS TAB ========== -->
+  <div class="tab-panel" *ngIf="activeTab === 'products'">
+    
+    <!-- Search & Filter Bar -->
+    <div class="search-bar">
+      <div class="search-input-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" 
+               placeholder="Search products by name or barcode..." 
+               [(ngModel)]="searchTerm"
+               (input)="filterProducts()"
+               class="search-input">
+      </div>
+      <div class="filter-group">
+        <select [(ngModel)]="statusFilter" (change)="filterProducts()" class="filter-select">
+          <option value="">All Status</option>
+          <option value="expiring">Expiring Soon</option>
+          <option value="expired">Expired</option>
+          <option value="healthy">Healthy</option>
+        </select>
+        <button class="clear-filter" (click)="clearFilters()" *ngIf="searchTerm || statusFilter">
+          <i class="fas fa-times"></i> Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="products-grid">
+      <div *ngIf="filteredProducts.length === 0" class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h4>No products found</h4>
+        <p>Try adjusting your search or filter criteria</p>
+      </div>
+
+      <div class="product-card" *ngFor="let p of filteredProducts">
+        <div class="product-card-header">
+          <div class="product-avatar" [style.background]="getRandomGradient(p.product.id_product)">
+            {{ p.product.name.slice(0,2).toUpperCase() }}
+          </div>
+          <div class="product-stock-badge" [class.low-stock]="p.qty < 50" [class.critical-stock]="p.qty < 10">
+            <i class="fas fa-chart-line"></i>
+            {{ p.qty }} units
+          </div>
+        </div>
+        
+        <div class="product-card-body">
+          <h4 class="product-title">{{ p.product.name }}</h4>
+          <div class="product-meta">
+            <span class="meta-tag">
+              <i class="fas fa-folder"></i> {{ p.product.category }}
+            </span>
+            <span class="meta-tag">
+              <i class="fas fa-clipboard"></i> {{ p.condition }}
+            </span>
+          </div>
+          <div class="barcode-info">
+            <i class="fas fa-barcode"></i>
+            <span class="barcode-text">{{ p.product.barcode || 'No barcode assigned' }}</span>
+          </div>
+          <div class="dlc-info" [class]="'dlc-' + dlcStatus(p.expirationDate)">
+            <i class="fas" [class.fa-calendar-check]="dlcStatus(p.expirationDate) === 'ok'"
+               [class.fa-exclamation-triangle]="dlcStatus(p.expirationDate) === 'warning'"
+               [class.fa-times-circle]="dlcStatus(p.expirationDate) === 'expired'"></i>
+            {{ dlcLabel(p.expirationDate) }}
+          </div>
+        </div>
+        
+        <div class="product-card-footer">
+          <svg *ngIf="p.product.barcode" [id]="'bc_' + p.product.id_product" class="barcode-svg"></svg>
+          <div class="card-actions">
+            <button class="icon-btn" (click)="quickScanProduct(p.product.barcode)" title="Quick Scan">
+              <i class="fas fa-qrcode"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SCAN TAB ========== -->
+  <div class="tab-panel" *ngIf="activeTab === 'scan'">
+    
+    <div class="scan-layout">
+      <!-- Left Column - Scanner -->
+      <div class="scan-column">
+        <div class="scan-card">
+          <div class="card-title">
+            <i class="fas fa-camera"></i>
+            <h3>Barcode Scanner</h3>
+          </div>
+
+          <!-- Manual Input -->
+          <div class="input-group-large">
+            <label class="input-label">
+              <i class="fas fa-keyboard"></i> Manual Entry
+            </label>
+            <div class="input-with-action">
+              <input type="text" 
+                     [(ngModel)]="barcode" 
+                     placeholder="Enter barcode number..."
+                     class="form-input"
+                     (keyup.enter)="doScan()">
+              <button class="action-btn-primary" (click)="doScan()" [disabled]="!barcode || loading">
+                <i class="fas" [class.fa-search]="!loading" [class.fa-spinner]="loading" [class.fa-spin]="loading"></i>
+                Scan
+              </button>
+            </div>
+          </div>
+
+          <!-- OR Divider -->
+          <div class="divider">
+            <span>OR</span>
+          </div>
+
+          <!-- Image Upload -->
+          <div class="input-group-large">
+            <label class="input-label">
+              <i class="fas fa-image"></i> Scan from Image
+            </label>
+            <div class="upload-area" (click)="fileInput.click()">
+              <input type="file" #fileInput accept="image/*" (change)="onBarcodeImageSelected($event)" hidden>
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>Click to upload barcode image</p>
+              <small>Supports JPG, PNG, GIF</small>
+            </div>
+            
+            <div *ngIf="scannedImagePreview" class="image-preview">
+              <img [src]="scannedImagePreview" alt="Preview">
+              <div class="detection-badge" *ngIf="barcode">
+                <i class="fas fa-check-circle"></i>
+                Detected: {{ barcode }}
+              </div>
+              <div class="error-badge" *ngIf="imageError">
+                <i class="fas fa-exclamation-triangle"></i>
+                {{ imageError }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Physical State -->
+          <div class="input-group-large">
+            <label class="input-label">
+              <i class="fas fa-clipboard-list"></i> Physical State
+            </label>
+            <div class="state-grid">
+              <div class="state-field">
+                <label>Quantity</label>
+                <input type="number" [(ngModel)]="realQty" placeholder="0" class="form-input">
+              </div>
+              <div class="state-field">
+                <label>Condition</label>
+                <select [(ngModel)]="realCondition" class="form-input">
+                  <option value="">Select</option>
+                  <option value="Excellent">✨ Excellent</option>
+                  <option value="Good">👍 Good</option>
+                  <option value="Fair">👌 Fair</option>
+                  <option value="Damaged">⚠️ Damaged</option>
+                </select>
+              </div>
+              <div class="state-field">
+                <label>Location</label>
+                <input type="text" [(ngModel)]="realLocation" placeholder="e.g., A-12" class="form-input">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column - Results -->
+      <div class="results-column">
+        <!-- Error Message -->
+        <div *ngIf="scanError" class="error-card">
+          <i class="fas fa-exclamation-circle"></i>
+          <div>
+            <h4>Scan Failed</h4>
+            <p>{{ scanError }}</p>
+          </div>
+        </div>
+
+        <!-- Comparison Result -->
+        <div *ngIf="scanResult" class="result-card">
+          <div class="result-header" [class.in-sync]="scanResult.mismatches === 0" [class.has-discrepancies]="scanResult.mismatches > 0">
+            <div class="product-identity">
+              <div class="product-badge">{{ scanResult.product.name.slice(0,2).toUpperCase() }}</div>
+              <div>
+                <h3>{{ scanResult.product.name }}</h3>
+                <p>{{ scanResult.product.category }} • {{ scanResult.product.barcode }}</p>
+              </div>
+            </div>
+            <div class="sync-status">
+              <i class="fas" [class.fa-check-circle]="scanResult.mismatches === 0" 
+                 [class.fa-exclamation-triangle]="scanResult.mismatches > 0"></i>
+              <span>{{ scanResult.mismatches === 0 ? 'In Sync' : scanResult.mismatches + ' Discrepancy' }}</span>
+            </div>
+          </div>
+
+          <div class="comparison-grid">
+            <div class="comparison-item">
+              <div class="comparison-label">
+                <i class="fas fa-chart-line"></i> Quantity
+              </div>
+              <div class="comparison-values">
+                <div class="value-box digital">
+                  <span class="label">Digital</span>
+                  <span class="value">{{ scanResult.digital?.qty || '-' }}</span>
+                </div>
+                <div class="value-box physical" [class.mismatch]="scanResult.digital?.qty !== scanResult.real?.qty">
+                  <span class="label">Physical</span>
+                  <span class="value">{{ scanResult.real?.qty || '-' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="comparison-item">
+              <div class="comparison-label">
+                <i class="fas fa-clipboard-list"></i> Condition
+              </div>
+              <div class="comparison-values">
+                <div class="value-box digital">
+                  <span class="label">Digital</span>
+                  <span class="value">{{ scanResult.digital?.condition || '-' }}</span>
+                </div>
+                <div class="value-box physical" [class.mismatch]="scanResult.digital?.condition !== scanResult.real?.condition">
+                  <span class="label">Physical</span>
+                  <span class="value">{{ scanResult.real?.condition || '-' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="comparison-item">
+              <div class="comparison-label">
+                <i class="fas fa-map-marker-alt"></i> Location
+              </div>
+              <div class="comparison-values">
+                <div class="value-box digital">
+                  <span class="label">Digital</span>
+                  <span class="value">{{ scanResult.digital?.location || '-' }}</span>
+                </div>
+                <div class="value-box physical" [class.mismatch]="scanResult.digital?.location !== scanResult.real?.location">
+                  <span class="label">Physical</span>
+                  <span class="value">{{ scanResult.real?.location || '-' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="comparison-item" *ngIf="scanResult.expirationDate">
+              <div class="comparison-label">
+                <i class="fas fa-calendar-alt"></i> Expiration
+              </div>
+              <div class="comparison-values">
+                <div class="value-box digital">
+                  <span class="label">Digital</span>
+                  <span class="value">{{ scanResult.expirationDate | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="value-box physical">
+                  <span class="label">Status</span>
+                  <span class="dlc-badge" [class]="'dlc-' + dlcStatus(scanResult.expirationDate)">
+                    {{ dlcLabel(scanResult.expirationDate) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Plan -->
+          <div *ngIf="scanResult.mismatches > 0" class="action-plan">
+            <div class="action-header">
+              <i class="fas fa-clipboard-list"></i>
+              <strong>Action Required</strong>
+            </div>
+            <ul class="action-list">
+              <li *ngIf="scanResult.digital?.qty !== scanResult.real?.qty">
+                <i class="fas fa-chart-line"></i>
+                Stock adjustment needed: <strong>{{ scanResult.real?.qty - scanResult.digital?.qty > 0 ? '+' : '' }}{{ scanResult.real?.qty - scanResult.digital?.qty }}</strong> units
+              </li>
+              <li *ngIf="scanResult.digital?.condition !== scanResult.real?.condition">
+                <i class="fas fa-clipboard-list"></i>
+                Update condition from "{{ scanResult.digital?.condition }}" to "{{ scanResult.real?.condition }}"
+              </li>
+              <li *ngIf="scanResult.digital?.location !== scanResult.real?.location">
+                <i class="fas fa-map-marker-alt"></i>
+                Update location from "{{ scanResult.digital?.location }}" to "{{ scanResult.real?.location }}"
+              </li>
+            </ul>
+            <button class="export-report-btn" (click)="exportComparisonToPDF()" [disabled]="generatingPDF">
+              <i class="fas fa-file-pdf"></i>
+              {{ generatingPDF ? 'Generating...' : 'Export Report' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!scanResult && !scanError" class="empty-result">
+          <i class="fas fa-qrcode"></i>
+          <h4>Ready to Scan</h4>
+          <p>Enter a barcode or upload an image to start comparing</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== HISTORY TAB ========== -->
+  <div class="tab-panel" *ngIf="activeTab === 'history'">
+    <div class="history-card">
+      <div class="card-header-custom">
+        <div>
+          <i class="fas fa-history"></i>
+          <h3>Scan Audit Log</h3>
+        </div>
+        <button class="export-btn" (click)="exportFullReport()" [disabled]="generatingPDF">
+          <i class="fas fa-file-pdf"></i>
+          Export All
+        </button>
+      </div>
+
+      <div *ngIf="history.length === 0" class="empty-state">
+        <i class="fas fa-history"></i>
+        <h4>No scan history</h4>
+        <p>Start scanning barcodes to build your audit log</p>
+      </div>
+
+      <div class="timeline" *ngIf="history.length > 0">
+        <div class="timeline-item" *ngFor="let h of history; let i = index">
+          <div class="timeline-marker">
+            <div class="marker-dot"></div>
+            <div class="timeline-line" *ngIf="i < history.length - 1"></div>
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <div class="product-info">
+                <div class="product-initials">{{ h.product?.name?.slice(0,2)?.toUpperCase() }}</div>
+                <div>
+                  <h4>{{ h.product?.name }}</h4>
+                  <div class="timeline-meta">
+                    <span><i class="fas fa-barcode"></i> {{ h.barcode }}</span>
+                    <span><i class="fas fa-calendar"></i> {{ h.scannedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="scan-data">
+                <span class="data-tag">
+                  <i class="fas fa-chart-line"></i> {{ h.realQty }} units
+                </span>
+                <span class="data-tag">
+                  <i class="fas fa-clipboard-list"></i> {{ h.realCondition }}
+                </span>
+                <span class="data-tag">
+                  <i class="fas fa-map-marker-alt"></i> {{ h.realLocation }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

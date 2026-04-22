@@ -90,6 +90,8 @@ export class Sidebar implements OnInit {
     { label: 'Requests',      icon: 'requests',      route: '/enterprise/requests' },
     { section: 'Operations' },
     { label: 'My Stock',      icon: 'stock',         route: '/enterprise/my-stock' },
+    { label: 'My Products',   icon: 'listings',      route: '/enterprise/my-products' },
+    { label: 'My Inventory',  icon: 'stock',         route: '/enterprise/my-inventory' },
     { label: 'My Deliveries', icon: 'deliveries',    route: '/enterprise/my-deliveries' },
     { label: 'Reservations',  icon: 'reservations',  route: '/enterprise/my-reservations' },
     { section: 'Finance' },
