@@ -15,7 +15,7 @@ Chart.register(...registerables);
   templateUrl: './invoices.html',
   styleUrls: ['./invoices.css'],
   standalone: false,
-  /* None = CSS global, body.dark-mode selectors fonctionnent comme dashboard */
+
   encapsulation: ViewEncapsulation.None
 })
 export class Invoices implements OnInit, AfterViewInit, OnDestroy {
@@ -29,35 +29,35 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   editing: Invoice | null = null;
   previewInvoice: Invoice | null = null;
 
-  // 🔔 Toast
+  //  Toast
   toastMessage = '';
   toastType: 'success' | 'error' | 'info' = 'success';
   toastVisible = false;
   private toastTimer: any;
 
-  // 🗑️ Confirm
+  // Confirm
   showConfirm = false;
   confirmMessage = '';
   private confirmCallback: (() => void) | null = null;
 
-  // 🔍 Search + Filter
+  //  Search + Filter
   searchQuery = '';
   activeFilter = 'ALL';
   readonly filterOptions = ['ALL', 'PAID', 'UNPAID'];
 
-  // 📊 Sort
+  //  Sort
   sortCol: string | null = null;
   sortDir: 'asc' | 'desc' = 'asc';
 
-  // 📄 Pagination
+  //  Pagination
   currentPage = 1;
   readonly pageSize = 8;
 
-  // 🗂️ Onglets : 'list' (défaut) | 'stats'
+  //  Onglets : 'list' (défaut) | 'stats'
   activeInvTab: 'list' | 'stats' = 'list';
 
 
-  // 📈 Chart
+  //  Chart
   private doughnutInstance: Chart | null = null;
   private viewReady = false;
   private dataReady = false;
@@ -69,22 +69,22 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     private cd: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
-      invoiceNumber:         ['', Validators.required],
+      invoiceNumber: ['', Validators.required],
       // 🏢 Vendeur
-      sellerName:            ['EcoRessource B2B'],
-      sellerArticleFiscal:   [''],
+      sellerName: ['EcoRessource B2B'],
+      sellerArticleFiscal: [''],
       // 🛒 Acheteur
-      clientName:            ['', Validators.required],
-      buyerArticleFiscal:    [''],
+      clientName: ['', Validators.required],
+      buyerArticleFiscal: [''],
       // Facture
-      project:               ['', Validators.required],
-      amountHT:              [0,  [Validators.required, Validators.min(0.001)]],
-      tva:                   [19, [Validators.required, Validators.min(0), Validators.max(100)]],
-      status:                ['UNPAID', Validators.required],
-      issueDate:             ['', Validators.required],
+      project: ['', Validators.required],
+      amountHT: [0, [Validators.required, Validators.min(0.001)]],
+      tva: [19, [Validators.required, Validators.min(0), Validators.max(100)]],
+      status: ['UNPAID', Validators.required],
+      issueDate: ['', Validators.required],
       // 🔗 Liaison livraison (optionnels)
-      deliveryOrderId:       [null],
-      linkedEscrowId:        [null],
+      deliveryOrderId: [null],
+      linkedEscrowId: [null],
     });
     this.form.get('amountHT')!.valueChanges.subscribe(() => this.cd.detectChanges());
     this.form.get('tva')!.valueChanges.subscribe(() => this.cd.detectChanges());
@@ -101,9 +101,9 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
 
   // ==================== KPIs ====================
 
-  get totalPaid(): number    { return this.invoices.filter(i => i.status==='PAID').reduce((s,i)=>s+i.amountTTC,0); }
-  get totalUnpaid(): number  { return this.invoices.filter(i => i.status==='UNPAID').reduce((s,i)=>s+i.amountTTC,0); }
-  get totalTTC(): number     { return this.invoices.reduce((s,i)=>s+i.amountTTC,0); }
+  get totalPaid(): number { return this.invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + i.amountTTC, 0); }
+  get totalUnpaid(): number { return this.invoices.filter(i => i.status === 'UNPAID').reduce((s, i) => s + i.amountTTC, 0); }
+  get totalTTC(): number { return this.invoices.reduce((s, i) => s + i.amountTTC, 0); }
   get recoveryRate(): number { return this.totalTTC > 0 ? +(this.totalPaid / this.totalTTC * 100).toFixed(1) : 0; }
 
   // ==================== OVERDUE ====================
@@ -115,7 +115,7 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get overdueInvoices(): Invoice[] { return this.invoices.filter(i => this.isOverdue(i)); }
-  get overdueAmount(): number      { return this.overdueInvoices.reduce((s,i)=>s+i.amountTTC,0); }
+  get overdueAmount(): number { return this.overdueInvoices.reduce((s, i) => s + i.amountTTC, 0); }
 
   // ==================== DELIVERY HELPERS ====================
 
@@ -208,7 +208,7 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     if (this.sortCol) {
       list.sort((a: any, b: any) => {
         let aV = a[this.sortCol!], bV = b[this.sortCol!];
-        if (['amountHT','tva','amountTTC'].includes(this.sortCol!)) { aV = Number(aV); bV = Number(bV); }
+        if (['amountHT', 'tva', 'amountTTC'].includes(this.sortCol!)) { aV = Number(aV); bV = Number(bV); }
         const c = aV < bV ? -1 : aV > bV ? 1 : 0;
         return this.sortDir === 'asc' ? c : -c;
       });
@@ -224,11 +224,11 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setFilter(f: string): void { this.activeFilter = f; this.currentPage = 1; }
-  setPage(p: number): void   { if (p >= 1 && p <= this.totalPages) this.currentPage = p; }
-  onSearch(): void           { this.currentPage = 1; }
+  setPage(p: number): void { if (p >= 1 && p <= this.totalPages) this.currentPage = p; }
+  onSearch(): void { this.currentPage = 1; }
 
   sortBy(col: string): void {
-    this.sortCol === col ? (this.sortDir = this.sortDir==='asc'?'desc':'asc') : (this.sortCol = col, this.sortDir = 'asc');
+    this.sortCol === col ? (this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc') : (this.sortCol = col, this.sortDir = 'asc');
     this.currentPage = 1;
   }
   getSortIcon(col: string): string {
@@ -412,7 +412,7 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
       'En retard': this.isOverdue(i) ? 'OUI' : 'NON'
     }));
     const ws = XLSX.utils.json_to_sheet(data);
-    ws['!cols'] = [{ wch:14 },{ wch:22 },{ wch:20 },{ wch:14 },{ wch:8 },{ wch:16 },{ wch:10 },{ wch:12 },{ wch:10 }];
+    ws['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 20 }, { wch: 14 }, { wch: 8 }, { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Factures');
     XLSX.writeFile(wb, `factures-${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -436,23 +436,23 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     if (!this.form.valid) return;
     const v = this.form.value;
     const data: Invoice = {
-      invoiceNumber:       v.invoiceNumber,
+      invoiceNumber: v.invoiceNumber,
       // 🏢 Vendeur
-      sellerName:          v.sellerName || 'EcoRessource B2B',
+      sellerName: v.sellerName || 'EcoRessource B2B',
       sellerArticleFiscal: v.sellerArticleFiscal || undefined,
       // 🛒 Acheteur
-      clientName:          v.clientName,
-      buyerArticleFiscal:  v.buyerArticleFiscal || undefined,
+      clientName: v.clientName,
+      buyerArticleFiscal: v.buyerArticleFiscal || undefined,
       // Facture
-      project:             v.project,
-      amountHT:            Number(v.amountHT),
-      tva:                 Number(v.tva),
-      amountTTC:           this.previewTTC,
-      status:              v.status,
-      issueDate:           v.issueDate,
+      project: v.project,
+      amountHT: Number(v.amountHT),
+      tva: Number(v.tva),
+      amountTTC: this.previewTTC,
+      status: v.status,
+      issueDate: v.issueDate,
       // 🔗 Liaison livraison
       deliveryOrderId: v.deliveryOrderId ? Number(v.deliveryOrderId) : undefined,
-      linkedEscrowId:  v.linkedEscrowId  ? Number(v.linkedEscrowId)  : undefined,
+      linkedEscrowId: v.linkedEscrowId ? Number(v.linkedEscrowId) : undefined,
     };
     if (this.editing) {
       data.id = this.editing.id;
@@ -509,7 +509,7 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     this.confirmMessage = message; this.confirmCallback = callback; this.showConfirm = true;
   }
   onConfirmYes(): void { this.showConfirm = false; this.confirmCallback?.(); this.confirmCallback = null; }
-  onConfirmNo(): void  { this.showConfirm = false; this.confirmCallback = null; }
+  onConfirmNo(): void { this.showConfirm = false; this.confirmCallback = null; }
 
   closeForm(): void { this.showForm = false; this.editing = null; }
 }
