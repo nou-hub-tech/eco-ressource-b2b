@@ -53,6 +53,12 @@
       <button class="tab-btn" [class.active]="activeInvTab==='stats'" (click)="activeInvTab='stats'">
         <span class="tab-icon">📊</span> Statistiques
       </button>
+      <button class="tab-btn ai-tab-btn" [class.active]="activeInvTab==='ai'" (click)="switchToAiTab()">
+        <span class="tab-icon">🤖</span> Analyse IA
+        <span class="tab-badge ai-badge" *ngIf="riskReport && riskReport.summary.criticalCount > 0">
+          {{ riskReport.summary.criticalCount }}
+        </span>
+      </button>
     </div>
   </div>
 
@@ -517,10 +523,171 @@
         <div class="inv-footer-note">Merci pour votre confiance — EcoRessource B2B</div>
         <div class="modal-footer" style="border:none;padding-top:14px">
           <button class="btn btn-outline" (click)="closePreview()">Fermer</button>
-          <button class="btn btn-ghost" (click)="exportInvoicePDF(previewInvoice!)">📄 Télécharger PDF</button>
+          <button class="btn btn-ghost" (click)="exportInvoicePDF(previewInvoice!)">Telecharger PDF</button>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ====== ONGLET IA RISQUES ====== -->
+  <div *ngIf="activeInvTab==='ai'" class="tab-content ai-risk-tab">
+
+    <div *ngIf="riskLoading" class="ai-loading">
+      <div class="ai-spinner"></div>
+      <p class="ai-loading-text">Analyse IA en cours...</p>
+    </div>
+
+    <div *ngIf="riskError && !riskLoading" class="ai-error-box">
+      <p>Impossible de contacter le backend. Verifiez que le serveur tourne sur le port 9090.</p>
+      <button class="btn btn-primary btn-sm" (click)="loadRiskReport()">Reessayer</button>
+    </div>
+
+    <ng-container *ngIf="riskReport && !riskLoading">
+
+      <div class="ai-global-score-card">
+        <div class="ai-score-left">
+          <div class="ai-score-label">Score de Risque Global</div>
+          <div class="ai-score-value" [style.color]="getRiskColor(riskReport.summary.globalRiskLevel)">
+            {{ riskReport.summary.globalRiskScore }}<span class="ai-score-unit">/100</span>
+          </div>
+          <div class="ai-score-level-badge" [style.background]="getRiskColor(riskReport.summary.globalRiskLevel)">
+            {{ getRiskIcon(riskReport.summary.globalRiskLevel) }} {{ riskReport.summary.globalRiskLevel }}
+          </div>
+        </div>
+        <div class="ai-score-right">
+          <div class="ai-kpi-grid">
+            <div class="ai-kpi">
+              <div class="ai-kpi-val">{{ riskReport.summary.totalInvoices }}</div>
+              <div class="ai-kpi-lbl">Total</div>
+            </div>
+            <div class="ai-kpi">
+              <div class="ai-kpi-val" style="color:#ef4444">{{ riskReport.summary.criticalCount }}</div>
+              <div class="ai-kpi-lbl">Critique</div>
+            </div>
+            <div class="ai-kpi">
+              <div class="ai-kpi-val" style="color:#f97316">{{ riskReport.summary.overdueCount }}</div>
+              <div class="ai-kpi-lbl">+30j retard</div>
+            </div>
+            <div class="ai-kpi">
+              <div class="ai-kpi-val" style="color:#eab308">{{ riskReport.summary.unpaidAmount | number:'1.0-0' }} TND</div>
+              <div class="ai-kpi-lbl">Impayes</div>
+            </div>
+          </div>
+          <div class="ai-risk-bar-wrap">
+            <div class="ai-risk-bar-track">
+              <div class="ai-risk-bar-fill"
+                [style.width]="riskReport.summary.globalRiskScore + '%'"
+                [style.background]="getRiskColor(riskReport.summary.globalRiskLevel)">
+              </div>
+            </div>
+            <div class="ai-risk-bar-labels">
+              <span>FAIBLE</span><span>MOYEN</span><span>ELEVE</span><span>CRITIQUE</span>
+            </div>
+          </div>
+        </div>
+        <button class="ai-refresh-btn" (click)="loadRiskReport()">&#x1F504;</button>
+      </div>
+
+      <div class="ai-reco-panel" *ngIf="riskReport.recommendations.length > 0">
+        <div class="ai-reco-title">Recommandations IA</div>
+        <ul class="ai-reco-list">
+          <li *ngFor="let rec of riskReport.recommendations" class="ai-reco-item">{{ rec }}</li>
+        </ul>
+      </div>
+
+      <div class="ai-section">
+        <div class="ai-section-title">Clients a risque</div>
+        <div class="ai-empty" *ngIf="riskReport.clientRisks.length === 0">Aucun client a risque detecte</div>
+        <div class="ai-client-table-wrap" *ngIf="riskReport.clientRisks.length > 0">
+          <table class="ai-client-table">
+            <thead>
+              <tr>
+                <th>Client</th><th>Score</th><th>Niveau</th>
+                <th>Impayes</th><th>Retard</th><th>Montant Impaye</th><th>Taux</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of riskReport.clientRisks">
+                <td><strong>{{ c.clientName }}</strong></td>
+                <td>
+                  <div class="ai-score-pill"
+                    [style.background]="getRiskColor(c.riskLevel) + '22'"
+                    [style.color]="getRiskColor(c.riskLevel)">{{ c.riskScore }}
+                  </div>
+                </td>
+                <td>
+                  <span class="ai-level-badge" [style.background]="getRiskColor(c.riskLevel)">
+                    {{ getRiskIcon(c.riskLevel) }} {{ c.riskLevel }}
+                  </span>
+                </td>
+                <td>{{ c.unpaidInvoices }}/{{ c.totalInvoices }}</td>
+                <td [style.color]="c.overdueInvoices > 0 ? '#ef4444' : 'inherit'">{{ c.overdueInvoices }}</td>
+                <td [style.color]="c.unpaidAmount > 0 ? '#f97316' : 'inherit'">{{ c.unpaidAmount | number:'1.0-0' }} TND</td>
+                <td>
+                  <div class="ai-rate-bar">
+                    <div class="ai-rate-fill"
+                      [style.width]="c.unpaidRate + '%'"
+                      [style.background]="getRiskColor(c.riskLevel)">
+                    </div>
+                    <span>{{ c.unpaidRate }}%</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="ai-section">
+        <div class="ai-section-header">
+          <div class="ai-section-title">Factures impayes analysees</div>
+          <div class="ai-filter-bar">
+            <button *ngFor="let f of ['ALL','CRITIQUE','MOYEN','FAIBLE']"
+              class="ai-filter-btn"
+              [class.active]="riskFilter === f"
+              (click)="riskFilter = f">
+              {{ f === 'ALL' ? 'Tous' : getRiskIcon(f) + ' ' + f }}
+            </button>
+          </div>
+        </div>
+        <div class="ai-empty" *ngIf="filteredInvoiceRisks.length === 0">Aucune facture dans ce niveau de risque</div>
+        <div class="ai-invoice-cards">
+          <div class="ai-invoice-card"
+            *ngFor="let r of filteredInvoiceRisks"
+            [style.border-left-color]="getRiskColor(r.riskLevel)">
+            <div class="ai-inv-card-header">
+              <div>
+                <code class="inv-num">{{ r.invoiceNumber }}</code>
+                <span class="ai-level-badge"
+                  [style.background]="getRiskColor(r.riskLevel)"
+                  style="margin-left:8px">
+                  {{ getRiskIcon(r.riskLevel) }} {{ r.riskLevel }}
+                </span>
+              </div>
+              <div class="ai-inv-score">
+                <span [style.color]="getRiskColor(r.riskLevel)">{{ r.riskScore }}</span>/100
+              </div>
+            </div>
+            <div class="ai-inv-details">
+              <span>{{ r.clientName }}</span>
+              <span>{{ r.project }}</span>
+              <span>{{ r.amount | number:'1.0-0' }} TND</span>
+              <span [style.color]="r.daysOverdue > 30 ? '#ef4444' : '#64748b'">{{ r.daysOverdue }}j</span>
+            </div>
+            <div class="ai-card-bar-track">
+              <div class="ai-card-bar-fill"
+                [style.width]="r.riskScore + '%'"
+                [style.background]="getRiskColor(r.riskLevel)">
+              </div>
+            </div>
+            <div class="ai-action-row">
+              <span class="ai-action-text">{{ r.recommendedAction }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
   </div>
 
 </div>

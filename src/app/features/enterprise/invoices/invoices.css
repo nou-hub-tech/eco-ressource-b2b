@@ -1064,3 +1064,191 @@ body.dark-mode .inv-info-val { color: #f1f5f9; }
 body.dark-mode .legend-item { color: #94a3b8; }
 body.dark-mode .legend-item:hover { background: rgba(56,189,248,.05); }
 body.dark-mode .legend-val { color: #f1f5f9; }
+
+/* =====================================================
+   AI RISK TAB — Détection des risques IA
+   ===================================================== */
+
+/* ── Bouton onglet IA ── */
+.ai-tab-btn { position: relative; }
+.ai-badge { background: #ef4444 !important; }
+
+/* ── Loading ── */
+.ai-loading {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 64px 0; gap: 18px;
+}
+.ai-spinner {
+  width: 48px; height: 48px;
+  border: 4px solid rgba(2,132,199,.15);
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ai-loading-text { color: var(--text3); font-size: 14px; font-weight: 500; }
+
+/* ── Error box ── */
+.ai-error-box {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 40px; background: rgba(239,68,68,.06);
+  border: 1.5px dashed rgba(239,68,68,.3);
+  border-radius: 16px; margin: 24px 0; text-align: center;
+  color: #ef4444;
+}
+
+/* ── Score global card ── */
+.ai-global-score-card {
+  display: flex; gap: 0; align-items: stretch;
+  background: linear-gradient(135deg, #ffffff, #f0f9ff);
+  border: 1.5px solid rgba(2,132,199,.12);
+  border-radius: 20px; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(2,132,199,.08);
+  margin-bottom: 24px; position: relative;
+}
+.ai-score-left {
+  min-width: 200px; padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  border-right: 1.5px solid rgba(2,132,199,.08);
+  background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(240,249,255,.7));
+}
+.ai-score-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text3); }
+.ai-score-value { font-size: 56px; font-weight: 900; line-height: 1; font-family: 'Syne', sans-serif; }
+.ai-score-unit { font-size: 18px; font-weight: 400; color: var(--text3); }
+.ai-score-level-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 999px;
+  color: white; font-size: 12px; font-weight: 700;
+  width: fit-content;
+}
+.ai-score-right { flex: 1; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+/* ── KPI Grid ── */
+.ai-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.ai-kpi { text-align: center; }
+.ai-kpi-val { font-size: 22px; font-weight: 800; font-family: 'Syne', sans-serif; }
+.ai-kpi-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* ── Risk bar ── */
+.ai-risk-bar-wrap { display: flex; flex-direction: column; gap: 4px; }
+.ai-risk-bar-track {
+  height: 10px; background: rgba(0,0,0,.06); border-radius: 999px; overflow: hidden;
+}
+.ai-risk-bar-fill { height: 100%; border-radius: 999px; transition: width .6s ease; }
+.ai-risk-bar-labels {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: var(--text3); font-weight: 600; letter-spacing: .5px;
+}
+
+/* ── Refresh button ── */
+.ai-refresh-btn {
+  position: absolute; top: 14px; right: 14px;
+  background: rgba(2,132,199,.08); border: 1px solid rgba(2,132,199,.15);
+  border-radius: 8px; width: 34px; height: 34px;
+  font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.ai-refresh-btn:hover { background: rgba(2,132,199,.15); transform: rotate(180deg); }
+
+/* ── Recommendations panel ── */
+.ai-reco-panel {
+  background: linear-gradient(135deg, rgba(254,243,199,.6), rgba(253,230,138,.3));
+  border: 1.5px solid rgba(234,179,8,.2);
+  border-radius: 16px; padding: 20px 24px; margin-bottom: 24px;
+}
+.ai-reco-title { font-size: 13px; font-weight: 800; color: #92400e; margin-bottom: 14px; }
+.ai-reco-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; }
+.ai-reco-item {
+  font-size: 13px; color: #78350f; padding: 8px 12px;
+  border-radius: 8px; background: rgba(255,255,255,.5);
+}
+
+/* ── Section ── */
+.ai-section { margin-bottom: 28px; }
+.ai-section-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.ai-section-title { font-size: 14px; font-weight: 800; color: var(--text); }
+.ai-empty { text-align: center; padding: 24px; color: var(--text3); font-size: 13px; background: var(--card); border-radius: 12px; }
+
+/* ── Filter bar ── */
+.ai-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+.ai-filter-btn {
+  padding: 5px 12px; border-radius: 999px; border: 1.5px solid rgba(0,0,0,.08);
+  background: var(--bg); color: var(--text3); font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: all .2s;
+}
+.ai-filter-btn.active, .ai-filter-btn:hover {
+  background: var(--primary); color: white; border-color: var(--primary);
+}
+
+/* ── Client table ── */
+.ai-client-table-wrap { overflow-x: auto; border-radius: 14px; border: 1.5px solid var(--border); }
+.ai-client-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ai-client-table th {
+  background: var(--card); padding: 10px 14px;
+  text-align: left; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .6px; color: var(--text3);
+  border-bottom: 1.5px solid var(--border);
+}
+.ai-client-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+.ai-client-table tbody tr:hover { background: rgba(2,132,199,.04); }
+.ai-client-table tbody tr:last-child td { border-bottom: none; }
+
+.ai-score-pill {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-weight: 800; font-size: 13px;
+}
+.ai-level-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px;
+  color: white; font-size: 10px; font-weight: 700;
+}
+.ai-rate-bar {
+  display: flex; align-items: center; gap: 6px; min-width: 90px;
+}
+.ai-rate-fill { height: 6px; border-radius: 999px; flex-shrink: 0; min-width: 4px; }
+
+/* ── Invoice cards ── */
+.ai-invoice-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.ai-invoice-card {
+  background: var(--card); border-radius: 14px; padding: 18px 20px;
+  border: 1.5px solid var(--border); border-left: 4px solid var(--primary);
+  display: flex; flex-direction: column; gap: 12px;
+  transition: box-shadow .2s, transform .2s;
+}
+.ai-invoice-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.08); transform: translateY(-2px); }
+
+.ai-inv-card-header { display: flex; justify-content: space-between; align-items: center; }
+.ai-inv-score { font-size: 20px; font-weight: 800; color: var(--text3); }
+.ai-inv-details { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--text3); }
+.ai-inv-details span { background: var(--bg); padding: 3px 8px; border-radius: 6px; }
+
+.ai-card-bar-track { height: 6px; background: rgba(0,0,0,.06); border-radius: 999px; overflow: hidden; }
+.ai-card-bar-fill { height: 100%; border-radius: 999px; transition: width .5s ease; }
+
+.ai-action-row {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 8px 12px; border-radius: 8px;
+  background: rgba(2,132,199,.05); border: 1px solid rgba(2,132,199,.1);
+}
+.ai-action-icon { font-size: 14px; flex-shrink: 0; }
+.ai-action-text { font-size: 12px; color: var(--text); line-height: 1.4; }
+
+/* ── Dark mode ── */
+body.dark-mode .ai-global-score-card { background: rgba(15,23,42,.9); border-color: rgba(51,65,85,.6); }
+body.dark-mode .ai-score-left { background: rgba(15,23,42,.8); border-right-color: rgba(51,65,85,.4); }
+body.dark-mode .ai-risk-bar-track { background: rgba(255,255,255,.06); }
+body.dark-mode .ai-risk-bar-labels { color: #475569; }
+body.dark-mode .ai-refresh-btn { background: rgba(56,189,248,.08); border-color: rgba(56,189,248,.2); }
+body.dark-mode .ai-reco-panel { background: rgba(120,53,15,.15); border-color: rgba(234,179,8,.2); }
+body.dark-mode .ai-reco-title { color: #fcd34d; }
+body.dark-mode .ai-reco-item { background: rgba(255,255,255,.04); color: #d97706; }
+body.dark-mode .ai-filter-btn { background: rgba(30,41,59,.8); border-color: rgba(51,65,85,.6); color: #94a3b8; }
+body.dark-mode .ai-client-table th { background: rgba(15,23,42,.9); border-bottom-color: rgba(51,65,85,.6); }
+body.dark-mode .ai-client-table td { border-bottom-color: rgba(51,65,85,.4); }
+body.dark-mode .ai-client-table-wrap { border-color: rgba(51,65,85,.6); }
+body.dark-mode .ai-client-table tbody tr:hover { background: rgba(56,189,248,.05); }
+body.dark-mode .ai-invoice-card { background: rgba(15,23,42,.9); border-color: rgba(51,65,85,.5); }
+body.dark-mode .ai-card-bar-track { background: rgba(255,255,255,.06); }
+body.dark-mode .ai-inv-details span { background: rgba(30,41,59,.8); }
+body.dark-mode .ai-action-row { background: rgba(56,189,248,.05); border-color: rgba(56,189,248,.1); }
+body.dark-mode .ai-empty { background: rgba(15,23,42,.6); }

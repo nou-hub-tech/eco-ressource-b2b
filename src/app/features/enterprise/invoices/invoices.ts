@@ -4,7 +4,7 @@ import { Chart, registerables } from 'chart.js';
 import { forkJoin } from 'rxjs';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
-import { InvoiceService } from '../../../core/services/invoice';
+import { InvoiceService, RiskReport, InvoiceRisk, ClientRisk } from '../../../core/services/invoice';
 import { FinanceService } from '../../../core/services/finance';
 import { Invoice } from '../../../core/models/finance.model';
 
@@ -53,9 +53,14 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   currentPage = 1;
   readonly pageSize = 8;
 
-  //  Onglets : 'list' (défaut) | 'stats'
-  activeInvTab: 'list' | 'stats' = 'list';
+  //  Onglets : 'list' | 'stats' | 'ai'
+  activeInvTab: 'list' | 'stats' | 'ai' = 'list';
 
+  // 🤖 IA — Détection des risques
+  riskReport: RiskReport | null = null;
+  riskLoading = false;
+  riskError = false;
+  riskFilter: string = 'ALL';
 
   //  Chart
   private doughnutInstance: Chart | null = null;
@@ -98,6 +103,62 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void { this.doughnutInstance?.destroy(); }
+
+  // ==================== 🤖 IA RISQUES ====================
+
+  loadRiskReport(): void {
+    this.riskLoading = true;
+    this.riskError   = false;
+    this.invoiceService.getRiskReport().subscribe({
+      next: (report) => {
+        this.riskReport  = report;
+        this.riskLoading = false;
+        setTimeout(() => this.cd.detectChanges(), 0);
+      },
+      error: () => {
+        this.riskError   = true;
+        this.riskLoading = false;
+        setTimeout(() => this.cd.detectChanges(), 0);
+      }
+    });
+  }
+
+  get filteredInvoiceRisks() {
+    if (!this.riskReport) return [];
+    if (this.riskFilter === 'ALL') return this.riskReport.invoiceRisks;
+    // Normalize accented chars for comparison (backend returns ÉLEVÉ, filter button uses ELEVE)
+    const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return this.riskReport.invoiceRisks.filter(
+      r => normalize(r.riskLevel).toUpperCase() === normalize(this.riskFilter).toUpperCase()
+    );
+  }
+
+  getRiskColor(level: string): string {
+    switch (level) {
+      case 'CRITIQUE': return '#ef4444';
+      case 'ÉLEVÉ':    return '#f97316';
+      case 'MOYEN':    return '#eab308';
+      case 'FAIBLE':   return '#22c55e';
+      default:         return '#6b7280';
+    }
+  }
+
+  getRiskIcon(level: string): string {
+    switch (level) {
+      case 'CRITIQUE': return '🆘';
+      case 'ÉLEVÉ':    return '🔴';
+      case 'MOYEN':    return '🟡';
+      case 'FAIBLE':   return '🟢';
+      default:         return '⚪';
+    }
+  }
+
+  switchToAiTab(): void {
+    this.activeInvTab = 'ai';
+    if (!this.riskReport && !this.riskLoading) {
+      this.loadRiskReport();
+    }
+  }
 
   // ==================== KPIs ====================
 
