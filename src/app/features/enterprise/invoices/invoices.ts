@@ -168,17 +168,14 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     const idx = this.invoices.findIndex(i => i.id === original.id);
     if (idx !== -1) this.invoices[idx] = { ...original, ...final, status: 'PAID', deliveredAt: fallback.deliveredAt };
     this.invoices = [...this.invoices];
-    this.cd.detectChanges();
-    setTimeout(() => this.initDoughnutChart(), 50);
-    this.showToast(`✅ Facture ${original.invoiceNumber} marquée PAYÉE`, 'success');
-
-    // Si un escrow est lié, le libérer aussi
-    if (original.linkedEscrowId) {
-      this.financeService.releaseEscrow(original.linkedEscrowId).subscribe({
-        next: () => this.showToast(`🔓 Escrow #${original.linkedEscrowId} libéré (RELEASED)`, 'success'),
-        error: () => this.showToast(`⚠️ Escrow #${original.linkedEscrowId} : échec libération`, 'error')
-      });
-    }
+    // ✅ setTimeout évite NG0100 (ExpressionChangedAfterItHasBeenCheckedError)
+    setTimeout(() => {
+      this.cd.detectChanges();
+      this.initDoughnutChart();
+    }, 0);
+    this.showToast(`✅ Facture ${original.invoiceNumber} marquée PAYÉE — 📧 Email envoyé`, 'success');
+    // ✅ L'escrow est libéré côté backend dans markAsPaid() avec email automatique
+    // → plus besoin d'un second appel HTTP ici (évite le 403)
   }
 
   // ==================== TTC PREVIEW ====================
@@ -497,10 +494,16 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   // ==================== TOAST ====================
 
   showToast(message: string, type: 'success' | 'error' | 'info'): void {
-    this.toastMessage = message; this.toastType = type; this.toastVisible = true;
+    this.toastMessage = message;
+    this.toastType = type;
+    this.toastVisible = true;
     if (this.toastTimer) clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => { this.toastVisible = false; this.cd.detectChanges(); }, 3500);
-    this.cd.detectChanges();
+    // ✅ setTimeout évite NG0100 — ne pas appeler detectChanges() pendant un cycle
+    setTimeout(() => this.cd.detectChanges(), 0);
+    this.toastTimer = setTimeout(() => {
+      this.toastVisible = false;
+      setTimeout(() => this.cd.detectChanges(), 0);
+    }, 3500);
   }
 
   // ==================== CONFIRM ====================
