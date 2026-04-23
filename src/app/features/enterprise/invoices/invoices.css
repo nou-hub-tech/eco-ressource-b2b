@@ -775,6 +775,113 @@
 }
 
 /* ─────────────────────────────────────
+   FISCAL SECTION — formulaire
+───────────────────────────────────── */
+.fiscal-section {
+  margin: 14px 0;
+  border: 1.5px solid rgba(2,132,199,.14);
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(240,249,255,.6));
+  box-shadow: 0 2px 10px rgba(2,132,199,.06), inset 0 1px 0 rgba(255,255,255,.8);
+}
+.fiscal-section-title {
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .9px; color: var(--primary);
+  padding: 9px 16px;
+  background: linear-gradient(135deg, rgba(2,132,199,.07), rgba(56,189,248,.04));
+  border-bottom: 1px solid rgba(2,132,199,.1);
+  display: flex; align-items: center; gap: 6px;
+}
+.fiscal-section .form-row { margin: 0; padding: 14px 16px 4px; gap: 14px; }
+.fiscal-section .form-group { margin-bottom: 10px; }
+
+/* ─────────────────────────────────────
+   PARTIES ROW — prévisualisation facture
+───────────────────────────────────── */
+.inv-parties-row {
+  display: flex; gap: 0; margin-bottom: 20px;
+  border: 1.5px solid rgba(2,132,199,.14);
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 4px 18px rgba(2,132,199,.07), inset 0 1px 0 rgba(255,255,255,.8);
+}
+.inv-party-block {
+  flex: 1; padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(240,249,255,.7));
+}
+.inv-party-sep {
+  width: 1.5px; align-self: stretch;
+  background: linear-gradient(to bottom, transparent, rgba(2,132,199,.18), transparent);
+}
+.inv-party-label {
+  font-size: 9px; font-weight: 900; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--primary);
+  margin-bottom: 6px; opacity: .8;
+}
+.inv-party-name {
+  font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+  color: var(--text); margin-bottom: 2px;
+  background: linear-gradient(135deg, #0c1a24, #0284c7);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.inv-party-tagline {
+  font-size: 10px; color: var(--text3); margin-bottom: 10px;
+}
+.inv-fiscal-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 8px;
+  background: rgba(2,132,199,.06);
+  border: 1px solid rgba(2,132,199,.12);
+}
+.inv-fiscal-lbl {
+  font-size: 10px; color: var(--text3); font-weight: 600;
+  white-space: nowrap;
+}
+.inv-fiscal-code {
+  font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 700;
+  color: var(--primary);
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  padding: 2px 8px; border-radius: 5px;
+  border: 1px solid rgba(2,132,199,.18);
+}
+.inv-fiscal-na { font-size: 11px; color: var(--text3); font-style: italic; }
+.inv-fiscal-empty { background: transparent; border-color: transparent; }
+
+/* ── dark mode: fiscal section ── */
+body.dark-mode .fiscal-section {
+  background: rgba(15,23,42,.85);
+  border-color: rgba(56,189,248,.18);
+  box-shadow: 0 2px 10px rgba(0,0,0,.2);
+}
+body.dark-mode .fiscal-section-title {
+  color: #38bdf8;
+  background: rgba(56,189,248,.08);
+  border-bottom-color: rgba(56,189,248,.15);
+}
+
+/* ── dark mode: parties preview ── */
+body.dark-mode .inv-parties-row {
+  border-color: rgba(51,65,85,.7);
+  box-shadow: 0 4px 18px rgba(0,0,0,.2);
+}
+body.dark-mode .inv-party-block { background: rgba(15,23,42,.9); }
+body.dark-mode .inv-party-sep { background: linear-gradient(to bottom, transparent, rgba(56,189,248,.2), transparent); }
+body.dark-mode .inv-party-label { color: #38bdf8; }
+body.dark-mode .inv-party-name {
+  background: linear-gradient(135deg, #f1f5f9, #38bdf8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+body.dark-mode .inv-party-tagline { color: #475569; }
+body.dark-mode .inv-fiscal-row { background: rgba(56,189,248,.06); border-color: rgba(56,189,248,.15); }
+body.dark-mode .inv-fiscal-code { background: rgba(56,189,248,.1); border-color: rgba(56,189,248,.2); color: #38bdf8; }
+body.dark-mode .inv-fiscal-lbl { color: #475569; }
+body.dark-mode .inv-fiscal-na { color: #334155; }
+body.dark-mode .inv-fiscal-empty { background: transparent; border-color: transparent; }
+
+
+
+/* ─────────────────────────────────────
    DARK MODE — body.dark-mode
    ⚠ ThemeService.apply() => document.body.classList.toggle('dark-mode')
    Le sélecteur correct est body.dark-mode, PAS .theme-enterprise.dark-mode

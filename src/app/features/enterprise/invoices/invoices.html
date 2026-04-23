@@ -327,11 +327,42 @@
             <input type="date" formControlName="issueDate">
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nom du client</label>
-            <input type="text" formControlName="clientName" placeholder="Société XYZ">
+
+        <!-- ── VENDEUR ── -->
+        <div class="fiscal-section">
+          <div class="fiscal-section-title">🏢 Vendeur (Seller)</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Raison sociale vendeur</label>
+              <input type="text" formControlName="sellerName" placeholder="Société XYZ">
+            </div>
+            <div class="form-group">
+              <label>Article fiscal vendeur
+                <span class="optional-tag">Matricule fiscal</span>
+              </label>
+              <input type="text" formControlName="sellerArticleFiscal" placeholder="Ex: 1234567/A/M/000">
+            </div>
           </div>
+        </div>
+
+        <!-- ── ACHETEUR ── -->
+        <div class="fiscal-section">
+          <div class="fiscal-section-title">🛒 Acheteur (Buyer)</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Raison sociale acheteur</label>
+              <input type="text" formControlName="clientName" placeholder="Société XYZ">
+            </div>
+            <div class="form-group">
+              <label>Article fiscal acheteur
+                <span class="optional-tag">Matricule fiscal</span>
+              </label>
+              <input type="text" formControlName="buyerArticleFiscal" placeholder="Ex: 9876543/B/P/000">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
           <div class="form-group">
             <label>Projet</label>
             <input type="text" formControlName="project" placeholder="Nom du projet">
@@ -408,18 +439,55 @@
           </div>
         </div>
         <div class="inv-divider"></div>
-        <div class="inv-info-row">
-          <div>
-            <div class="inv-info-lbl">Facturé à</div>
-            <div class="inv-info-val">{{ previewInvoice.clientName }}</div>
+
+        <!-- ── Parties: Vendeur + Acheteur ── -->
+        <div class="inv-parties-row">
+          <!-- Vendeur -->
+          <div class="inv-party-block">
+            <div class="inv-party-label">🏢 VENDEUR</div>
+            <div class="inv-party-name">{{ previewInvoice.sellerName || 'EcoRessource B2B' }}</div>
+            <div class="inv-party-tagline">Plateforme de ressources durables</div>
+            <div class="inv-fiscal-row" *ngIf="previewInvoice.sellerArticleFiscal">
+              <span class="inv-fiscal-lbl">Article fiscal :</span>
+              <code class="inv-fiscal-code">{{ previewInvoice.sellerArticleFiscal }}</code>
+            </div>
+            <div class="inv-fiscal-row inv-fiscal-empty" *ngIf="!previewInvoice.sellerArticleFiscal">
+              <span class="inv-fiscal-lbl">Article fiscal :</span>
+              <span class="inv-fiscal-na">—</span>
+            </div>
           </div>
+
+          <div class="inv-party-sep"></div>
+
+          <!-- Acheteur -->
+          <div class="inv-party-block">
+            <div class="inv-party-label">🛒 ACHETEUR</div>
+            <div class="inv-party-name">{{ previewInvoice.clientName }}</div>
+            <div class="inv-party-tagline">Client facturation</div>
+            <div class="inv-fiscal-row" *ngIf="previewInvoice.buyerArticleFiscal">
+              <span class="inv-fiscal-lbl">Article fiscal :</span>
+              <code class="inv-fiscal-code">{{ previewInvoice.buyerArticleFiscal }}</code>
+            </div>
+            <div class="inv-fiscal-row inv-fiscal-empty" *ngIf="!previewInvoice.buyerArticleFiscal">
+              <span class="inv-fiscal-lbl">Article fiscal :</span>
+              <span class="inv-fiscal-na">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Infos facture ── -->
+        <div class="inv-info-row">
           <div>
             <div class="inv-info-lbl">Projet</div>
             <div class="inv-info-val">{{ previewInvoice.project }}</div>
           </div>
           <div>
-            <div class="inv-info-lbl">Date</div>
+            <div class="inv-info-lbl">Date d'émission</div>
             <div class="inv-info-val">{{ previewInvoice.issueDate }}</div>
+          </div>
+          <div>
+            <div class="inv-info-lbl">N° Facture</div>
+            <div class="inv-info-val">{{ previewInvoice.invoiceNumber }}</div>
           </div>
         </div>
         <table class="inv-table">

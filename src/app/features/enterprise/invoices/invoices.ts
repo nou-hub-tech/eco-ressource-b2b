@@ -69,16 +69,22 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     private cd: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
-      invoiceNumber:    ['', Validators.required],
-      clientName:       ['', Validators.required],
-      project:          ['', Validators.required],
-      amountHT:         [0,  [Validators.required, Validators.min(0.001)]],
-      tva:              [19, [Validators.required, Validators.min(0), Validators.max(100)]],
-      status:           ['UNPAID', Validators.required],
-      issueDate:        ['', Validators.required],
-      // 🔗 Champs liaison livraison (optionnels)
-      deliveryOrderId:  [null],
-      linkedEscrowId:   [null],
+      invoiceNumber:         ['', Validators.required],
+      // 🏢 Vendeur
+      sellerName:            ['EcoRessource B2B'],
+      sellerArticleFiscal:   [''],
+      // 🛒 Acheteur
+      clientName:            ['', Validators.required],
+      buyerArticleFiscal:    [''],
+      // Facture
+      project:               ['', Validators.required],
+      amountHT:              [0,  [Validators.required, Validators.min(0.001)]],
+      tva:                   [19, [Validators.required, Validators.min(0), Validators.max(100)]],
+      status:                ['UNPAID', Validators.required],
+      issueDate:             ['', Validators.required],
+      // 🔗 Liaison livraison (optionnels)
+      deliveryOrderId:       [null],
+      linkedEscrowId:        [null],
     });
     this.form.get('amountHT')!.valueChanges.subscribe(() => this.cd.detectChanges());
     this.form.get('tva')!.valueChanges.subscribe(() => this.cd.detectChanges());
@@ -278,70 +284,114 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     const doc = new jsPDF();
     const W = 210;
 
-    // Header green bar
+    // ── Header bar (green) ──
     doc.setFillColor(5, 150, 105);
-    doc.rect(0, 0, W, 42, 'F');
+    doc.rect(0, 0, W, 44, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20); doc.setFont('helvetica', 'bold');
-    doc.text('EcoRessource B2B', 14, 18);
+    doc.text(invoice.sellerName || 'EcoRessource B2B', 14, 18);
     doc.setFontSize(9); doc.setFont('helvetica', 'normal');
     doc.text('Plateforme de ressources durables — Gestion B2B', 14, 28);
+    if (invoice.sellerArticleFiscal) {
+      doc.setFontSize(8);
+      doc.text(`Art. Fiscal : ${invoice.sellerArticleFiscal}`, 14, 38);
+    }
 
-    // Invoice title right
+    // ── Invoice number (right) ──
     doc.setFontSize(18); doc.setFont('helvetica', 'bold');
     doc.text('FACTURE', W - 14, 18, { align: 'right' });
     doc.setFontSize(11); doc.setFont('helvetica', 'normal');
     doc.text(invoice.invoiceNumber, W - 14, 28, { align: 'right' });
 
-    // Client / project / date info
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(9); doc.setTextColor(100, 116, 139);
-    doc.text('FACTURÉ À', 14, 54); doc.text('PROJET', 90, 54); doc.text('DATE', 160, 54);
-    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-    doc.text(invoice.clientName, 14, 63);
-    doc.text(invoice.project, 90, 63);
-    doc.text(invoice.issueDate, 160, 63);
+    const isP = invoice.status === 'PAID';
+    doc.setFontSize(9);
+    doc.text(isP ? '✓ PAYEE' : 'IMPAYEE', W - 14, 38, { align: 'right' });
 
-    // Divider
+    // ── Separator ──
     doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
-    doc.line(14, 72, W - 14, 72);
+    doc.line(14, 50, W - 14, 50);
 
-    // Table header
-    doc.setFillColor(248, 250, 252);
-    doc.rect(14, 78, W - 28, 10, 'F');
+    // ── VENDEUR / ACHETEUR boxes ──
+    const boxY = 54, boxH = 36;
+
+    // Vendeur box (left)
+    doc.setFillColor(248, 252, 255);
+    doc.roundedRect(14, boxY, 85, boxH, 3, 3, 'F');
+    doc.setDrawColor(2, 132, 199, 0.3); doc.setLineWidth(0.3);
+    doc.roundedRect(14, boxY, 85, boxH, 3, 3, 'S');
+
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('VENDEUR', 18, boxY + 7);
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text(invoice.sellerName || 'EcoRessource B2B', 18, boxY + 16);
     doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
-    doc.text('DESCRIPTION', 18, 85);
-    doc.text('MONTANT HT', 115, 85, { align: 'right' });
-    doc.text(`TVA (${invoice.tva}%)`, 152, 85, { align: 'right' });
-    doc.text('MONTANT TTC', W - 16, 85, { align: 'right' });
+    doc.text('Article Fiscal :', 18, boxY + 25);
+    doc.setTextColor(2, 132, 199); doc.setFont('helvetica', 'bold');
+    doc.text(invoice.sellerArticleFiscal || '—', 46, boxY + 25);
 
-    // Table row
+    // Acheteur box (right)
+    doc.setFillColor(248, 252, 255);
+    doc.roundedRect(111, boxY, 85, boxH, 3, 3, 'F');
+    doc.setDrawColor(2, 132, 199, 0.3); doc.setLineWidth(0.3);
+    doc.roundedRect(111, boxY, 85, boxH, 3, 3, 'S');
+
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('ACHETEUR', 115, boxY + 7);
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text(invoice.clientName, 115, boxY + 16);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('Article Fiscal :', 115, boxY + 25);
+    doc.setTextColor(2, 132, 199); doc.setFont('helvetica', 'bold');
+    doc.text(invoice.buyerArticleFiscal || '—', 143, boxY + 25);
+
+    // ── Infos facture (Projet / Date / N°) ──
+    const infoY = boxY + boxH + 8;
+    doc.setFillColor(240, 249, 255);
+    doc.rect(14, infoY, W - 28, 10, 'F');
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('PROJET', 18, infoY + 4); doc.text('DATE', 100, infoY + 4); doc.text('N° FACTURE', 160, infoY + 4);
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+    doc.text(invoice.project, 18, infoY + 9); doc.text(invoice.issueDate, 100, infoY + 9);
+    doc.text(invoice.invoiceNumber, 160, infoY + 9);
+
+    // ── Table ──
+    const tableY = infoY + 16;
+    doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.5);
+    doc.line(14, tableY - 2, W - 14, tableY - 2);
+
+    doc.setFillColor(248, 250, 252);
+    doc.rect(14, tableY, W - 28, 10, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+    doc.text('DESCRIPTION', 18, tableY + 7);
+    doc.text('MONTANT HT', 115, tableY + 7, { align: 'right' });
+    doc.text(`TVA (${invoice.tva}%)`, 152, tableY + 7, { align: 'right' });
+    doc.text('MONTANT TTC', W - 16, tableY + 7, { align: 'right' });
+
     const tvaAmt = +(invoice.amountTTC - invoice.amountHT).toFixed(3);
     doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(15, 23, 42);
-    doc.text(invoice.project, 18, 98);
-    doc.text(`${invoice.amountHT.toFixed(3)} TND`, 115, 98, { align: 'right' });
-    doc.text(`${tvaAmt.toFixed(3)} TND`, 152, 98, { align: 'right' });
-    doc.text(`${invoice.amountTTC.toFixed(3)} TND`, W - 16, 98, { align: 'right' });
+    doc.text(invoice.project, 18, tableY + 20);
+    doc.text(`${invoice.amountHT.toFixed(3)} TND`, 115, tableY + 20, { align: 'right' });
+    doc.text(`${tvaAmt.toFixed(3)} TND`, 152, tableY + 20, { align: 'right' });
+    doc.text(`${invoice.amountTTC.toFixed(3)} TND`, W - 16, tableY + 20, { align: 'right' });
 
-    // Divider
     doc.setDrawColor(226, 232, 240);
-    doc.line(14, 107, W - 14, 107);
+    doc.line(14, tableY + 25, W - 14, tableY + 25);
 
-    // Total box
+    // ── Total box ──
+    const totY = tableY + 30;
     doc.setFillColor(5, 150, 105);
-    doc.roundedRect(120, 113, W - 134, 16, 2, 2, 'F');
+    doc.roundedRect(120, totY, W - 134, 16, 2, 2, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL À PAYER', 128, 121);
-    doc.text(`${invoice.amountTTC.toFixed(3)} TND`, W - 16, 121, { align: 'right' });
+    doc.text('TOTAL A PAYER', 128, totY + 7);
+    doc.text(`${invoice.amountTTC.toFixed(3)} TND`, W - 16, totY + 7, { align: 'right' });
 
     // Status badge
-    const isP = invoice.status === 'PAID';
     doc.setFillColor(isP ? 5 : 220, isP ? 150 : 38, isP ? 105 : 38);
-    doc.roundedRect(14, 113, 38, 10, 2, 2, 'F');
+    doc.roundedRect(14, totY, 38, 10, 2, 2, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(9);
-    doc.text(isP ? '✓ PAYÉE' : '⏳ IMPAYÉE', 33, 119.5, { align: 'center' });
+    doc.text(isP ? 'PAYEE' : 'IMPAYEE', 33, totY + 6.5, { align: 'center' });
 
-    // Footer
+    // ── Footer ──
     doc.setTextColor(148, 163, 184); doc.setFontSize(8); doc.setFont('helvetica', 'italic');
     doc.text('Merci de votre confiance — EcoRessource B2B', W / 2, 276, { align: 'center' });
     doc.setDrawColor(5, 150, 105); doc.setLineWidth(1);
@@ -350,6 +400,7 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     doc.save(`${invoice.invoiceNumber}.pdf`);
     this.showToast('PDF téléchargé ✓', 'success');
   }
+
 
   // ==================== EXCEL EXPORT ====================
 
@@ -377,7 +428,7 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
       this.form.patchValue(invoice);
     } else {
       const today = new Date().toISOString().split('T')[0];
-      this.form.reset({ status: 'UNPAID', tva: 19, amountHT: 0, issueDate: today, invoiceNumber: 'INV-' + Date.now().toString().slice(-6) });
+      this.form.reset({ status: 'UNPAID', tva: 19, amountHT: 0, issueDate: today, invoiceNumber: 'INV-' + Date.now().toString().slice(-6), sellerName: 'EcoRessource B2B', sellerArticleFiscal: '', buyerArticleFiscal: '' });
     }
   }
 
@@ -385,10 +436,21 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     if (!this.form.valid) return;
     const v = this.form.value;
     const data: Invoice = {
-      invoiceNumber: v.invoiceNumber, clientName: v.clientName, project: v.project,
-      amountHT: Number(v.amountHT), tva: Number(v.tva), amountTTC: this.previewTTC,
-      status: v.status, issueDate: v.issueDate,
-      // 🔗 Champs livraison
+      invoiceNumber:       v.invoiceNumber,
+      // 🏢 Vendeur
+      sellerName:          v.sellerName || 'EcoRessource B2B',
+      sellerArticleFiscal: v.sellerArticleFiscal || undefined,
+      // 🛒 Acheteur
+      clientName:          v.clientName,
+      buyerArticleFiscal:  v.buyerArticleFiscal || undefined,
+      // Facture
+      project:             v.project,
+      amountHT:            Number(v.amountHT),
+      tva:                 Number(v.tva),
+      amountTTC:           this.previewTTC,
+      status:              v.status,
+      issueDate:           v.issueDate,
+      // 🔗 Liaison livraison
       deliveryOrderId: v.deliveryOrderId ? Number(v.deliveryOrderId) : undefined,
       linkedEscrowId:  v.linkedEscrowId  ? Number(v.linkedEscrowId)  : undefined,
     };

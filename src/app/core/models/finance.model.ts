@@ -88,7 +88,15 @@ export enum FinancingStatus {
 export interface Invoice {
   id?: number;
   invoiceNumber: string;
-  clientName: string;
+
+  // 🏢 Vendeur (Seller)
+  sellerName?: string;          // Raison sociale vendeur
+  sellerArticleFiscal?: string; // Matricule fiscal vendeur (ex: 1234567/A/M/000)
+
+  // 🛒 Acheteur (Buyer)
+  clientName: string;           // Raison sociale acheteur
+  buyerArticleFiscal?: string;  // Matricule fiscal acheteur
+
   project: string;
   amountHT: number;
   tva: number;
@@ -96,11 +104,12 @@ export interface Invoice {
   status: InvoiceStatus | string;
   issueDate: string;
 
-  // 🔗 Liaison livraison (renseigné quand intégration active)
-  deliveryOrderId?: number;   // ID de la commande/livraison associée
-  linkedEscrowId?: number;    // ID de l'escrow à libérer lors du paiement
-  deliveredAt?: string;       // Date de confirmation de livraison
+  // 🔗 Liaison livraison
+  deliveryOrderId?: number;
+  linkedEscrowId?: number;
+  deliveredAt?: string;
 }
+
 
 // 📌 Statut facture
 export enum InvoiceStatus {
