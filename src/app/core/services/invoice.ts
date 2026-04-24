@@ -167,4 +167,12 @@ export class InvoiceService {
   getSolvabilityReport(): Observable<SolvabilityReport> {
     return this.http.get<SolvabilityReport>(`${this.API}/ai-solvability`);
   }
+
+  /** 💬 Chatbot IA — Poser une question sur les factures */
+  sendChatMessage(question: string): Observable<{ message: string; fromAi: boolean }> {
+    return this.http.post<{ message: string; fromAi: boolean }>(
+      `${this.API}/chat`,
+      { question }
+    );
+  }
 }

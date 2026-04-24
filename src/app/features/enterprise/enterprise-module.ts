@@ -16,6 +16,7 @@ import { Requests } from './requests/requests';
 import { Events } from './events/events';
 import { Treasury } from './treasury/treasury';
 import { Invoices } from './invoices/invoices';
+import { InvoiceChatComponent } from './invoices/invoice-chat.component';
 
 const routes: Routes = [
   {
@@ -40,7 +41,11 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [Dashboard, Marketplace, MyStock, MyDeliveries, MyListings, MyReservations, Transactions, Reports, Requests, Events, Treasury, Invoices],
+  declarations: [
+    Dashboard, Marketplace, MyStock, MyDeliveries, MyListings, MyReservations,
+    Transactions, Reports, Requests, Events, Treasury, Invoices,
+    InvoiceChatComponent
+  ],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
 })
 export class EnterpriseModule {}

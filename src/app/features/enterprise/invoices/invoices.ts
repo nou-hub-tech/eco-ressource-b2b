@@ -68,6 +68,18 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   riskError   = false;
   riskFilter: string = 'ALL';
 
+  // 💬 Chatbot IA
+  chatMessages: { role: 'user' | 'ai'; text: string; fromAi: boolean; time: string }[] = [];
+  chatInput = '';
+  chatLoading = false;
+  readonly chatSuggestions = [
+    'Qui est mon client le plus risqué ?',
+    'Quel est mon taux de recouvrement ?',
+    'Combien j\'ai de factures impayées ?',
+    'Donne-moi un résumé de ma situation financière',
+    'Quelles factures sont en retard de plus de 30 jours ?',
+  ];
+
   //  Chart
   private doughnutInstance: Chart | null = null;
   private viewReady = false;
@@ -239,6 +251,64 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     if (!this.solvabilityReport && !this.aiLoading) {
       this.loadSolvabilityReport();
     }
+  }
+
+  // ==================== 💬 CHATBOT IA ====================
+
+  sendChat(): void {
+    const q = this.chatInput.trim();
+    if (!q || this.chatLoading) return;
+
+    // Ajouter le message utilisateur
+    this.chatMessages.push({ role: 'user', text: q, fromAi: false, time: this.nowTime() });
+    this.chatInput = '';
+    this.chatLoading = true;
+    setTimeout(() => this.cd.detectChanges(), 0);
+
+    this.invoiceService.sendChatMessage(q).subscribe({
+      next: (res) => {
+        this.chatMessages.push({
+          role: 'ai', text: res.message, fromAi: res.fromAi, time: this.nowTime()
+        });
+        this.chatLoading = false;
+        setTimeout(() => {
+          this.cd.detectChanges();
+          const el = document.getElementById('chat-bottom');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
+      },
+      error: () => {
+        this.chatMessages.push({
+          role: 'ai',
+          text: '⚠️ Impossible de contacter le serveur. Vérifiez que le backend est démarré.',
+          fromAi: false,
+          time: this.nowTime()
+        });
+        this.chatLoading = false;
+        setTimeout(() => this.cd.detectChanges(), 0);
+      }
+    });
+  }
+
+  useSuggestion(s: string): void {
+    this.chatInput = s;
+    this.sendChat();
+  }
+
+  onChatKey(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendChat();
+    }
+  }
+
+  clearChat(): void {
+    this.chatMessages = [];
+    this.chatInput = '';
+  }
+
+  private nowTime(): string {
+    return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }
 
   // ==================== KPIs ====================
