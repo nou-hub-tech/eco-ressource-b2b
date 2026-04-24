@@ -1252,3 +1252,102 @@ body.dark-mode .ai-card-bar-track { background: rgba(255,255,255,.06); }
 body.dark-mode .ai-inv-details span { background: rgba(30,41,59,.8); }
 body.dark-mode .ai-action-row { background: rgba(56,189,248,.05); border-color: rgba(56,189,248,.1); }
 body.dark-mode .ai-empty { background: rgba(15,23,42,.6); }
+
+/* ═══════════════════════════════════════════════════════════════
+   🏦 SOLVABILITE IA — Styles Premium Fintech
+   ═══════════════════════════════════════════════════════════════ */
+
+.solv-header-row {
+  display: flex; gap: 20px; align-items: stretch; margin-bottom: 28px; flex-wrap: wrap;
+}
+.solv-rating-card {
+  min-width: 180px; padding: 28px 24px;
+  background: linear-gradient(135deg, #fff, #f8fafc);
+  border: 1.5px solid rgba(2,132,199,.12); border-radius: 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  box-shadow: 0 8px 32px rgba(2,132,199,.06);
+}
+.solv-rating-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing:.8px; color: var(--text3); }
+.solv-rating-badge { font-size: 52px; font-weight: 900; font-family:'Syne',sans-serif; line-height:1; border: 3px solid; border-radius: 16px; padding: 4px 16px; letter-spacing: 2px; }
+.solv-rating-score { font-size: 20px; font-weight: 700; color: var(--text); }
+.solv-rating-sub { font-size: 10px; color: var(--text3); }
+
+.solv-kpi-row { flex:1; display:flex; gap:12px; flex-wrap:wrap; align-items:stretch; }
+.solv-kpi-card {
+  flex:1; min-width:110px; padding:18px 14px;
+  background: var(--card); border: 1.5px solid var(--border); border-radius: 16px;
+  display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center;
+  transition: box-shadow .2s, transform .2s;
+}
+.solv-kpi-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.07); transform:translateY(-2px); }
+.solv-kpi-card.critical { background:rgba(239,68,68,.04); border-color:rgba(239,68,68,.15); }
+.solv-kpi-card.good     { background:rgba(5,150,105,.04);  border-color:rgba(5,150,105,.15); }
+.solv-kpi-icon { font-size:20px; }
+.solv-kpi-val  { font-size:18px; font-weight:800; font-family:'Syne',sans-serif; color:var(--text); white-space:nowrap; }
+.solv-kpi-lbl  { font-size:9px; color:var(--text3); font-weight:600; }
+
+.solv-section { margin-bottom: 28px; }
+.solv-section-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.solv-section-title { font-size:14px; font-weight:800; color:var(--text); margin-bottom:14px; }
+
+.solv-advice-list { display:flex; flex-direction:column; gap:10px; }
+.solv-advice-card {
+  background:var(--card); border:1.5px solid var(--border); border-left:4px solid;
+  border-radius:12px; padding:14px 18px; transition:box-shadow .2s;
+}
+.solv-advice-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.06); }
+.solv-advice-header { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.solv-advice-severity { padding:3px 10px; border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.6px; }
+.solv-advice-title { font-weight:700; font-size:13px; color:var(--text); flex:1; }
+.solv-advice-action { padding:4px 12px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.5px; }
+.solv-advice-desc { font-size:12px; color:var(--text3); line-height:1.5; margin:0; }
+
+.solv-client-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:16px; }
+.solv-client-card {
+  background:var(--card); border:1.5px solid var(--border); border-top:4px solid;
+  border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:12px;
+  transition:box-shadow .2s, transform .2s;
+}
+.solv-client-card:hover { box-shadow:0 8px 24px rgba(0,0,0,.08); transform:translateY(-2px); }
+.solv-client-header { display:flex; justify-content:space-between; align-items:center; }
+.solv-client-name { font-weight:800; font-size:14px; color:var(--text); }
+.solv-rating-tag { font-size:12px; font-weight:900; padding:4px 12px; border-radius:8px; border:2px solid; letter-spacing:1px; }
+.solv-client-score-row { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.solv-client-score-val { font-size:40px; font-weight:900; font-family:'Syne',sans-serif; line-height:1; }
+.solv-client-score-unit { font-size:15px; color:var(--text3); }
+.solv-prob-badge { padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; margin-left:auto; }
+.solv-rating-desc { font-size:11px; color:var(--text3); font-style:italic; }
+.solv-metrics-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.solv-metric { text-align:center; }
+.solv-metric-val { font-size:13px; font-weight:800; color:var(--text); }
+.solv-metric-lbl { font-size:9px; color:var(--text3); margin-top:2px; }
+.solv-client-unpaid { font-size:12px; font-weight:700; }
+
+.solv-prediction-list { display:flex; flex-direction:column; gap:12px; }
+.solv-prediction-card {
+  background:var(--card); border:1.5px solid var(--border); border-left:4px solid;
+  border-radius:14px; padding:16px 20px; display:flex; flex-direction:column; gap:10px;
+  transition:box-shadow .2s;
+}
+.solv-prediction-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.06); }
+.solv-pred-top { display:flex; justify-content:space-between; align-items:center; }
+.solv-pred-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.solv-pred-amount { font-size:15px; font-weight:800; color:var(--text); white-space:nowrap; }
+.solv-urgency-badge { padding:3px 10px; border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.5px; }
+.solv-rating-micro { padding:2px 8px; border-radius:6px; font-size:10px; font-weight:900; letter-spacing:1px; }
+.solv-pred-info { display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--text3); }
+.solv-pred-info span { background:var(--bg); padding:3px 8px; border-radius:6px; }
+.solv-prob-row { display:flex; align-items:center; gap:10px; }
+.solv-prob-label { font-size:10px; font-weight:700; color:var(--text3); white-space:nowrap; }
+.solv-prob-bar { flex:1; height:8px; background:rgba(0,0,0,.06); border-radius:999px; overflow:hidden; }
+.solv-prob-fill { height:100%; border-radius:999px; transition:width .6s ease; }
+.solv-prob-pct { font-size:14px; font-weight:900; min-width:44px; text-align:right; }
+.solv-pred-text { font-size:12px; font-weight:600; }
+
+body.dark-mode .solv-rating-card    { background:rgba(15,23,42,.9); border-color:rgba(51,65,85,.6); }
+body.dark-mode .solv-kpi-card       { background:rgba(15,23,42,.8); border-color:rgba(51,65,85,.5); }
+body.dark-mode .solv-client-card    { background:rgba(15,23,42,.9); border-color:rgba(51,65,85,.5); }
+body.dark-mode .solv-advice-card    { background:rgba(15,23,42,.9); border-color:rgba(51,65,85,.5); }
+body.dark-mode .solv-prediction-card{ background:rgba(15,23,42,.9); border-color:rgba(51,65,85,.5); }
+body.dark-mode .solv-prob-bar       { background:rgba(255,255,255,.06); }
+body.dark-mode .solv-pred-info span { background:rgba(30,41,59,.8); }

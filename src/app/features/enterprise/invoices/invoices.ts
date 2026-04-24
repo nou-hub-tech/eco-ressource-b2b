@@ -4,7 +4,7 @@ import { Chart, registerables } from 'chart.js';
 import { forkJoin } from 'rxjs';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
-import { InvoiceService, RiskReport, InvoiceRisk, ClientRisk } from '../../../core/services/invoice';
+import { InvoiceService, RiskReport, SolvabilityReport, ClientSolvabilityProfile, InvoicePaymentPrediction } from '../../../core/services/invoice';
 import { FinanceService } from '../../../core/services/finance';
 import { Invoice } from '../../../core/models/finance.model';
 
@@ -56,10 +56,16 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   //  Onglets : 'list' | 'stats' | 'ai'
   activeInvTab: 'list' | 'stats' | 'ai' = 'list';
 
-  // 🤖 IA — Détection des risques
+  // 🏦 IA — Solvabilité avancée
+  solvabilityReport: SolvabilityReport | null = null;
+  aiLoading = false;
+  aiError   = false;
+  predictionFilter: string = 'ALL';  // ALL | CRITIQUE | HAUTE | MOYENNE | FAIBLE
+
+  // Legacy risk (conservé pour compatibilité)
   riskReport: RiskReport | null = null;
   riskLoading = false;
-  riskError = false;
+  riskError   = false;
   riskFilter: string = 'ALL';
 
   //  Chart
@@ -104,8 +110,82 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void { this.doughnutInstance?.destroy(); }
 
-  // ==================== 🤖 IA RISQUES ====================
+  // ==================== 🏦 IA SOLVABILITÉ AVANCÉE ====================
 
+  loadSolvabilityReport(): void {
+    this.aiLoading = true;
+    this.aiError   = false;
+    this.invoiceService.getSolvabilityReport().subscribe({
+      next: (report) => {
+        this.solvabilityReport = report;
+        this.aiLoading = false;
+        setTimeout(() => this.cd.detectChanges(), 0);
+      },
+      error: () => {
+        this.aiError   = true;
+        this.aiLoading = false;
+        setTimeout(() => this.cd.detectChanges(), 0);
+      }
+    });
+  }
+
+  // Filtre les prédictions par urgence
+  get filteredPredictions(): InvoicePaymentPrediction[] {
+    if (!this.solvabilityReport) return [];
+    const preds = this.solvabilityReport.paymentPredictions;
+    if (this.predictionFilter === 'ALL') return preds;
+    return preds.filter(p => p.urgency === this.predictionFilter);
+  }
+
+  // Credit Rating → couleur
+  getRatingColor(rating: string): string {
+    switch (rating) {
+      case 'AAA': return '#059669';  // emerald
+      case 'AA':  return '#10b981';  // green
+      case 'A':   return '#3b82f6';  // blue
+      case 'BBB': return '#eab308';  // yellow
+      case 'BB':  return '#f97316';  // orange
+      case 'B':   return '#ef4444';  // red
+      case 'CCC': return '#7f1d1d';  // dark red
+      default:    return '#6b7280';
+    }
+  }
+
+  // Credit Rating → background léger
+  getRatingBg(rating: string): string {
+    return this.getRatingColor(rating) + '18';
+  }
+
+  // Urgence → couleur
+  getUrgencyColor(urgency: string): string {
+    switch (urgency) {
+      case 'CRITIQUE': return '#ef4444';
+      case 'HAUTE':    return '#f97316';
+      case 'MOYENNE':  return '#eab308';
+      case 'FAIBLE':   return '#22c55e';
+      default:         return '#6b7280';
+    }
+  }
+
+  // Probabilité → couleur de la jauge
+  getProbabilityColor(p: number): string {
+    if (p >= 75) return '#22c55e';
+    if (p >= 50) return '#eab308';
+    if (p >= 25) return '#f97316';
+    return '#ef4444';
+  }
+
+  // Severity conseil → couleur
+  getAdviceColor(severity: string): string {
+    switch (severity) {
+      case 'CRITIQUE': return '#ef4444';
+      case 'HAUTE':    return '#f97316';
+      case 'MOYENNE':  return '#eab308';
+      default:         return '#3b82f6';
+    }
+  }
+
+  // Legacy risk methods (backward compat)
   loadRiskReport(): void {
     this.riskLoading = true;
     this.riskError   = false;
@@ -126,7 +206,6 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   get filteredInvoiceRisks() {
     if (!this.riskReport) return [];
     if (this.riskFilter === 'ALL') return this.riskReport.invoiceRisks;
-    // Normalize accented chars for comparison (backend returns ÉLEVÉ, filter button uses ELEVE)
     const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     return this.riskReport.invoiceRisks.filter(
       r => normalize(r.riskLevel).toUpperCase() === normalize(this.riskFilter).toUpperCase()
@@ -134,9 +213,10 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getRiskColor(level: string): string {
-    switch (level) {
+    const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    switch (normalize(level)) {
       case 'CRITIQUE': return '#ef4444';
-      case 'ÉLEVÉ':    return '#f97316';
+      case 'ELEVE':    return '#f97316';
       case 'MOYEN':    return '#eab308';
       case 'FAIBLE':   return '#22c55e';
       default:         return '#6b7280';
@@ -144,9 +224,10 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getRiskIcon(level: string): string {
-    switch (level) {
+    const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    switch (normalize(level)) {
       case 'CRITIQUE': return '🆘';
-      case 'ÉLEVÉ':    return '🔴';
+      case 'ELEVE':    return '🔴';
       case 'MOYEN':    return '🟡';
       case 'FAIBLE':   return '🟢';
       default:         return '⚪';
@@ -155,8 +236,8 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
 
   switchToAiTab(): void {
     this.activeInvTab = 'ai';
-    if (!this.riskReport && !this.riskLoading) {
-      this.loadRiskReport();
+    if (!this.solvabilityReport && !this.aiLoading) {
+      this.loadSolvabilityReport();
     }
   }
 

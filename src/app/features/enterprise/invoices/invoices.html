@@ -529,165 +529,251 @@
     </div>
   </div>
 
-  <!-- ====== ONGLET IA RISQUES ====== -->
+  <!-- ====== ONGLET IA SOLVABILITE AVANCEE ====== -->
   <div *ngIf="activeInvTab==='ai'" class="tab-content ai-risk-tab">
 
-    <div *ngIf="riskLoading" class="ai-loading">
+    <!-- Loading -->
+    <div *ngIf="aiLoading" class="ai-loading">
       <div class="ai-spinner"></div>
-      <p class="ai-loading-text">Analyse IA en cours...</p>
+      <p class="ai-loading-text">Analyse de solvabilite en cours...</p>
     </div>
 
-    <div *ngIf="riskError && !riskLoading" class="ai-error-box">
+    <!-- Erreur -->
+    <div *ngIf="aiError && !aiLoading" class="ai-error-box">
       <p>Impossible de contacter le backend. Verifiez que le serveur tourne sur le port 9090.</p>
-      <button class="btn btn-primary btn-sm" (click)="loadRiskReport()">Reessayer</button>
+      <button class="btn btn-primary btn-sm" (click)="loadSolvabilityReport()">Reessayer</button>
     </div>
 
-    <ng-container *ngIf="riskReport && !riskLoading">
+    <ng-container *ngIf="solvabilityReport && !aiLoading">
 
-      <div class="ai-global-score-card">
-        <div class="ai-score-left">
-          <div class="ai-score-label">Score de Risque Global</div>
-          <div class="ai-score-value" [style.color]="getRiskColor(riskReport.summary.globalRiskLevel)">
-            {{ riskReport.summary.globalRiskScore }}<span class="ai-score-unit">/100</span>
+      <!-- ══ HEADER : SANTE DU PORTEFEUILLE ══ -->
+      <div class="solv-header-row">
+
+        <!-- Rating global -->
+        <div class="solv-rating-card">
+          <div class="solv-rating-label">Rating Portefeuille</div>
+          <div class="solv-rating-badge"
+            [style.background]="getRatingBg(solvabilityReport.portfolioHealth.portfolioRating)"
+            [style.border-color]="getRatingColor(solvabilityReport.portfolioHealth.portfolioRating)"
+            [style.color]="getRatingColor(solvabilityReport.portfolioHealth.portfolioRating)">
+            {{ solvabilityReport.portfolioHealth.portfolioRating }}
           </div>
-          <div class="ai-score-level-badge" [style.background]="getRiskColor(riskReport.summary.globalRiskLevel)">
-            {{ getRiskIcon(riskReport.summary.globalRiskLevel) }} {{ riskReport.summary.globalRiskLevel }}
+          <div class="solv-rating-score">
+            {{ solvabilityReport.portfolioHealth.avgSolvabilityScore }}/100
+          </div>
+          <div class="solv-rating-sub">Score moyen de solvabilite</div>
+          <button class="ai-refresh-btn" (click)="loadSolvabilityReport()" style="position:static;margin-top:12px">
+            &#x1F504; Rafraichir
+          </button>
+        </div>
+
+        <!-- KPIs financiers -->
+        <div class="solv-kpi-row">
+          <div class="solv-kpi-card">
+            <div class="solv-kpi-icon">&#x1F4CA;</div>
+            <div class="solv-kpi-val">{{ solvabilityReport.portfolioHealth.totalClients }}</div>
+            <div class="solv-kpi-lbl">Clients analyses</div>
+          </div>
+          <div class="solv-kpi-card critical" *ngIf="solvabilityReport.portfolioHealth.criticalClients > 0">
+            <div class="solv-kpi-icon">&#x26A0;&#xFE0F;</div>
+            <div class="solv-kpi-val" style="color:#ef4444">{{ solvabilityReport.portfolioHealth.criticalClients }}</div>
+            <div class="solv-kpi-lbl">Clients B/CCC</div>
+          </div>
+          <div class="solv-kpi-card good">
+            <div class="solv-kpi-icon">&#x2705;</div>
+            <div class="solv-kpi-val" style="color:#059669">{{ solvabilityReport.portfolioHealth.excellentClients }}</div>
+            <div class="solv-kpi-lbl">Clients AAA/AA</div>
+          </div>
+          <div class="solv-kpi-card">
+            <div class="solv-kpi-icon">&#x1F4B8;</div>
+            <div class="solv-kpi-val" style="color:#f97316">{{ solvabilityReport.portfolioHealth.atRiskAmount | number:'1.0-0' }} TND</div>
+            <div class="solv-kpi-lbl">Montant a risque fort</div>
+          </div>
+          <div class="solv-kpi-card">
+            <div class="solv-kpi-icon">&#x1F4C8;</div>
+            <div class="solv-kpi-val" style="color:#3b82f6">{{ solvabilityReport.portfolioHealth.expectedInflow | number:'1.0-0' }} TND</div>
+            <div class="solv-kpi-lbl">Encaissements prevus</div>
+          </div>
+          <div class="solv-kpi-card">
+            <div class="solv-kpi-icon">&#x1F911;</div>
+            <div class="solv-kpi-val">{{ solvabilityReport.portfolioHealth.collectedRevenue | number:'1.0-0' }}</div>
+            <div class="solv-kpi-lbl">Recouvres (TND)</div>
           </div>
         </div>
-        <div class="ai-score-right">
-          <div class="ai-kpi-grid">
-            <div class="ai-kpi">
-              <div class="ai-kpi-val">{{ riskReport.summary.totalInvoices }}</div>
-              <div class="ai-kpi-lbl">Total</div>
+
+      </div>
+
+      <!-- ══ CONSEILS STRATEGIQUES ══ -->
+      <div class="solv-section" *ngIf="solvabilityReport.strategicAdvices.length > 0">
+        <div class="solv-section-title">Conseils Strategiques IA</div>
+        <div class="solv-advice-list">
+          <div class="solv-advice-card" *ngFor="let a of solvabilityReport.strategicAdvices"
+            [style.border-left-color]="getAdviceColor(a.severity)">
+            <div class="solv-advice-header">
+              <span class="solv-advice-severity"
+                [style.background]="getAdviceColor(a.severity) + '20'"
+                [style.color]="getAdviceColor(a.severity)">
+                {{ a.severity }}
+              </span>
+              <span class="solv-advice-title">{{ a.title }}</span>
+              <span class="solv-advice-action"
+                [style.background]="getAdviceColor(a.severity)"
+                [style.color]="'white'">
+                {{ a.action }}
+              </span>
             </div>
-            <div class="ai-kpi">
-              <div class="ai-kpi-val" style="color:#ef4444">{{ riskReport.summary.criticalCount }}</div>
-              <div class="ai-kpi-lbl">Critique</div>
-            </div>
-            <div class="ai-kpi">
-              <div class="ai-kpi-val" style="color:#f97316">{{ riskReport.summary.overdueCount }}</div>
-              <div class="ai-kpi-lbl">+30j retard</div>
-            </div>
-            <div class="ai-kpi">
-              <div class="ai-kpi-val" style="color:#eab308">{{ riskReport.summary.unpaidAmount | number:'1.0-0' }} TND</div>
-              <div class="ai-kpi-lbl">Impayes</div>
-            </div>
+            <p class="solv-advice-desc">{{ a.description }}</p>
           </div>
-          <div class="ai-risk-bar-wrap">
-            <div class="ai-risk-bar-track">
-              <div class="ai-risk-bar-fill"
-                [style.width]="riskReport.summary.globalRiskScore + '%'"
-                [style.background]="getRiskColor(riskReport.summary.globalRiskLevel)">
+        </div>
+      </div>
+
+      <!-- ══ PROFILS DE SOLVABILITE CLIENTS ══ -->
+      <div class="solv-section">
+        <div class="solv-section-title">Profils de Solvabilite Clients — Credit Rating</div>
+        <div class="solv-client-grid">
+          <div class="solv-client-card" *ngFor="let c of solvabilityReport.clientProfiles"
+            [style.border-top-color]="getRatingColor(c.creditRating)">
+
+            <!-- Header carte client -->
+            <div class="solv-client-header">
+              <div class="solv-client-name">{{ c.clientName }}</div>
+              <div class="solv-rating-tag"
+                [style.background]="getRatingBg(c.creditRating)"
+                [style.color]="getRatingColor(c.creditRating)"
+                [style.border-color]="getRatingColor(c.creditRating)">
+                {{ c.creditRating }}
               </div>
             </div>
-            <div class="ai-risk-bar-labels">
-              <span>FAIBLE</span><span>MOYEN</span><span>ELEVE</span><span>CRITIQUE</span>
+
+            <!-- Score solvabilite -->
+            <div class="solv-client-score-row">
+              <span class="solv-client-score-val" [style.color]="getRatingColor(c.creditRating)">
+                {{ c.solvabilityScore }}
+              </span>
+              <span class="solv-client-score-unit">/100</span>
+              <div class="solv-prob-badge"
+                [style.background]="getProbabilityColor(c.paymentProbability) + '20'"
+                [style.color]="getProbabilityColor(c.paymentProbability)">
+                {{ c.paymentProbability }}% prob. paiement
+              </div>
             </div>
+
+            <!-- Barre score -->
+            <div class="ai-card-bar-track">
+              <div class="ai-card-bar-fill"
+                [style.width]="c.solvabilityScore + '%'"
+                [style.background]="getRatingColor(c.creditRating)">
+              </div>
+            </div>
+
+            <!-- Description rating -->
+            <div class="solv-rating-desc">{{ c.ratingDescription }}</div>
+
+            <!-- Metriques -->
+            <div class="solv-metrics-grid">
+              <div class="solv-metric">
+                <div class="solv-metric-val">{{ c.avgDso | number:'1.0-0' }}j</div>
+                <div class="solv-metric-lbl">DSO moyen</div>
+              </div>
+              <div class="solv-metric">
+                <div class="solv-metric-val" [style.color]="c.recoveryRate >= 80 ? '#059669' : '#ef4444'">
+                  {{ c.recoveryRate }}%
+                </div>
+                <div class="solv-metric-lbl">Recouvrement</div>
+              </div>
+              <div class="solv-metric">
+                <div class="solv-metric-val">{{ c.paidInvoices }}/{{ c.totalInvoices }}</div>
+                <div class="solv-metric-lbl">Factures paiees</div>
+              </div>
+              <div class="solv-metric">
+                <div class="solv-metric-val" [style.color]="c.debtRatio > 50 ? '#ef4444' : 'inherit'">
+                  {{ c.debtRatio }}%
+                </div>
+                <div class="solv-metric-lbl">Ratio dette</div>
+              </div>
+            </div>
+
+            <!-- Montant impaye -->
+            <div class="solv-client-unpaid" *ngIf="c.unpaidAmount > 0" style="color:#f97316">
+              {{ c.unpaidAmount | number:'1.0-0' }} TND impayes
+            </div>
+
           </div>
         </div>
-        <button class="ai-refresh-btn" (click)="loadRiskReport()">&#x1F504;</button>
       </div>
 
-      <div class="ai-reco-panel" *ngIf="riskReport.recommendations.length > 0">
-        <div class="ai-reco-title">Recommandations IA</div>
-        <ul class="ai-reco-list">
-          <li *ngFor="let rec of riskReport.recommendations" class="ai-reco-item">{{ rec }}</li>
-        </ul>
-      </div>
-
-      <div class="ai-section">
-        <div class="ai-section-title">Clients a risque</div>
-        <div class="ai-empty" *ngIf="riskReport.clientRisks.length === 0">Aucun client a risque detecte</div>
-        <div class="ai-client-table-wrap" *ngIf="riskReport.clientRisks.length > 0">
-          <table class="ai-client-table">
-            <thead>
-              <tr>
-                <th>Client</th><th>Score</th><th>Niveau</th>
-                <th>Impayes</th><th>Retard</th><th>Montant Impaye</th><th>Taux</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let c of riskReport.clientRisks">
-                <td><strong>{{ c.clientName }}</strong></td>
-                <td>
-                  <div class="ai-score-pill"
-                    [style.background]="getRiskColor(c.riskLevel) + '22'"
-                    [style.color]="getRiskColor(c.riskLevel)">{{ c.riskScore }}
-                  </div>
-                </td>
-                <td>
-                  <span class="ai-level-badge" [style.background]="getRiskColor(c.riskLevel)">
-                    {{ getRiskIcon(c.riskLevel) }} {{ c.riskLevel }}
-                  </span>
-                </td>
-                <td>{{ c.unpaidInvoices }}/{{ c.totalInvoices }}</td>
-                <td [style.color]="c.overdueInvoices > 0 ? '#ef4444' : 'inherit'">{{ c.overdueInvoices }}</td>
-                <td [style.color]="c.unpaidAmount > 0 ? '#f97316' : 'inherit'">{{ c.unpaidAmount | number:'1.0-0' }} TND</td>
-                <td>
-                  <div class="ai-rate-bar">
-                    <div class="ai-rate-fill"
-                      [style.width]="c.unpaidRate + '%'"
-                      [style.background]="getRiskColor(c.riskLevel)">
-                    </div>
-                    <span>{{ c.unpaidRate }}%</span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="ai-section">
-        <div class="ai-section-header">
-          <div class="ai-section-title">Factures impayes analysees</div>
+      <!-- ══ PREDICTIONS DE PAIEMENT PAR FACTURE ══ -->
+      <div class="solv-section">
+        <div class="solv-section-header">
+          <div class="solv-section-title">Prediction de Paiement par Facture</div>
           <div class="ai-filter-bar">
-            <button *ngFor="let f of ['ALL','CRITIQUE','MOYEN','FAIBLE']"
+            <button *ngFor="let f of ['ALL','CRITIQUE','HAUTE','MOYENNE','FAIBLE']"
               class="ai-filter-btn"
-              [class.active]="riskFilter === f"
-              (click)="riskFilter = f">
-              {{ f === 'ALL' ? 'Tous' : getRiskIcon(f) + ' ' + f }}
+              [class.active]="predictionFilter === f"
+              (click)="predictionFilter = f">
+              {{ f === 'ALL' ? 'Toutes' : f }}
             </button>
           </div>
         </div>
-        <div class="ai-empty" *ngIf="filteredInvoiceRisks.length === 0">Aucune facture dans ce niveau de risque</div>
-        <div class="ai-invoice-cards">
-          <div class="ai-invoice-card"
-            *ngFor="let r of filteredInvoiceRisks"
-            [style.border-left-color]="getRiskColor(r.riskLevel)">
-            <div class="ai-inv-card-header">
-              <div>
-                <code class="inv-num">{{ r.invoiceNumber }}</code>
-                <span class="ai-level-badge"
-                  [style.background]="getRiskColor(r.riskLevel)"
-                  style="margin-left:8px">
-                  {{ getRiskIcon(r.riskLevel) }} {{ r.riskLevel }}
+
+        <div class="ai-empty" *ngIf="filteredPredictions.length === 0">
+          Aucune facture impayee
+        </div>
+
+        <div class="solv-prediction-list">
+          <div class="solv-prediction-card" *ngFor="let p of filteredPredictions"
+            [style.border-left-color]="getUrgencyColor(p.urgency)">
+
+            <div class="solv-pred-top">
+              <div class="solv-pred-left">
+                <code class="inv-num">{{ p.invoiceNumber }}</code>
+                <span class="solv-urgency-badge"
+                  [style.background]="getUrgencyColor(p.urgency) + '20'"
+                  [style.color]="getUrgencyColor(p.urgency)">
+                  {{ p.urgency }}
+                </span>
+                <span class="solv-rating-micro"
+                  [style.background]="getRatingBg(p.clientRating)"
+                  [style.color]="getRatingColor(p.clientRating)">
+                  {{ p.clientRating }}
                 </span>
               </div>
-              <div class="ai-inv-score">
-                <span [style.color]="getRiskColor(r.riskLevel)">{{ r.riskScore }}</span>/100
+              <div class="solv-pred-amount">{{ p.amount | number:'1.0-0' }} TND</div>
+            </div>
+
+            <div class="solv-pred-info">
+              <span>{{ p.clientName }}</span>
+              <span>{{ p.project }}</span>
+              <span>{{ p.daysOverdue }}j impaye</span>
+              <span *ngIf="p.estimatedPaymentDate !== 'Non prevu' && p.estimatedPaymentDate !== 'Inconnu'">
+                Paiement estime : {{ p.estimatedPaymentDate }}
+              </span>
+            </div>
+
+            <!-- Jauge probabilite -->
+            <div class="solv-prob-row">
+              <span class="solv-prob-label">Probabilite de paiement</span>
+              <div class="solv-prob-bar">
+                <div class="solv-prob-fill"
+                  [style.width]="p.paymentProbability + '%'"
+                  [style.background]="getProbabilityColor(p.paymentProbability)">
+                </div>
               </div>
+              <span class="solv-prob-pct" [style.color]="getProbabilityColor(p.paymentProbability)">
+                {{ p.paymentProbability }}%
+              </span>
             </div>
-            <div class="ai-inv-details">
-              <span>{{ r.clientName }}</span>
-              <span>{{ r.project }}</span>
-              <span>{{ r.amount | number:'1.0-0' }} TND</span>
-              <span [style.color]="r.daysOverdue > 30 ? '#ef4444' : '#64748b'">{{ r.daysOverdue }}j</span>
+
+            <!-- Prediction texte -->
+            <div class="solv-pred-text" [style.color]="getUrgencyColor(p.urgency)">
+              {{ p.prediction }}
             </div>
-            <div class="ai-card-bar-track">
-              <div class="ai-card-bar-fill"
-                [style.width]="r.riskScore + '%'"
-                [style.background]="getRiskColor(r.riskLevel)">
-              </div>
-            </div>
-            <div class="ai-action-row">
-              <span class="ai-action-text">{{ r.recommendedAction }}</span>
-            </div>
+
           </div>
         </div>
       </div>
 
     </ng-container>
-  </div>
+  </div><!-- /AI TAB -->
 
 </div>
