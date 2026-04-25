@@ -108,6 +108,9 @@ export interface Invoice {
   deliveryOrderId?: number;
   linkedEscrowId?: number;
   deliveredAt?: string;
+
+  // 🧧 Type de facture
+  invoiceType?: InvoiceType | string;
 }
 
 
@@ -115,4 +118,10 @@ export interface Invoice {
 export enum InvoiceStatus {
   PAID   = 'PAID',
   UNPAID = 'UNPAID'
+}
+
+// 🧾 Type de facture
+export enum InvoiceType {
+  VENTE = 'VENTE',  // L'entreprise est vendeur → va encaisser
+  ACHAT = 'ACHAT'   // L'entreprise est acheteur → doit payer
 }

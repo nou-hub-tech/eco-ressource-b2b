@@ -3,7 +3,8 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
 import * as XLSX from 'xlsx';
 import { FinanceService } from '../../../core/services/finance';
-import { FinanceTransaction, EscrowEntry } from '../../../core/models/finance.model';
+import { InvoiceService } from '../../../core/services/invoice';
+import { FinanceTransaction, EscrowEntry, Invoice } from '../../../core/models/finance.model';
 
 Chart.register(...registerables);
 
@@ -22,6 +23,7 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
 
   transactions: FinanceTransaction[] = [];
   escrowEntries: EscrowEntry[] = [];
+  invoices: Invoice[] = [];
 
   transactionForm: FormGroup;
   escrowForm: FormGroup;
@@ -57,8 +59,8 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   //  Cash Threshold Alert
   cashThreshold = 50000;
 
-  // Onglets : 'data' (défaut) | 'stats'
-  activeTab: 'data' | 'stats' = 'data';
+  // Onglets : 'data' (défaut) | 'stats' | 'dashboard'
+  activeTab: 'data' | 'stats' | 'dashboard' = 'data';
 
 
   //  Chart instances
@@ -69,6 +71,7 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private financeService: FinanceService,
+    private invoiceService: InvoiceService,
     private fb: FormBuilder,
     private cd: ChangeDetectorRef
   ) {
@@ -96,7 +99,7 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Change d'onglet — réinitialise les graphiques si on va sur 'stats' */
-  setTab(tab: 'data' | 'stats'): void {
+  setTab(tab: 'data' | 'stats' | 'dashboard'): void {
     this.activeTab = tab;
     if (tab === 'stats') {
       setTimeout(() => this.initCharts(), 80);
@@ -260,8 +263,8 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   // ==================== LOAD DATA ====================
 
   loadData(): void {
-    let txOk = false, escOk = false;
-    const check = () => { if (txOk && escOk) { this.dataReady = true; if (this.viewReady) setTimeout(() => this.initCharts(), 50); } };
+    let txOk = false, escOk = false, invOk = false;
+    const check = () => { if (txOk && escOk && invOk) { this.dataReady = true; if (this.viewReady) setTimeout(() => this.initCharts(), 50); } };
 
     // 🏢 Transactions de l'entreprise connectee seulement
     this.financeService.getMyTransactions().subscribe({
@@ -273,6 +276,78 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
       next: d => { this.escrowEntries = d; escOk = true; this.cd.detectChanges(); check(); },
       error: () => this.showToast('Erreur chargement escrow', 'error')
     });
+    // 🏢 Factures pour le dashboard financier
+    this.invoiceService.getMyInvoices().subscribe({
+      next: d => { this.invoices = d; invOk = true; this.cd.detectChanges(); check(); },
+      error: () => this.showToast('Erreur chargement factures', 'error')
+    });
+  }
+
+  // ==================== DASHBOARD FINANCIER (Invoices) ====================
+
+  get salesInvoices(): Invoice[] { return this.invoices.filter(i => i.invoiceType === 'VENTE'); }
+  get purchaseInvoices(): Invoice[] { return this.invoices.filter(i => i.invoiceType === 'ACHAT'); }
+
+  /** 💰 Total encaisse (ventes PAID) */
+  get dashRevenue(): number { return this.salesInvoices.filter(i => i.status === 'PAID').reduce((s, i) => s + (i.amountTTC || 0), 0); }
+  get dashRevenueCount(): number { return this.salesInvoices.filter(i => i.status === 'PAID').length; }
+  /** 💸 Total dépenses (achats PAID) */
+  get dashExpenses(): number { return this.purchaseInvoices.filter(i => i.status === 'PAID').reduce((s, i) => s + (i.amountTTC || 0), 0); }
+  get dashExpensesCount(): number { return this.purchaseInvoices.filter(i => i.status === 'PAID').length; }
+  /** 📈 Marge nette */
+  get dashMargin(): number { return this.dashRevenue - this.dashExpenses; }
+  /** % Taux de marge */
+  get dashMarginRate(): number { return this.dashRevenue > 0 ? (this.dashMargin / this.dashRevenue) * 100 : 0; }
+  /** ⏳ Créances (ventes UNPAID = à encaisser) */
+  get dashReceivables(): number { return this.salesInvoices.filter(i => i.status === 'UNPAID').reduce((s, i) => s + (i.amountTTC || 0), 0); }
+  /** ⏳ Dettes (achats UNPAID = à payer) */
+  get dashPayables(): number { return this.purchaseInvoices.filter(i => i.status === 'UNPAID').reduce((s, i) => s + (i.amountTTC || 0), 0); }
+
+  /** Top 5 clients (par montant encaissé) */
+  get topClients(): { name: string; amount: number; count: number }[] {
+    const map = new Map<string, { amount: number; count: number }>();
+    this.salesInvoices.forEach(i => {
+      const k = i.clientName || 'Inconnu';
+      const v = map.get(k) || { amount: 0, count: 0 };
+      map.set(k, { amount: v.amount + (i.amountTTC || 0), count: v.count + 1 });
+    });
+    return [...map.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+  }
+
+  /** Top 5 fournisseurs (par montant dépensé) */
+  get topSuppliers(): { name: string; amount: number; count: number }[] {
+    const map = new Map<string, { amount: number; count: number }>();
+    this.purchaseInvoices.forEach(i => {
+      const k = i.sellerName || 'Inconnu';
+      const v = map.get(k) || { amount: 0, count: 0 };
+      map.set(k, { amount: v.amount + (i.amountTTC || 0), count: v.count + 1 });
+    });
+    return [...map.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+  }
+
+  /** Top projets (ventes cumulées par projet) */
+  get topProjects(): { name: string; revenue: number; expenses: number; margin: number }[] {
+    const map = new Map<string, { revenue: number; expenses: number }>();
+    this.salesInvoices.forEach(i => {
+      const k = i.project || 'Sans projet';
+      const v = map.get(k) || { revenue: 0, expenses: 0 };
+      map.set(k, { ...v, revenue: v.revenue + (i.amountTTC || 0) });
+    });
+    this.purchaseInvoices.forEach(i => {
+      const k = i.project || 'Sans projet';
+      const v = map.get(k) || { revenue: 0, expenses: 0 };
+      map.set(k, { ...v, expenses: v.expenses + (i.amountTTC || 0) });
+    });
+    return [...map.entries()]
+      .map(([name, v]) => ({ name, ...v, margin: v.revenue - v.expenses }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 6);
   }
 
   // ==================== CHARTS ====================

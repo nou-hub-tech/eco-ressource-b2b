@@ -421,6 +421,59 @@
 .escrow-disputed-row td:first-child { border-left: 3px solid #dc2626; }
 
 /* ─────────────────────────────────────
+   DASHBOARD FINANCIER (Invoices)
+   ───────────────────────────────────── */
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px; margin-bottom: 24px;
+}
+.dash-kpi-card {
+  background: white; border-radius: 16px; padding: 20px;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,.05); border: 1px solid var(--border);
+  transition: transform .2s, box-shadow .2s;
+}
+.dash-kpi-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,.1); }
+.dash-kpi-icon {
+  width: 54px; height: 54px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; background: var(--bg3);
+}
+.dash-revenue .dash-kpi-icon { background: rgba(5,150,105,.1); color: #059669; }
+.dash-expenses .dash-kpi-icon { background: rgba(220,38,38,.1); color: #dc2626; }
+.dash-receivables .dash-kpi-icon { background: rgba(249,115,22,.1); color: #f97316; }
+.dash-payables .dash-kpi-icon { background: rgba(2,132,199,.1); color: #0284c7; }
+
+.dash-kpi-body { flex: 1; }
+.dash-kpi-val { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); }
+.dash-kpi-lbl { font-size: 11px; color: var(--text3); font-weight: 600; margin-top: 2px; }
+.dash-kpi-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+.dash-margin-pos { border-left: 4px solid #059669; }
+.dash-margin-neg { border-left: 4px solid #dc2626; }
+.dash-balance-pos { border-bottom: 3px solid #059669; }
+.dash-balance-neg { border-bottom: 3px solid #dc2626; }
+
+.dash-tables-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;
+}
+@media (max-width: 900px) { .dash-tables-grid { grid-template-columns: 1fr; } }
+
+.rank-badge {
+  width: 22px; height: 22px; border-radius: 50%; background: var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: var(--text3);
+}
+.progress-bar-wrap { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; margin: 4px 0; }
+.progress-bar-fill { height: 100%; border-radius: 3px; }
+
+.project-bar { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; width: 60px; }
+.project-bar-fill { height: 100%; }
+
+.dash-badge { background: #dc2626; color: white; padding: 0 4px; border-radius: 4px; font-size: 9px; font-weight: 800; }
+
+/* ─────────────────────────────────────
    DATA TABLE
 ───────────────────────────────────── */
 .data-table th {

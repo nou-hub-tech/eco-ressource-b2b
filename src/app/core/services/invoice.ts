@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { Invoice } from '../models/finance.model';
 
 // ══════════════════════════════════════════════════════════════
@@ -142,6 +142,23 @@ export class InvoiceService {
   /** 🏢 Factures de l'entreprise connectee (acheteur OU vendeur) */
   getMyInvoices(): Observable<Invoice[]> {
     return this.http.get<Invoice[]>(`${this.API}/my`);
+  }
+
+  /** 📤 Factures de VENTE : entreprise = vendeur → va encaisser */
+  getMySalesInvoices(): Observable<Invoice[]> {
+    return this.http.get<Invoice[]>(`${this.API}/my/sales`);
+  }
+
+  /** 📥 Factures d'ACHAT : entreprise = acheteur → doit payer */
+  getMyPurchaseInvoices(): Observable<Invoice[]> {
+    return this.http.get<Invoice[]>(`${this.API}/my/purchases`);
+  }
+
+  /** 🔢 Prochain numéro de facture auto : VTE-2026-001 ou ACH-2026-001 */
+  getNextInvoiceNumber(type: 'VENTE' | 'ACHAT'): Observable<string> {
+    return this.http.get<{ number: string }>(`${this.API}/next-number/${type}`).pipe(
+      map((r: { number: string }) => r.number)
+    );
   }
 
   getById(id: number): Observable<Invoice> {
