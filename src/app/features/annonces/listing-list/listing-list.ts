@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
 import { ResourceListingService } from '../services/resource-listing.service';
 import { FavoriteService } from '../services/favorite.service';
 import { httpErrorMessage } from '../services/api-normalize';
@@ -32,8 +32,15 @@ export class ListingList implements OnInit {
 
   constructor(
     private readonly listingService: ResourceListingService,
-    private readonly favoriteService: FavoriteService
+    private readonly favoriteService: FavoriteService,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone
   ) {}
+
+  /** HttpClient peut terminer hors cycle Angular selon l’environnement ; force l’affichage sans clic. */
+  private refreshView(): void {
+    this.ngZone.run(() => this.cdr.detectChanges());
+  }
 
   ngOnInit(): void {
     this.loadData();
@@ -48,6 +55,7 @@ export class ListingList implements OnInit {
         this.categories = [...new Set(data.map(l => l.productCategory).filter(Boolean))];
         this.applyFilters();
         this.loading = false;
+        this.refreshView();
       },
       error: (err: unknown) => {
         this.loadError = httpErrorMessage(err);
@@ -55,15 +63,18 @@ export class ListingList implements OnInit {
         this.filtered = [];
         this.paged = [];
         this.loading = false;
+        this.refreshView();
       }
     });
 
     this.favoriteService.myFavorites().subscribe({
       next: (favs: FavoriteResponse[]) => {
         this.favoriteIds = new Set(favs.map(f => f.listingId));
+        this.refreshView();
       },
       error: () => {
         this.favoriteIds = new Set();
+        this.refreshView();
       }
     });
   }

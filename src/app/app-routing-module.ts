@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { RoleGuard } from './core/guards/role.guard';
 import { ProductListComponent } from './components/product/product-list/product-list';
@@ -57,7 +57,13 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [
+    RouterModule.forRoot(routes, {
+      /** Précharge les modules lazy (auth, enterprise, annonces…) en arrière-plan après la première navigation. */
+      preloadingStrategy: PreloadAllModules,
+      scrollPositionRestoration: 'top'
+    })
+  ],
   exports: [RouterModule]
 })
 export class AppRoutingModule {}

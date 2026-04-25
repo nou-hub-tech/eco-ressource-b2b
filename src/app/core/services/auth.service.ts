@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, map, tap } from 'rxjs';
@@ -10,6 +10,8 @@ export interface User {
   email: string;
   role: 'admin' | 'enterprise' | 'transporter';
   company?: string;
+  /** Enterprise or transporter id for API payloads (distinct from user id). */
+  companyId?: string | number;
   avatar: string;
 }
 
@@ -23,6 +25,7 @@ interface JwtResponse {
     email: string;
     role: string;
     company?: string;
+    companyId?: string | number;
     avatar: string;
   };
 }
@@ -36,10 +39,65 @@ export class AuthService {
   private readonly userSubject = new BehaviorSubject<User | null>(this.loadUser());
   readonly user$ = this.userSubject.asObservable();
 
+  private focusSyncHandle: ReturnType<typeof setTimeout> | null = null;
+
   constructor(
     private readonly http: HttpClient,
-    private readonly router: Router
-  ) {}
+    private readonly router: Router,
+    private readonly ngZone: NgZone
+  ) {
+    if (typeof window !== 'undefined') {
+      /*
+       * Même navigateur = un seul localStorage pour tous les onglets.
+       * Un 2ᵉ login écrase eco_token : les appels API utilisent déjà ce token (intercepteur),
+       * mais user$ restait sur l’ancien compte → nom affiché ≠ auteur réel du commentaire.
+       */
+      window.addEventListener('storage', (e: StorageEvent) => {
+        if (
+          e.key !== TOKEN_KEY &&
+          e.key !== USER_KEY &&
+          e.key !== null
+        ) {
+          return;
+        }
+        this.ngZone.run(() => this.applySessionFromBrowserStorage());
+      });
+      window.addEventListener('focus', () => this.scheduleApplySessionFromStorage());
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.scheduleApplySessionFromStorage();
+        }
+      });
+    }
+  }
+
+  private scheduleApplySessionFromStorage(): void {
+    if (this.focusSyncHandle) clearTimeout(this.focusSyncHandle);
+    this.focusSyncHandle = setTimeout(() => {
+      this.focusSyncHandle = null;
+      this.ngZone.run(() => this.applySessionFromBrowserStorage());
+    }, 80);
+  }
+
+  /** Réaligne user$ sur eco_user / eco_token (autre onglet ou retour sur la fenêtre). */
+  private applySessionFromBrowserStorage(): void {
+    const next = this.loadUser();
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      if (this.userSubject.value !== null) this.userSubject.next(null);
+      return;
+    }
+    const prev = this.userSubject.value;
+    if (
+      prev?.id === next?.id &&
+      prev?.email === next?.email &&
+      prev?.role === next?.role &&
+      prev?.companyId === next?.companyId
+    ) {
+      return;
+    }
+    this.userSubject.next(next);
+  }
 
   get currentUser(): User | null {
     return this.userSubject.value;
@@ -99,6 +157,40 @@ export class AuthService {
     return this.currentUser?.role ?? null;
   }
 
+  /**
+   * Enterprise or transporter id used by listings, group purchases, etc.
+   * Missing after an old login: user must sign in again.
+   */
+  getCompanyProfileId(): number | null {
+    const u = this.currentUser;
+    if (!u) return null;
+    const raw = u.companyId;
+    if (raw === undefined || raw === null || raw === '') return null;
+    const n = typeof raw === 'number' ? raw : parseInt(String(raw), 10);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  /** Rafraîchit eco_user (dont companyId) depuis le backend ; utile après mise à jour de l’API sans nouveau login. */
+  refreshProfileFromApi(): Observable<User | null> {
+    return this.http.get<JwtResponse['user']>(`${this.apiUrl}/auth/me`).pipe(
+      tap((dto) => {
+        const prev = this.currentUser;
+        const u: User = {
+          id: dto.id,
+          name: dto.name,
+          email: dto.email,
+          role: dto.role as User['role'],
+          company: dto.company,
+          companyId: dto.companyId,
+          avatar: dto.avatar
+        };
+        localStorage.setItem(USER_KEY, JSON.stringify(u));
+        this.userSubject.next(u);
+      }),
+      map(() => this.currentUser)
+    );
+  }
+
   isLoggedIn(): boolean {
     return !!this.getToken() && !!this.currentUser;
   }
@@ -134,6 +226,7 @@ export class AuthService {
       email: u.email,
       role: routeRole,
       company: u.company,
+      companyId: u.companyId,
       avatar: u.avatar
     };
   }

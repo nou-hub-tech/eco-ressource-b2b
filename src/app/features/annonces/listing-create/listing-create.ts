@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,6 +8,16 @@ import { Product, ListingType } from '../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProductService } from '../../../core/services/product';
 import { httpErrorMessage, normalizeProduct, unwrapApiArray } from '../services/api-normalize';
+import {
+  DEFAULT_LISTING_IMAGE_URL,
+  MAX_LISTING_IMAGE_BYTES,
+  MAX_LISTING_PHOTOS,
+  isOnlyDefaultPlaceholder,
+  resolveListingAttachmentUrls
+} from '../constants/listing-images';
+import { ListingImageUploadService } from '../services/listing-image-upload.service';
+import { concatMap, finalize, toArray } from 'rxjs/operators';
+import { from } from 'rxjs';
 
 @Component({
   selector: 'app-listing-create',
@@ -26,6 +36,13 @@ export class ListingCreate implements OnInit {
   loading = false;
   submitting = false;
   error = '';
+  /** Erreur liée au fichier image (taille ou type). */
+  imageError: string | null = null;
+  /** Upload multipart vers {@code POST /api/listing-images} en cours. */
+  uploadingImage = false;
+  /** Index de la grande vignette à l’étape photos. */
+  previewMainIndex = 0;
+  readonly maxListingPhotos = MAX_LISTING_PHOTOS;
   companyId!: number;
 
   selectedType: ListingType | null = null;
@@ -42,12 +59,18 @@ export class ListingCreate implements OnInit {
     private readonly listingService: ResourceListingService,
     private readonly productAnnoncesService: ProductAnnoncesService,
     private readonly catalogProductService: ProductService,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly listingImageUpload: ListingImageUploadService,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone
   ) {}
 
+  private refreshView(): void {
+    this.ngZone.run(() => this.cdr.detectChanges());
+  }
+
   ngOnInit(): void {
-    const user = this.authService.currentUser;
-    this.companyId = user ? parseInt(user.id, 10) : 0;
+    this.companyId = this.authService.getCompanyProfileId() ?? 0;
 
     this.form = this.fb.group({
       type: ['', Validators.required],
@@ -88,6 +111,7 @@ export class ListingCreate implements OnInit {
               this.products = [];
               this.productsFromCatalogFallback = false;
               this.loading = false;
+              this.refreshView();
             }
           });
           return;
@@ -95,6 +119,7 @@ export class ListingCreate implements OnInit {
         this.productsLoadError = httpErrorMessage(err);
         this.products = [];
         this.loading = false;
+        this.refreshView();
       }
     });
   }
@@ -110,6 +135,7 @@ export class ListingCreate implements OnInit {
     } else {
       this.productsLoadError = null;
     }
+    this.refreshView();
   }
 
   selectType(type: ListingType): void {
@@ -138,7 +164,128 @@ export class ListingCreate implements OnInit {
     return this.selectedType === 'GROUP_BUYING';
   }
 
+  get attachmentUrlsList(): string[] {
+    return ((this.form.get('attachmentUrls')?.value as string[]) || [])
+      .map((u) => u.trim())
+      .filter(Boolean)
+      .slice(0, MAX_LISTING_PHOTOS);
+  }
+
+  get listingImagePreview(): string {
+    const arr = this.attachmentUrlsList;
+    if (!arr.length) return DEFAULT_LISTING_IMAGE_URL;
+    const i = Math.min(Math.max(this.previewMainIndex, 0), arr.length - 1);
+    return arr[i];
+  }
+
+  get usesCustomListingPhoto(): boolean {
+    const urls = this.form?.get('attachmentUrls')?.value as string[] | undefined;
+    return !isOnlyDefaultPlaceholder(urls);
+  }
+
+  setPreviewIndex(i: number): void {
+    const n = this.attachmentUrlsList.length;
+    if (n === 0) return;
+    this.previewMainIndex = Math.min(Math.max(i, 0), n - 1);
+    this.refreshView();
+  }
+
+  onListingImageSelected(event: Event): void {
+    this.imageError = null;
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    if (!files?.length) return;
+
+    const current = ((this.form.get('attachmentUrls')?.value as string[]) || []).map((u) => u.trim()).filter(Boolean);
+    const room = MAX_LISTING_PHOTOS - current.length;
+    if (room <= 0) {
+      this.imageError = `Maximum ${MAX_LISTING_PHOTOS} photos. Retirez-en une pour en ajouter.`;
+      input.value = '';
+      this.refreshView();
+      return;
+    }
+
+    const raw = Array.from(files);
+    const toProcess = raw.slice(0, room);
+    if (raw.length > room) {
+      this.imageError = `Seules ${room} photo(s) supplémentaire(s) ont été prises (limite ${MAX_LISTING_PHOTOS}).`;
+    }
+
+    const validFiles: File[] = [];
+    for (const f of toProcess) {
+      if (!f.type.startsWith('image/')) {
+        this.imageError = 'Un ou plusieurs fichiers ne sont pas des images.';
+        input.value = '';
+        this.refreshView();
+        return;
+      }
+      if (f.size > MAX_LISTING_IMAGE_BYTES) {
+        this.imageError = "Chaque image ne doit pas dépasser 5 Mo.";
+        input.value = '';
+        this.refreshView();
+        return;
+      }
+      validFiles.push(f);
+    }
+    if (validFiles.length === 0) return;
+
+    this.uploadingImage = true;
+    this.refreshView();
+
+    from(validFiles)
+      .pipe(
+        concatMap((file) => this.listingImageUpload.upload(file)),
+        toArray(),
+        finalize(() => {
+          this.ngZone.run(() => {
+            this.uploadingImage = false;
+            input.value = '';
+            this.refreshView();
+          });
+        })
+      )
+      .subscribe({
+        next: (urls) => {
+          this.ngZone.run(() => {
+            const merged = [...current, ...urls].slice(0, MAX_LISTING_PHOTOS);
+            this.form.patchValue({ attachmentUrls: merged });
+            this.previewMainIndex = Math.min(this.previewMainIndex, merged.length - 1);
+            if (this.previewMainIndex < 0) this.previewMainIndex = 0;
+            this.refreshView();
+          });
+        },
+        error: (err: unknown) => {
+          this.ngZone.run(() => {
+            this.imageError = httpErrorMessage(err);
+            this.refreshView();
+          });
+        }
+      });
+  }
+
+  removeImageAt(index: number, fileInput: HTMLInputElement): void {
+    const urls = [...((this.form.get('attachmentUrls')?.value as string[]) || [])]
+      .map((u) => u.trim())
+      .filter(Boolean);
+    urls.splice(index, 1);
+    this.form.patchValue({ attachmentUrls: urls });
+    fileInput.value = '';
+    if (this.previewMainIndex >= urls.length) {
+      this.previewMainIndex = Math.max(0, urls.length - 1);
+    }
+    this.refreshView();
+  }
+
+  clearListingImage(fileInput: HTMLInputElement): void {
+    fileInput.value = '';
+    this.imageError = null;
+    this.previewMainIndex = 0;
+    this.form.patchValue({ attachmentUrls: [] });
+    this.refreshView();
+  }
+
   get canGoNext(): boolean {
+    if (this.uploadingImage) return false;
     switch (this.step) {
       case 1: return !!this.selectedType;
       case 2: return this.form.get('productId')!.valid;
@@ -178,7 +325,7 @@ export class ListingCreate implements OnInit {
   }
 
   submit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.uploadingImage) return;
     this.submitting = true;
     this.error = '';
 
@@ -186,7 +333,7 @@ export class ListingCreate implements OnInit {
     const body = {
       ...val,
       companyId: this.companyId,
-      attachmentUrls: val.attachmentUrls?.length ? val.attachmentUrls : undefined,
+      attachmentUrls: resolveListingAttachmentUrls(val.attachmentUrls),
       targetQuantity: this.isGroupBuying ? val.targetQuantity : undefined,
       deadline: this.isGroupBuying ? val.deadline : undefined,
       price: val.price ?? undefined,
@@ -203,6 +350,7 @@ export class ListingCreate implements OnInit {
       error: (err: unknown) => {
         this.error = httpErrorMessage(err);
         this.submitting = false;
+        this.refreshView();
       }
     });
   }

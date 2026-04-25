@@ -30,8 +30,7 @@ export class StockItemEdit implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const user = this.authService.currentUser;
-    const defaultCompany = user ? parseInt(user.id, 10) : null;
+    const defaultCompany = this.authService.getCompanyProfileId();
 
     this.form = this.fb.group({
       quantity: [null, [Validators.required, Validators.min(0.0001)]],

@@ -1,4 +1,18 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  EventEmitter,
+  inject,
+  Input,
+  NgZone,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  Output,
+  SimpleChanges
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, Validators } from '@angular/forms';
 import { CommentService } from '../../services/comment.service';
 import { CommentResponse } from '../../../../core/models/annonces.interfaces';
@@ -10,8 +24,12 @@ import { AuthService } from '../../../../core/services/auth.service';
   templateUrl: './comment-thread.html',
   styleUrls: ['./comment-thread.css']
 })
-export class CommentThread implements OnInit, OnDestroy {
+export class CommentThread implements OnInit, OnDestroy, OnChanges {
+  private readonly destroyRef = inject(DestroyRef);
   @Input() listingId!: number;
+  /** companyId du listing : permet au vendeur de supprimer les commentaires sur son annonce. */
+  @Input() listingCompanyId: number | null = null;
+  @Output() commentCountUpdated = new EventEmitter<number>();
 
   comments: CommentResponse[] = [];
   commentCtrl = new FormControl('', [Validators.required, Validators.maxLength(2000)]);
@@ -22,18 +40,131 @@ export class CommentThread implements OnInit, OnDestroy {
   editingComment: CommentResponse | null = null;
   currentUserId: number | null = null;
   currentUserRole: string | null = null;
+  currentCompanyId: number | null = null;
   private spamTimer: any;
 
   constructor(
     private readonly commentService: CommentService,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone
   ) {}
 
+  private refreshView(): void {
+    this.ngZone.run(() => this.cdr.detectChanges());
+  }
+
+  get totalCommentCount(): number {
+    return this.countTotal(this.comments);
+  }
+
+  private countTotal(nodes: CommentResponse[] | null | undefined): number {
+    if (!nodes?.length) return 0;
+    let t = 0;
+    for (const c of nodes) {
+      t += 1;
+      if (c.replies?.length) {
+        t += this.countTotal(c.replies);
+      }
+    }
+    return t;
+  }
+
+  private emitCommentCount(): void {
+    const n = this.countTotal(this.comments);
+    const push = (): void =>
+      this.ngZone.run(() => this.commentCountUpdated.emit(n));
+    push();
+    queueMicrotask(() => push());
+  }
+
+  private syncLocalComments(comments: CommentResponse[]): void {
+    this.comments = comments;
+    this.emitCommentCount();
+    this.refreshView();
+  }
+
+  private addCommentToTree(
+    nodes: CommentResponse[],
+    comment: CommentResponse
+  ): CommentResponse[] {
+    if (!comment.parentId) {
+      return [...nodes, { ...comment, replies: comment.replies ?? [] }];
+    }
+
+    return nodes.map((node) => {
+      if (node.id === comment.parentId) {
+        return {
+          ...node,
+          replies: [...(node.replies ?? []), { ...comment, replies: comment.replies ?? [] }]
+        };
+      }
+
+      if (node.replies?.length) {
+        return {
+          ...node,
+          replies: this.addCommentToTree(node.replies, comment)
+        };
+      }
+
+      return node;
+    });
+  }
+
+  private updateCommentInTree(
+    nodes: CommentResponse[],
+    comment: CommentResponse
+  ): CommentResponse[] {
+    return nodes.map((node) => {
+      if (node.id === comment.id) {
+        return {
+          ...node,
+          ...comment,
+          replies: node.replies ?? comment.replies ?? []
+        };
+      }
+
+      if (node.replies?.length) {
+        return {
+          ...node,
+          replies: this.updateCommentInTree(node.replies, comment)
+        };
+      }
+
+      return node;
+    });
+  }
+
+  private removeCommentFromTree(nodes: CommentResponse[], id: number): CommentResponse[] {
+    return nodes
+      .filter((node) => node.id !== id)
+      .map((node) => ({
+        ...node,
+        replies: node.replies?.length ? this.removeCommentFromTree(node.replies, id) : []
+      }));
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['listingId'] && !changes['listingId'].firstChange) {
+      const id = this.listingId;
+      if (Number.isFinite(id) && id > 0) {
+        this.loadComments();
+      }
+    }
+  }
+
   ngOnInit(): void {
-    const user = this.authService.currentUser;
-    if (user) {
-      this.currentUserId = parseInt(user.id, 10);
-      this.currentUserRole = user.role;
+    this.authService.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
+      this.currentUserId = user ? parseInt(user.id, 10) : null;
+      this.currentUserRole = user?.role ?? null;
+      this.currentCompanyId = this.authService.getCompanyProfileId();
+      this.refreshView();
+    });
+    if (this.authService.isLoggedIn() && this.authService.getCompanyProfileId() == null) {
+      this.authService.refreshProfileFromApi().subscribe({
+        next: () => {},
+        error: () => {}
+      });
     }
     this.loadComments();
   }
@@ -45,8 +176,16 @@ export class CommentThread implements OnInit, OnDestroy {
   loadComments(): void {
     this.loading = true;
     this.commentService.findByListing(this.listingId).subscribe({
-      next: (data) => { this.comments = data; this.loading = false; },
-      error: () => { this.loading = false; }
+      next: (data) => {
+        this.comments = Array.isArray(data) ? data : [];
+        this.loading = false;
+        this.emitCommentCount();
+        this.refreshView();
+      },
+      error: () => {
+        this.loading = false;
+        this.refreshView();
+      }
     });
   }
 
@@ -59,7 +198,11 @@ export class CommentThread implements OnInit, OnDestroy {
       this.commentService.update(this.editingComment.id, {
         content: this.commentCtrl.value!.trim()
       }).subscribe({
-        next: () => { this.reset(); this.loadComments(); },
+        next: (updated) => {
+          this.syncLocalComments(this.updateCommentInTree(this.comments, updated));
+          this.reset();
+          this.loadComments();
+        },
         error: () => { this.sending = false; }
       });
     } else {
@@ -67,7 +210,12 @@ export class CommentThread implements OnInit, OnDestroy {
         content: this.commentCtrl.value!.trim(),
         parentId: this.replyTo?.id ?? null
       }).subscribe({
-        next: () => { this.reset(); this.startAntiSpam(); this.loadComments(); },
+        next: (created) => {
+          this.syncLocalComments(this.addCommentToTree(this.comments, created));
+          this.reset();
+          this.startAntiSpam();
+          this.loadComments();
+        },
         error: () => { this.sending = false; }
       });
     }
@@ -93,7 +241,10 @@ export class CommentThread implements OnInit, OnDestroy {
 
   deleteComment(id: number): void {
     this.commentService.delete(id).subscribe({
-      next: () => this.loadComments()
+      next: () => {
+        this.syncLocalComments(this.removeCommentFromTree(this.comments, id));
+        this.loadComments();
+      }
     });
   }
 
@@ -102,7 +253,18 @@ export class CommentThread implements OnInit, OnDestroy {
   }
 
   canDelete(comment: CommentResponse): boolean {
-    return this.isOwner(comment) || this.currentUserRole === 'admin';
+    if (this.currentUserRole === 'admin') return true;
+    if (this.isOwner(comment)) return true;
+    return this.isListingOwner();
+  }
+
+  /** Vendeur de l’annonce (tous types : surplus, demande, achat groupé). */
+  isListingOwner(): boolean {
+    return (
+      this.listingCompanyId != null &&
+      this.currentCompanyId != null &&
+      this.listingCompanyId === this.currentCompanyId
+    );
   }
 
   timeAgo(dateStr: string): string {

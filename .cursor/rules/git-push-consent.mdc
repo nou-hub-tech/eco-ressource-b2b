@@ -1,0 +1,10 @@
+---
+description: Ne pas pousser sur le dépôt distant sans accord explicite
+alwaysApply: true
+---
+
+# Git — pas de push sans demande
+
+- Après des commits ou des changements Git, **ne pas** exécuter `git push` (ni vers `main`, ni vers une autre branche) **tant que l’utilisateur ne le demande pas clairement** (par ex. « push », « pousse vers origin », « mets sur GitHub »).
+- Faire les commits localement si c’est utile, puis **indiquer** que les changements sont prêts et attendent un push si l’utilisateur le souhaite.
+- Exception raisonnable : si l’utilisateur vient de dire explicitement de pousser dans le même message.

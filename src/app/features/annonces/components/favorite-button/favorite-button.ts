@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, Output } from '@angular/core';
 import { FavoriteService } from '../../services/favorite.service';
 
 @Component({
@@ -16,7 +16,11 @@ export class FavoriteButton {
 
   loading = false;
 
-  constructor(private readonly favoriteService: FavoriteService) {}
+  constructor(
+    private readonly favoriteService: FavoriteService,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone
+  ) {}
 
   toggle(event: Event): void {
     event.stopPropagation();
@@ -24,18 +28,30 @@ export class FavoriteButton {
     if (this.loading) return;
     this.loading = true;
 
-    const onSuccess = (): void => {
-      this.isFavorite = !this.isFavorite;
-      this.count += this.isFavorite ? 1 : -1;
-      this.toggled.emit(this.isFavorite);
+    const wasFavorite = this.isFavorite;
+    const finish = (nowFavorite: boolean): void => {
       this.loading = false;
+      this.ngZone.run(() => {
+        this.toggled.emit(nowFavorite);
+        this.cdr.detectChanges();
+      });
     };
-    const onError = (): void => { this.loading = false; };
 
-    if (this.isFavorite) {
-      this.favoriteService.remove(this.listingId).subscribe({ next: onSuccess, error: onError });
+    const onError = (): void => {
+      this.loading = false;
+      this.ngZone.run(() => this.cdr.detectChanges());
+    };
+
+    if (wasFavorite) {
+      this.favoriteService.remove(this.listingId).subscribe({
+        next: () => finish(false),
+        error: onError
+      });
     } else {
-      this.favoriteService.add(this.listingId).subscribe({ next: onSuccess, error: onError });
+      this.favoriteService.add(this.listingId).subscribe({
+        next: () => finish(true),
+        error: onError
+      });
     }
   }
 }

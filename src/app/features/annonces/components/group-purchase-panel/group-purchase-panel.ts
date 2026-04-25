@@ -1,7 +1,14 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, Validators } from '@angular/forms';
+import { finalize } from 'rxjs/operators';
 import { GroupPurchaseService } from '../../services/group-purchase.service';
-import { GroupPurchaseResponse, ListingResponse } from '../../../../core/models/annonces.interfaces';
+import { httpErrorMessage } from '../../services/api-normalize';
+import {
+  GroupPurchaseResponse,
+  ListingResponse,
+  ParticipantInfo
+} from '../../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
@@ -13,6 +20,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 export class GroupPurchasePanel implements OnInit, OnDestroy {
   @Input() listing!: ListingResponse;
   @Input() group!: GroupPurchaseResponse;
+  @Output() groupUpdated = new EventEmitter<GroupPurchaseResponse>();
 
   quantityCtrl = new FormControl<number | null>(null, [Validators.required, Validators.min(1)]);
   showJoinForm = false;
@@ -27,15 +35,28 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
 
   constructor(
     private readonly groupService: GroupPurchaseService,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly destroyRef: DestroyRef
   ) {}
 
   ngOnInit(): void {
-    const user = this.authService.currentUser;
-    if (user) {
-      this.currentCompanyId = parseInt(user.id, 10);
+    this.syncCompanyId();
+    this.authService.user$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.syncCompanyId());
+
+    if (this.authService.isLoggedIn() && this.authService.getCompanyProfileId() == null) {
+      this.authService.refreshProfileFromApi().subscribe({
+        next: () => this.syncCompanyId(),
+        error: () => {}
+      });
     }
+
     this.startCountdown();
+  }
+
+  private syncCompanyId(): void {
+    this.currentCompanyId = this.authService.getCompanyProfileId();
   }
 
   ngOnDestroy(): void {
@@ -100,10 +121,12 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
   openJoinForm(): void {
     this.showJoinForm = true;
     this.error = '';
+    const rem = Number(this.group.remainingQuantity);
+    const maxRem = Number.isFinite(rem) ? rem : 0;
     this.quantityCtrl.setValidators([
       Validators.required,
       Validators.min(1),
-      Validators.max(this.group.remainingQuantity)
+      Validators.max(maxRem)
     ]);
     this.quantityCtrl.updateValueAndValidity();
   }
@@ -115,45 +138,76 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
   }
 
   joinGroup(): void {
-    if (this.quantityCtrl.invalid || !this.currentCompanyId) return;
+    if (this.quantityCtrl.invalid) {
+      this.quantityCtrl.markAllAsTouched();
+      this.error =
+        'Indiquez une quantité entre 1 et la quantité restante affichée ci-dessus.';
+      return;
+    }
+    if (!this.currentCompanyId) {
+      this.error =
+        'Profil entreprise introuvable. Déconnectez-vous puis reconnectez-vous pour mettre à jour votre session.';
+      return;
+    }
+    const qty = Math.floor(Number(this.quantityCtrl.value));
+    if (!Number.isFinite(qty) || qty < 1) {
+      this.error = 'Quantité invalide.';
+      return;
+    }
+
     this.loading = true;
     this.error = '';
 
-    this.groupService.join(this.group.id, {
-      quantity: this.quantityCtrl.value!,
-      companyId: this.currentCompanyId
-    }).subscribe({
-      next: (updated) => {
-        this.group = updated;
-        this.loading = false;
-        this.closeJoinForm();
-      },
-      error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de la participation';
-        this.loading = false;
-      }
-    });
+    this.groupService
+      .join(this.group.id, {
+        quantity: qty,
+        companyId: this.currentCompanyId
+      })
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (updated) => {
+          this.group = updated;
+          this.groupUpdated.emit(updated);
+          this.closeJoinForm();
+        },
+        error: (err) => {
+          this.error = httpErrorMessage(err);
+        }
+      });
   }
 
   leaveGroup(): void {
     if (!this.currentCompanyId) return;
     this.leaveLoading = true;
 
-    this.groupService.leave(this.group.id, this.currentCompanyId).subscribe({
-      next: (updated) => {
-        this.group = updated;
-        this.leaveLoading = false;
-      },
-      error: (err) => {
-        this.error = err.error?.message || 'Erreur lors du retrait';
-        this.leaveLoading = false;
-      }
-    });
+    this.groupService
+      .leave(this.group.id, this.currentCompanyId)
+      .pipe(finalize(() => (this.leaveLoading = false)))
+      .subscribe({
+        next: (updated) => {
+          this.group = updated;
+          this.groupUpdated.emit(updated);
+        },
+        error: (err) => {
+          this.error = httpErrorMessage(err);
+        }
+      });
   }
 
   private startCountdown(): void {
     this.updateCountdown();
     this.countdownInterval = setInterval(() => this.updateCountdown(), 1000);
+  }
+
+  participantLabel(p: ParticipantInfo): string {
+    const n = p.companyName?.trim();
+    if (n) return n;
+    return `Entreprise #${p.companyId}`;
+  }
+
+  participantInitial(p: ParticipantInfo): string {
+    const label = this.participantLabel(p);
+    return label ? label.charAt(0).toUpperCase() : '?';
   }
 
   private updateCountdown(): void {

@@ -134,16 +134,42 @@
       </div>
     </div>
 
-    <!-- Step 5: Images -->
+    <!-- Step 5: Photos locales (max 5) -->
     <div class="lc-card" *ngIf="step === 5">
-      <h2>Images (optionnel)</h2>
-      <p class="lc-hint">Ajoutez des URLs d'images pour illustrer votre annonce</p>
-      <div class="form-group">
-        <label>URLs des images (une par ligne)</label>
-        <textarea rows="4" placeholder="https://exemple.com/image1.jpg&#10;https://exemple.com/image2.jpg"
-          [ngModel]="(form.get('attachmentUrls')!.value || []).join('\n')"
-          (ngModelChange)="form.get('attachmentUrls')!.setValue($event.split('\n').filter(u => u.trim()))">
-        </textarea>
+      <h2>Photos de l'annonce</h2>
+      <p class="lc-hint">
+        Jusqu’à <strong>{{ maxListingPhotos }} photos</strong>. Chaque fichier est envoyé au serveur
+        (<code>POST /api/listing-images</code>), les URLs <code>/files/…</code> sont enregistrées.
+        Sans aucune photo, l’image par défaut est utilisée.
+      </p>
+      <p class="lc-photo-count">{{ attachmentUrlsList.length }} / {{ maxListingPhotos }}</p>
+      <div class="lc-photo-row">
+        <label class="btn btn-outline lc-photo-btn" [class.disabled]="uploadingImage || attachmentUrlsList.length >= maxListingPhotos">
+          Ajouter des photos
+          <input type="file" accept="image/*" multiple class="lc-file-input" [disabled]="uploadingImage || attachmentUrlsList.length >= maxListingPhotos"
+            (change)="onListingImageSelected($event)" #listingPhotoInput />
+        </label>
+        <button type="button" class="btn btn-ghost btn-sm" [disabled]="uploadingImage"
+          (click)="clearListingImage(listingPhotoInput)">
+          Tout retirer (défaut)
+        </button>
+      </div>
+      <p class="lc-hint lc-upload-status" *ngIf="uploadingImage">Envoi des images au serveur…</p>
+      <div class="form-error" *ngIf="imageError">{{ imageError }}</div>
+      <div class="lc-photo-preview">
+        <img [src]="listingImagePreview" alt="Aperçu" />
+        <p class="lc-photo-caption">
+          {{ usesCustomListingPhoto ? (attachmentUrlsList.length + ' photo(s)') : 'Photo par défaut si vous n’ajoutez rien' }}
+        </p>
+      </div>
+      <div class="lc-photo-thumbs" *ngIf="attachmentUrlsList.length">
+        <div class="lc-photo-thumb" *ngFor="let url of attachmentUrlsList; let i = index"
+             [class.active]="i === previewMainIndex">
+          <button type="button" class="lc-photo-thumb-img" (click)="setPreviewIndex(i)">
+            <img [src]="url" alt="" />
+          </button>
+          <button type="button" class="lc-photo-remove" [disabled]="uploadingImage" (click)="removeImageAt(i, listingPhotoInput)" title="Retirer">×</button>
+        </div>
       </div>
     </div>
 
@@ -160,12 +186,19 @@
         <div class="lc-recap-row" *ngIf="form.value.location"><span>Localisation</span><strong>{{form.value.location}}</strong></div>
         <div class="lc-recap-row" *ngIf="isGroupBuying"><span>Quantité cible</span><strong>{{form.value.targetQuantity}}</strong></div>
         <div class="lc-recap-row" *ngIf="isGroupBuying"><span>Date limite</span><strong>{{form.value.deadline}}</strong></div>
-        <div class="lc-recap-row" *ngIf="form.value.attachmentUrls?.length"><span>Images</span><strong>{{form.value.attachmentUrls.length}} fichier(s)</strong></div>
+        <div class="lc-recap-row lc-recap-photo">
+          <span>Photos</span>
+          <div class="lc-recap-photo-cell lc-recap-photo-multi">
+            <img *ngFor="let u of attachmentUrlsList; let i = index" [src]="u" alt="" width="56" height="56" class="lc-recap-mini" />
+            <strong *ngIf="!attachmentUrlsList.length">Image par défaut</strong>
+            <strong *ngIf="attachmentUrlsList.length">{{ attachmentUrlsList.length }} photo(s)</strong>
+          </div>
+        </div>
       </div>
 
       <div class="alert alert-danger" *ngIf="error">{{error}}</div>
 
-      <button class="btn btn-primary lc-submit" [disabled]="form.invalid || submitting" (click)="submit()">
+      <button class="btn btn-primary lc-submit" [disabled]="form.invalid || submitting || uploadingImage" (click)="submit()">
         <span *ngIf="!submitting">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
           Publier l'annonce
@@ -180,7 +213,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         Précédent
       </button>
-      <button class="btn btn-primary" *ngIf="step < totalSteps" [disabled]="!canGoNext" (click)="nextStep()">
+      <button class="btn btn-primary" *ngIf="step < totalSteps" [disabled]="!canGoNext || uploadingImage" (click)="nextStep()">
         Suivant
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>

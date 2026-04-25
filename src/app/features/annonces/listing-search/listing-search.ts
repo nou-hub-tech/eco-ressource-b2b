@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { ResourceListingService } from '../services/resource-listing.service';
 import { FavoriteService } from '../services/favorite.service';
@@ -24,8 +24,14 @@ export class ListingSearch implements OnInit {
   constructor(
     private readonly fb: FormBuilder,
     private readonly listingService: ResourceListingService,
-    private readonly favoriteService: FavoriteService
+    private readonly favoriteService: FavoriteService,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone
   ) {}
+
+  private refreshView(): void {
+    this.ngZone.run(() => this.cdr.detectChanges());
+  }
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -36,7 +42,11 @@ export class ListingSearch implements OnInit {
     });
 
     this.favoriteService.myFavorites().subscribe({
-      next: (favs) => this.favoriteIds = new Set(favs.map(f => f.listingId))
+      next: (favs) => {
+        this.favoriteIds = new Set(favs.map((f) => f.listingId));
+        this.refreshView();
+      },
+      error: () => this.refreshView()
     });
   }
 
@@ -57,8 +67,12 @@ export class ListingSearch implements OnInit {
         this.currentPage = 1;
         this.updatePaged();
         this.loading = false;
+        this.refreshView();
       },
-      error: () => { this.loading = false; }
+      error: () => {
+        this.loading = false;
+        this.refreshView();
+      }
     });
   }
 

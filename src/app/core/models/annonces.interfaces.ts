@@ -35,6 +35,7 @@ export interface ListingResponse {
   productName: string;
   productCategory: string;
   companyId: number;
+  companyName?: string | null;
   createdAt: string;
   attachmentUrls: string[];
   groupPurchase: GroupPurchaseResponse | null;
@@ -77,6 +78,8 @@ export interface GroupPurchaseResponse {
 export interface ParticipantInfo {
   id: number;
   companyId: number;
+  /** Nom résolu côté API (entreprise ou transporteur). */
+  companyName?: string | null;
   quantity: number;
 }
 

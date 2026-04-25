@@ -1,6 +1,7 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { ListingResponse } from '../../../../core/models/annonces.interfaces';
+import { DEFAULT_LISTING_IMAGE_URL } from '../../constants/listing-images';
 
 @Component({
   selector: 'app-listing-card',
@@ -12,7 +13,11 @@ export class ListingCard {
   @Input() listing!: ListingResponse;
   @Input() favoriteIds: Set<number> = new Set();
 
-  constructor(private readonly router: Router) {}
+  constructor(
+    private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone
+  ) {}
 
   get typeClass(): string {
     switch (this.listing.type) {
@@ -61,8 +66,29 @@ export class ListingCard {
     return this.favoriteIds.has(this.listing.id);
   }
 
+  get attachmentPhotoCount(): number {
+    return this.listing.attachmentUrls?.filter((u) => !!u?.trim()).length ?? 0;
+  }
+
+  get coverImageUrl(): string {
+    const urls = this.listing.attachmentUrls?.map((u) => u?.trim()).filter(Boolean);
+    if (urls?.length) return urls[0];
+    return DEFAULT_LISTING_IMAGE_URL;
+  }
+
   goToDetail(): void {
     this.router.navigate(['/enterprise/annonces', this.listing.id]);
+  }
+
+  onFavoriteToggled(nowFavorite: boolean): void {
+    if (nowFavorite) {
+      this.favoriteIds.add(this.listing.id);
+    } else {
+      this.favoriteIds.delete(this.listing.id);
+    }
+    const cur = this.listing.favoriteCount ?? 0;
+    this.listing.favoriteCount = Math.max(0, cur + (nowFavorite ? 1 : -1));
+    this.ngZone.run(() => this.cdr.detectChanges());
   }
 
   timeAgo(dateStr: string): string {

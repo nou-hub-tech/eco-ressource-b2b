@@ -29,8 +29,7 @@ export class ProductEdit implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const user = this.authService.currentUser;
-    this.companyId = user ? parseInt(user.id, 10) : 0;
+    this.companyId = this.authService.getCompanyProfileId() ?? 0;
 
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
