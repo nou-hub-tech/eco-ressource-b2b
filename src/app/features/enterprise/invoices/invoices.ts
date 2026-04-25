@@ -448,7 +448,8 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   // ==================== LOAD ====================
 
   loadInvoices(): void {
-    this.invoiceService.getAll().subscribe({
+    // 🏢 Ne charge que les factures de l'entreprise connectee (acheteur OU vendeur)
+    this.invoiceService.getMyInvoices().subscribe({
       next: data => {
         this.invoices = data;
         this.dataReady = true;

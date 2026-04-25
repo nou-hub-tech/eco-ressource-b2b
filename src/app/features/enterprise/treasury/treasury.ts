@@ -263,11 +263,13 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
     let txOk = false, escOk = false;
     const check = () => { if (txOk && escOk) { this.dataReady = true; if (this.viewReady) setTimeout(() => this.initCharts(), 50); } };
 
-    this.financeService.getTransactions().subscribe({
+    // 🏢 Transactions de l'entreprise connectee seulement
+    this.financeService.getMyTransactions().subscribe({
       next: d => { this.transactions = d; txOk = true; this.cd.detectChanges(); check(); },
       error: () => this.showToast('Erreur chargement transactions', 'error')
     });
-    this.financeService.getEscrow().subscribe({
+    // 🏢 Escrows de l'entreprise connectee seulement
+    this.financeService.getMyEscrow().subscribe({
       next: d => { this.escrowEntries = d; escOk = true; this.cd.detectChanges(); check(); },
       error: () => this.showToast('Erreur chargement escrow', 'error')
     });

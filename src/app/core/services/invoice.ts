@@ -134,8 +134,14 @@ export class InvoiceService {
 
   constructor(private http: HttpClient) {}
 
+  /** Toutes les factures (admin) */
   getAll(): Observable<Invoice[]> {
     return this.http.get<Invoice[]>(`${this.API}/all`);
+  }
+
+  /** 🏢 Factures de l'entreprise connectee (acheteur OU vendeur) */
+  getMyInvoices(): Observable<Invoice[]> {
+    return this.http.get<Invoice[]>(`${this.API}/my`);
   }
 
   getById(id: number): Observable<Invoice> {

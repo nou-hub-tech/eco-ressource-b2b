@@ -27,6 +27,20 @@ export class FinanceService {
     );
   }
 
+  /** 🏢 Transactions de l'entreprise connectee seulement */
+  getMyTransactions(): Observable<FinanceTransaction[]> {
+    return this.http.get<any[]>(`${this.API}/transactions/my`).pipe(
+      map((items) => items.map((tx) => ({
+        id: tx.id ?? tx.idtransaction,
+        project: tx.project,
+        type: tx.type,
+        amount: tx.amount,
+        status: tx.status,
+        date: tx.date,
+      })))
+    );
+  }
+
   private toTransactionPayload(tx: FinanceTransaction): any {
     return {
       idtransaction: tx.id,
@@ -56,6 +70,20 @@ export class FinanceService {
 
   getEscrow(): Observable<EscrowEntry[]> {
     return this.http.get<any[]>(`${this.API}/escrow/all`).pipe(
+      map((items) => items.map((esc) => ({
+        id: esc.id ?? esc.idescrow,
+        project: esc.project,
+        amount: esc.amount,
+        status: esc.status,
+        createdAt: esc.createdAt,
+        releaseDate: esc.releaseDate,
+      })))
+    );
+  }
+
+  /** 🏢 Escrows de l'entreprise connectee seulement */
+  getMyEscrow(): Observable<EscrowEntry[]> {
+    return this.http.get<any[]>(`${this.API}/escrow/my`).pipe(
       map((items) => items.map((esc) => ({
         id: esc.id ?? esc.idescrow,
         project: esc.project,
