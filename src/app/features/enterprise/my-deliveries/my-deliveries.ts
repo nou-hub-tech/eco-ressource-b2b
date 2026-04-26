@@ -6,6 +6,7 @@ import { DeliveryOrderService } from '../../../core/services/delivery-order.serv
 import { TransportService, Transporter } from '../../../core/services/transport.service';
 import { PdfGeneratorService } from '../../../core/services/pdf-generator.service';
 import { AuthService, User } from '../../../core/services/auth.service';
+import { ShipmentUpdateService } from '../../../core/services/shipment-update.service';
 import { Shipment } from '../../../core/models/shipment';
 import { DeliveryOrder } from '../../../core/models/delivery-order';
 import { StatutExpedition } from '../../../core/models/statut';
@@ -35,6 +36,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
         private transportService: TransportService,
         private pdfGenerator: PdfGeneratorService,
         private authService: AuthService,
+        private shipmentUpdateService: ShipmentUpdateService,
         private cd: ChangeDetectorRef
     ) {}
 
@@ -42,15 +44,43 @@ export class MyDeliveries implements OnInit, OnDestroy {
         this.getCurrentUser();
         this.loadDeliveryOrders();
         this.loadTransporters();
+        
+        // ÉCOUTER LES MISES À JOUR EN TEMPS RÉEL
+        this.subscriptions.add(
+            this.shipmentUpdateService.shipmentUpdated$.subscribe((data) => {
+                console.log('📢 Réception mise à jour dans my-deliveries:', data);
+                this.onShipmentUpdate(data);
+            })
+        );
     }
 
     ngOnDestroy(): void {
         this.subscriptions.unsubscribe();
     }
 
-    // Récupérer l'utilisateur connecté via AuthService
+    onShipmentUpdate(data: any): void {
+        console.log('🔄 Mise à jour détectée, rechargement des données...');
+        
+        // Recharger les expéditions
+        this.loadShipments();
+        
+        // Recharger les transporteurs
+        this.loadTransporters();
+        
+        // Afficher un message de succès
+        if (data.type === 'NEW_SHIPMENT' && data.transporterName) {
+            this.successMessage = `✅ Nouvelle livraison assignée à ${data.transporterName}`;
+        } else {
+            this.successMessage = '✅ Mise à jour des livraisons';
+        }
+        
+        setTimeout(() => {
+            this.successMessage = '';
+            this.cd.detectChanges();
+        }, 4000);
+    }
+
     getCurrentUser(): void {
-        // S'abonner à l'observable user$ pour les mises à jour en temps réel
         const userSub = this.authService.user$.subscribe(user => {
             if (user) {
                 this.currentUser = user;
@@ -58,7 +88,6 @@ export class MyDeliveries implements OnInit, OnDestroy {
                 console.log('✅ Utilisateur connecté:', this.currentUser);
                 console.log('📛 Nom pour filtrage:', this.currentUserName);
                 
-                // Recharger et filtrer les expéditions quand l'utilisateur change
                 if (this.allShipments.length > 0) {
                     this.filterShipmentsByClient();
                 } else {
@@ -69,12 +98,10 @@ export class MyDeliveries implements OnInit, OnDestroy {
         });
         this.subscriptions.add(userSub);
         
-        // Récupération immédiate si déjà connecté
         const currentUser = this.authService.currentUser;
         if (currentUser && !this.currentUser) {
             this.currentUser = currentUser;
             this.currentUserName = currentUser.name.toLowerCase().trim();
-            console.log('✅ Utilisateur récupéré directement:', this.currentUserName);
         }
     }
 
@@ -98,9 +125,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
         this.subscriptions.add(sub);
     }
 
-    // Filtrer les expéditions par nom client
     filterShipmentsByClient(): void {
-        // Attendre que les commandes soient chargées
         if (this.deliveryOrders.size === 0) {
             console.log('⏳ En attente du chargement des commandes...');
             return;
@@ -118,11 +143,10 @@ export class MyDeliveries implements OnInit, OnDestroy {
             const order = this.deliveryOrders.get(orderId);
             const clientName = order?.nomClient?.toLowerCase().trim() || '';
             
-            // Vérifier si le nom du client correspond à l'utilisateur connecté
             const isMatch = clientName === this.currentUserName;
             
             if (isMatch) {
-                console.log(`✓ Match: "${clientName}" === "${this.currentUserName}" (expédition #${shipment.id})`);
+                console.log(`✓ Match trouvé: ${clientName} === ${this.currentUserName} (expédition #${shipment.id}, transporteur ID: ${shipment.idTransporter})`);
             }
             
             return isMatch;
@@ -130,18 +154,6 @@ export class MyDeliveries implements OnInit, OnDestroy {
         
         console.log(`📊 Expéditions filtrées: ${this.filteredShipments.length} sur ${this.allShipments.length}`);
         console.log(`👤 Client cible: "${this.currentUserName}"`);
-        
-        // Afficher les noms des clients disponibles pour déboguer
-        const uniqueClients = new Set<string>();
-        this.allShipments.forEach(shipment => {
-            const orderId = shipment.deliveryOrder?.idDelivery;
-            const order = this.deliveryOrders.get(orderId);
-            if (order?.nomClient) {
-                uniqueClients.add(order.nomClient);
-            }
-        });
-        console.log('📋 Clients disponibles:', Array.from(uniqueClients));
-        
         this.cd.detectChanges();
     }
 
@@ -156,7 +168,6 @@ export class MyDeliveries implements OnInit, OnDestroy {
                         }
                     });
                 }
-                // Re-filtrer après avoir chargé les commandes
                 this.filterShipmentsByClient();
                 this.cd.detectChanges();
             },
@@ -178,11 +189,12 @@ export class MyDeliveries implements OnInit, OnDestroy {
                         }
                     });
                 }
+                console.log('📋 Map des transporteurs:', Array.from(this.transporters.entries()));
                 this.cd.detectChanges();
             },
             error: (error: any) => {
                 console.error('❌ Erreur chargement transporteurs:', error);
-                // Données mockées en cas d'erreur
+                // Données mockées
                 const mockTransporters: Transporter[] = [
                     { id: 1, companyName: 'Transport Express', listingsCount: 0, ordersCount: 0, createdAt: new Date().toISOString() },
                     { id: 2, companyName: 'Logistic Pro', listingsCount: 0, ordersCount: 0, createdAt: new Date().toISOString() },
@@ -197,6 +209,22 @@ export class MyDeliveries implements OnInit, OnDestroy {
         this.subscriptions.add(sub);
     }
 
+    // ========== MÉTHODE CLÉ POUR AFFICHER LE TRANSPORTEUR ==========
+    getTransporterName(idTransporter: number): string {
+        // Si pas de transporteur assigné → afficher "-"
+        if (!idTransporter || idTransporter === 0) {
+            return '-';
+        }
+        
+        // Chercher le transporteur dans la Map
+        const transporter = this.transporters.get(idTransporter);
+        if (transporter) {
+            return transporter.companyName;
+        }
+        
+        return `Transporteur #${idTransporter}`;
+    }
+
     getClientName(deliveryOrderId: number): string {
         const order = this.deliveryOrders.get(deliveryOrderId);
         return order?.nomClient || 'Client inconnu';
@@ -205,11 +233,6 @@ export class MyDeliveries implements OnInit, OnDestroy {
     getClientAddress(deliveryOrderId: number): string {
         const order = this.deliveryOrders.get(deliveryOrderId);
         return order?.adresseLivraison || 'Adresse inconnue';
-    }
-
-    getTransporterName(idTransporter: number): string {
-        const transporter = this.transporters.get(idTransporter);
-        return transporter ? transporter.companyName : `Transporteur #${idTransporter}`;
     }
 
     getQuantity(quantite: number): string {
@@ -278,7 +301,6 @@ export class MyDeliveries implements OnInit, OnDestroy {
     }
 
     // ========== MÉTHODES PDF ==========
-    
     onGeneratePDF(shipmentId: number): void {
         const shipment = this.filteredShipments.find(s => s.id === shipmentId);
         
@@ -291,10 +313,6 @@ export class MyDeliveries implements OnInit, OnDestroy {
         
         const orderId = shipment.deliveryOrder?.idDelivery;
         const deliveryOrder = orderId ? this.deliveryOrders.get(orderId) : null;
-        
-        if (!deliveryOrder) {
-            console.warn('⚠️ Commande non trouvée pour l\'ID:', orderId);
-        }
         
         try {
             this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder || null);

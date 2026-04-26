@@ -2,6 +2,8 @@ import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef } from '
 import { DeliveryOrderService } from '../../../core/services/delivery-order.service';
 import { PdfGeneratorService } from '../../../core/services/pdf-generator.service';
 import { ShipmentService } from '../../../core/services/shipment.service';
+import { AuthService, User } from '../../../core/services/auth.service';
+import { ShipmentUpdateService } from '../../../core/services/shipment-update.service';
 import { DeliveryOrder } from '../../../core/models/delivery-order';
 import { StatutCommande, StatutExpedition } from '../../../core/models/statut';
 import { Shipment } from '../../../core/models/shipment';
@@ -38,15 +40,21 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     hasActiveTrip: boolean = false;
     currentAcceptedTrip: any = null;
     private refreshInterval: any;
+    currentTransporterId: number = 0;
+    currentTransporterName: string = '';
     
     constructor(
         private deliveryOrderService: DeliveryOrderService,
         private pdfGenerator: PdfGeneratorService,
         private shipmentService: ShipmentService,
+        private authService: AuthService,
+        private shipmentUpdateService: ShipmentUpdateService,
         private cd: ChangeDetectorRef
     ) {}
     
     ngOnInit(): void {
+        this.getCurrentTransporter();
+        
         (window as any).L = L;
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
@@ -79,6 +87,24 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         setTimeout(() => {
             this.initMainMap();
         }, 500);
+    }
+    
+    getCurrentTransporter(): void {
+        const userSub = this.authService.user$.subscribe(user => {
+            if (user && user.role === 'transporter') {
+                this.currentTransporterId = parseInt(user.id) || 1;
+                this.currentTransporterName = user.name || user.company || 'Transporteur';
+                console.log('🚚 Transporteur connecté ID:', this.currentTransporterId);
+                console.log('🚚 Transporteur connecté Nom:', this.currentTransporterName);
+                this.cd.detectChanges();
+            }
+        });
+        
+        const currentUser = this.authService.currentUser;
+        if (currentUser && currentUser.role === 'transporter') {
+            this.currentTransporterId = parseInt(currentUser.id) || 1;
+            this.currentTransporterName = currentUser.name || currentUser.company || 'Transporteur';
+        }
     }
     
     calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -125,7 +151,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             distance: trip.distance,
             date: trip.date,
             acceptedAt: trip.acceptedAt,
-            completed: trip.completed || false
+            completed: trip.completed || false,
+            transporterId: trip.transporterId
         }));
         localStorage.setItem('acceptedTrips', JSON.stringify(acceptedData));
         localStorage.setItem('hasActiveTrip', JSON.stringify(this.hasActiveTrip));
@@ -157,7 +184,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
         
         console.log('Trajets acceptés chargés:', this.acceptedTrips.size);
-        console.log('Trajet actif:', this.hasActiveTrip);
     }
     
     loadDeliveryOrders(): void {
@@ -166,7 +192,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         
         this.deliveryOrderService.getAll().subscribe({
             next: (orders: DeliveryOrder[]) => {
-                console.log('Commandes reçues:', orders);
+                console.log('Commandes reçues:', orders.length);
                 this.deliveryOrders = orders;
                 this.calculateAvailableTrips();
                 this.isLoadingTrips = false;
@@ -416,7 +442,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             }
         });
         
-        // Grouper les commandes par ville
         const tripsByCity = new Map<string, any[]>();
         allTrips.forEach(trip => {
             if (trip.lat && trip.lng) {
@@ -446,16 +471,13 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             className: 'completed-marker'
         });
         
-        // Pour chaque ville, afficher un marqueur
         tripsByCity.forEach((trips, cityName) => {
             const firstTrip = trips[0];
             const lat = firstTrip.lat;
             const lng = firstTrip.lng;
             
-            // Filtrer pour ne garder que les commandes NON LIVRÉES
             const pendingTrips = trips.filter(t => !t.completed);
             
-            // Si plus aucune commande en attente, ne pas afficher le marqueur
             if (pendingTrips.length === 0) {
                 return;
             }
@@ -490,7 +512,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     <hr style="margin: 8px 0;">
             `;
             
-            // Afficher uniquement les commandes NON LIVRÉES
             pendingTrips.forEach(trip => {
                 popupContent += `
                     <div style="margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 8px;">
@@ -563,22 +584,36 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                 deliveryOrder: { idDelivery: trip.id },
                                 produitId: 1,
                                 quantite: 1,
-                                idTransporter: 1,
+                                idTransporter: this.currentTransporterId,
                                 dateDepart: new Date().toISOString(),
                                 statut: StatutExpedition.EN_COURS
                             };
                             
                             this.shipmentService.create(newShipment).subscribe({
                                 next: (shipment: Shipment) => {
-                                    console.log('Expédition créée:', shipment.id);
+                                    console.log('✅ Expédition créée avec transporteur ID:', this.currentTransporterId);
+                                    console.log('✅ Nom transporteur:', this.currentTransporterName);
+                                    
+                                    // NOTIFICATION POUR MY-DELIVERIES
+                                    this.shipmentUpdateService.notifyShipmentUpdate({
+                                        type: 'NEW_SHIPMENT',
+                                        shipment: shipment,
+                                        transporterId: this.currentTransporterId,
+                                        transporterName: this.currentTransporterName,
+                                        deliveryOrderId: trip.id,
+                                        clientName: trip.clientName,
+                                        timestamp: new Date()
+                                    });
                                 },
                                 error: (error) => {
-                                    console.error('Erreur création expédition:', error);
+                                    console.error('❌ Erreur création expédition:', error);
                                 }
                             });
                             
                             trip.accepted = true;
                             trip.completed = false;
+                            trip.transporterId = this.currentTransporterId;
+                            trip.transporterName = this.currentTransporterName;
                             this.hasActiveTrip = true;
                             this.currentAcceptedTrip = {
                                 id: trip.id,
@@ -590,7 +625,9 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                 distance: trip.distance,
                                 date: trip.date,
                                 acceptedAt: new Date().toISOString(),
-                                completed: false
+                                completed: false,
+                                transporterId: this.currentTransporterId,
+                                transporterName: this.currentTransporterName
                             };
                             
                             this.acceptedTrips.set(trip.id, this.currentAcceptedTrip);
@@ -643,7 +680,14 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                             if (shipment) {
                                 shipment.statut = StatutExpedition.LIVREE;
                                 this.shipmentService.update(shipment.id, shipment).subscribe({
-                                    next: () => console.log('Expédition mise à jour'),
+                                    next: () => {
+                                        console.log('Expédition mise à jour');
+                                        this.shipmentUpdateService.notifyShipmentUpdate({
+                                            type: 'SHIPMENT_COMPLETED',
+                                            shipmentId: shipment.id,
+                                            deliveryOrderId: tripId
+                                        });
+                                    },
                                     error: (err) => console.error('Erreur mise à jour expédition:', err)
                                 });
                             }
