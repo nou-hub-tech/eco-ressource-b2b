@@ -1,0 +1,72 @@
+<div class="detect-wrap">
+  <div class="detect-header">
+    <h2>Broken product detection</h2>
+    <p>Upload a photo of a broken product to identify it and retrieve its details.</p>
+  </div>
+
+  <div class="upload-zone" (click)="fileInput.click()">
+    <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)" style="display:none" />
+    <div class="upload-icon">📷</div>
+    <p>Click to upload an image</p>
+    <span class="filename" *ngIf="selectedFile">{{ selectedFile.name }}</span>
+    <img *ngIf="previewUrl" [src]="previewUrl" class="preview-img" />
+  </div>
+
+  <button class="detect-btn" [disabled]="!selectedFile || loading" (click)="detect()">
+    <span *ngIf="loading" class="spinner"></span>
+    {{ loading ? 'Analyzing...' : 'Detect product' }}
+  </button>
+
+  <div *ngIf="error" class="no-match">{{ error }}</div>
+
+  <div *ngIf="result">
+    <div class="result-grid">
+      <div class="metric">
+        <p class="metric-label">Detected label</p>
+        <p class="metric-value">{{ result.detectedLabel }}</p>
+      </div>
+      <div class="metric">
+        <p class="metric-label">Confidence</p>
+        <p class="metric-value">{{ result.confidence }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="result.matchedProduct; else noMatch">
+      <p class="section-title">Matched product</p>
+      <div class="matched-card">
+        <div class="matched-header">
+          <div class="matched-avatar">{{ result.matchedProduct.name.slice(0,2).toUpperCase() }}</div>
+          <div>
+            <p class="matched-name">{{ result.matchedProduct.name }}</p>
+            <p class="matched-cat">{{ result.matchedProduct.category }}</p>
+          </div>
+        </div>
+        <div class="matched-row"><span class="matched-row-label">Material</span><span class="matched-row-value">{{ result.matchedProduct.materialType }}</span></div>
+        <div class="matched-row">
+          <span class="matched-row-label">Recyclable</span>
+          <span class="badge" [class.badge-success]="result.matchedProduct.recyclable" [class.badge-danger]="!result.matchedProduct.recyclable">
+            {{ result.matchedProduct.recyclable ? 'Recyclable ♻️' : 'Not recyclable' }}
+          </span>
+        </div>
+        <div class="matched-row"><span class="matched-row-label">Description</span><span class="matched-row-value desc">{{ result.matchedProduct.description }}</span></div>
+      </div>
+    </div>
+
+    <ng-template #noMatch>
+      <div class="no-match">No matching product found for "{{ result.detectedLabel }}".</div>
+    </ng-template>
+
+    <p class="section-title">All predictions</p>
+    <div class="predictions-card">
+      <div class="pred-row" *ngFor="let p of result.allPredictions; let i = index">
+        <div class="pred-top">
+          <span class="pred-label">{{ p.label }}</span>
+          <span class="pred-pct">{{ (p.score * 100).toFixed(1) }}%</span>
+        </div>
+        <div class="pred-bar-bg">
+          <div class="pred-bar-fill" [class.top]="i === 0" [style.width.%]="p.score * 100"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

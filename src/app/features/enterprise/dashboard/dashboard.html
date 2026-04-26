@@ -21,9 +21,7 @@
 
     <!-- SLIDES -->
     <div class="ed-slides-area">
-      <div class="ed-slide"
-        *ngFor="let s of heroSlides; let i = index"
-        [class.active]="i === currentSlide"
+      <div class="ed-slide" *ngFor="let s of heroSlides; let i = index" [class.active]="i === currentSlide"
         [class.out]="i !== currentSlide">
 
         <div class="ed-slide-tag" [style.color]="s.tagColor">
@@ -46,7 +44,10 @@
             <span class="ed-co-loc">{{s.location}}</span>
           </div>
           <div class="ed-verified" *ngIf="s.verified">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+              stroke-linecap="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
             VERIFIED
           </div>
         </div>
@@ -55,38 +56,41 @@
           <button class="ed-btn-pri" [style.background]="s.btnColor">Contact Seller</button>
           <button class="ed-btn-sec">View Full Listing</button>
           <button class="ed-btn-ico">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
           </button>
         </div>
       </div>
     </div>
 
     <!-- RIGHT DATA PANEL -->
-    <div class="ed-hero-panel">
+
+    <div class="ed-hero-panel" *ngIf="currentHero as h">
       <div class="ed-panel-price-block">
         <div class="ed-pprice-lbl">ASKING PRICE</div>
-        <div class="ed-pprice-val">{{currentHero.price}}</div>
+        <div class="ed-pprice-val">{{h.price}}</div>
         <div class="ed-pprice-unit">TND PER TONNE</div>
         <div class="ed-pmatch-row">
           <span class="ed-pmatch-lbl">AI MATCH SCORE</span>
-          <span class="ed-pmatch-val" [style.color]="currentHero.matchColor">{{currentHero.match}}%</span>
+          <span class="ed-pmatch-val" [style.color]="h.matchColor">{{h.match}}%</span>
         </div>
         <div class="ed-pmatch-bar-bg">
-          <div class="ed-pmatch-bar"
-            [style.width.%]="currentHero.match"
-            [style.background]="currentHero.matchColor">
+          <div class="ed-pmatch-bar" [style.width.%]="h.match" [style.background]="h.matchColor">
           </div>
         </div>
       </div>
 
       <div class="ed-pspecs">
-        <div class="ed-pspec" *ngFor="let sp of currentHero.specs">
+
+        <div class="ed-pspec" *ngFor="let sp of h.specs">
           <span class="ed-pspec-k">{{sp.k}}</span>
           <span class="ed-pspec-v">{{sp.v}}</span>
         </div>
       </div>
-
-      <button class="ed-ppanel-btn" [style.background]="currentHero.btnColor">
+      <button class="ed-ppanel-btn" [style.background]="h.btnColor">
         Contact Seller
       </button>
     </div>
@@ -94,22 +98,25 @@
     <!-- CONTROLS BAR -->
     <div class="ed-hero-controls">
       <div class="ed-dots">
-        <div class="ed-dot"
-          *ngFor="let s of heroSlides; let i = index"
-          [class.active]="i === currentSlide"
+        <div class="ed-dot" *ngFor="let s of heroSlides; let i = index" [class.active]="i === currentSlide"
           (click)="goTo(i)">
-          <div class="ed-dot-fill"
-            [style.width.%]="i === currentSlide ? slideProgress : (i < currentSlide ? 100 : 0)">
+          <div class="ed-dot-fill" [style.width.%]="i === currentSlide ? slideProgress : (i < currentSlide ? 100 : 0)">
           </div>
         </div>
       </div>
 
       <div class="ed-hero-nav">
         <button class="ed-nav-btn" (click)="prev()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </button>
         <button class="ed-nav-btn" (click)="next()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </button>
       </div>
       <div class="ed-counter">{{slideCounter}}</div>
@@ -120,13 +127,16 @@
   <div class="ed-below">
     <div class="ed-search-row">
       <div class="ed-search-field">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="ed-search-ico"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" class="ed-search-ico">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
         <input type="text" [(ngModel)]="searchQuery" class="ed-search-input"
-          placeholder="Search materials — aluminum scrap, PET pellets, cardboard bales..."/>
+          placeholder="Search materials — aluminum scrap, PET pellets, cardboard bales..." />
       </div>
       <div class="ed-cats">
-        <button class="ed-cat" *ngFor="let c of categories"
-          [class.on]="activeCategory === c.name"
+        <button class="ed-cat" *ngFor="let c of categories" [class.on]="activeCategory === c.name"
           (click)="setCategory(c.name)">
           {{c.name}}<span class="ed-cat-n">{{c.count}}</span>
         </button>
@@ -151,7 +161,11 @@
     <div class="ed-main">
       <div class="ed-sec-hd">
         <div class="ed-sec-hd-l">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
           <span class="ed-sec-title">AI MATCHED FOR YOU</span>
           <span class="ed-sec-sub">· sorted by compatibility score</span>
         </div>
@@ -160,17 +174,13 @@
 
       <div class="ed-grid">
         <div class="ed-card" *ngFor="let l of filteredListings">
-          <div class="ed-card-bar"
-            [class.bar-high]="l.match>=90"
-            [class.bar-mid]="l.match>=75&&l.match<90"
+          <div class="ed-card-bar" [class.bar-high]="l.match>=90" [class.bar-mid]="l.match>=75&&l.match<90"
             [class.bar-low]="l.match<75">
           </div>
           <div class="ed-card-inner">
             <div class="ed-card-top">
               <span class="ed-card-id">{{l.id}}</span>
-              <span class="ed-match"
-                [class.high]="l.match>=90"
-                [class.mid]="l.match>=75&&l.match<90"
+              <span class="ed-match" [class.high]="l.match>=90" [class.mid]="l.match>=75&&l.match<90"
                 [class.low]="l.match<75">{{l.match}}% match</span>
               <span class="ed-card-time">{{l.time}}</span>
             </div>
@@ -180,13 +190,20 @@
               <div class="ed-ava">{{l.initials}}</div>
               <span class="ed-co-name2">{{l.company}}</span>
               <span class="ed-verified2" *ngIf="l.verified">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                  stroke-linecap="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
                 Verified
               </span>
               <span class="ed-rating">{{l.rating}}</span>
             </div>
             <div class="ed-card-qty">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round">
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              </svg>
               {{l.qty}} available
             </div>
             <div class="ed-card-ft">
@@ -202,7 +219,10 @@
           </div>
         </div>
         <div class="ed-empty" *ngIf="filteredListings.length === 0">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <p>No listings match your filters</p>
         </div>
       </div>
@@ -214,15 +234,18 @@
       <div class="ed-panel">
         <div class="ed-panel-hd">
           <div class="ed-panel-hd-l">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
             <span class="ed-panel-title">NEEDS ATTENTION</span>
           </div>
           <span class="ed-badge">{{alerts.length}}</span>
         </div>
-        <div class="ed-alert" *ngFor="let a of alerts"
-          [class.urgent]="a.level==='urgent'"
-          [class.warn]="a.level==='warn'"
-          [class.info]="a.level==='info'">
+        <div class="ed-alert" *ngFor="let a of alerts" [class.urgent]="a.level==='urgent'"
+          [class.warn]="a.level==='warn'" [class.info]="a.level==='info'">
           <div class="ed-alert-dot"></div>
           <div class="ed-alert-text">{{a.text}}</div>
           <button class="ed-alert-btn">{{a.label}}</button>
@@ -232,7 +255,12 @@
       <div class="ed-panel">
         <div class="ed-panel-hd">
           <div class="ed-panel-hd-l">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="9" y1="21" x2="9" y2="9" />
+            </svg>
             <span class="ed-panel-title">MY LISTINGS</span>
           </div>
           <a class="ed-panel-link" routerLink="/enterprise/my-listings">Manage →</a>
@@ -242,24 +270,39 @@
           <div class="ed-ml-info">
             <div class="ed-ml-title">{{l.title}}</div>
             <div class="ed-ml-meta">
-              <span class="ed-ml-status" [class.s-a]="l.status==='ACTIVE'" [class.s-p]="l.status==='PENDING'">{{l.status}}</span>
+              <span class="ed-ml-status" [class.s-a]="l.status==='ACTIVE'"
+                [class.s-p]="l.status==='PENDING'">{{l.status}}</span>
               <span class="ed-ml-stat">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
                 {{l.views}}
               </span>
               <span class="ed-ml-enq" *ngIf="l.enq > 0">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
                 {{l.enq}}
               </span>
             </div>
           </div>
           <div class="ed-ml-r">
             <span class="ed-ml-price">{{l.price}}</span>
-            <svg *ngIf="l.trend" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="ed-trend"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <svg *ngIf="l.trend" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" class="ed-trend">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+              <polyline points="17 6 23 6 23 12" />
+            </svg>
           </div>
         </div>
         <button class="ed-add-btn" routerLink="/enterprise/my-listings">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
           Post New Listing
         </button>
       </div>
@@ -267,7 +310,49 @@
       <div class="ed-panel">
         <div class="ed-panel-hd">
           <div class="ed-panel-hd-l">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            </svg>
+            <span class="ed-panel-title">MY PRODUCTS</span>
+          </div>
+          <a class="ed-panel-link" routerLink="/enterprise/my-products">Manage →</a>
+        </div>
+        <div style="padding: 12px 16px 4px;">
+          <p style="font-size:12px; color: var(--text2, #6b7280); margin: 0 0 12px;">
+            Manage your product catalog and link items to your stock.
+          </p>
+        </div>
+        <button class="ed-add-btn" routerLink="/enterprise/my-products">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Manage Products
+        </button>
+        <button class="ed-add-btn" routerLink="/enterprise/my-stock"
+          style="margin-top:6px; background: rgba(16,185,129,0.08); color: #059669;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" />
+            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+          </svg>
+          View My Stock
+        </button>
+      </div>
+
+      <div class="ed-panel">
+        <div class="ed-panel-hd">
+          <div class="ed-panel-hd-l">
+
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" />
+              <line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
             <span class="ed-panel-title">WALLET</span>
           </div>
           <a class="ed-panel-link" routerLink="/enterprise/transactions">Transactions →</a>
@@ -277,12 +362,18 @@
           <div class="ed-w-amt">8,250 <span>TND</span></div>
           <div class="ed-w-meta">
             <span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
               620 TND in escrow
             </span>
             <span class="ed-w-note">Released on delivery</span>
           </div>
-          <div class="ed-w-bar"><div class="ed-w-fill" style="width:87%"></div></div>
+          <div class="ed-w-bar">
+            <div class="ed-w-fill" style="width:87%"></div>
+          </div>
           <div class="ed-w-btns">
             <button class="ed-btn-ghost" style="flex:1">Withdraw</button>
             <button class="ed-btn-primary" style="flex:1">Top Up</button>
@@ -293,15 +384,19 @@
       <div class="ed-panel">
         <div class="ed-panel-hd">
           <div class="ed-panel-hd-l">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <rect x="1" y="3" width="15" height="13" rx="1" />
+              <path d="M16 8h4l3 3v5h-7V8z" />
+              <circle cx="5.5" cy="18.5" r="2.5" />
+              <circle cx="18.5" cy="18.5" r="2.5" />
+            </svg>
             <span class="ed-panel-title">ACTIVE DELIVERIES</span>
           </div>
           <a class="ed-panel-link" routerLink="/enterprise/my-deliveries">All →</a>
         </div>
         <div class="ed-del" *ngFor="let d of deliveries">
-          <div class="ed-del-bar"
-            [class.transit]="d.status==='TRANSIT'"
-            [class.done]="d.status==='DELIVERED'"
+          <div class="ed-del-bar" [class.transit]="d.status==='TRANSIT'" [class.done]="d.status==='DELIVERED'"
             [class.sched]="d.status==='SCHEDULED'">
           </div>
           <div class="ed-del-info">
@@ -309,9 +404,8 @@
             <div class="ed-del-route">{{d.from}} → {{d.to}}</div>
           </div>
           <div class="ed-del-r">
-            <div class="ed-del-status"
-              [class.transit]="d.status==='TRANSIT'"
-              [class.done]="d.status==='DELIVERED'">{{d.status}}</div>
+            <div class="ed-del-status" [class.transit]="d.status==='TRANSIT'" [class.done]="d.status==='DELIVERED'">
+              {{d.status}}</div>
             <div class="ed-del-eta">{{d.eta}}</div>
           </div>
         </div>

@@ -1,0 +1,222 @@
+<div class="page-wrapper">
+  <div class="lc-page">
+    <div class="lc-back">
+      <a routerLink="/enterprise/annonces" class="btn btn-ghost btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Retour aux annonces
+      </a>
+    </div>
+
+    <h1 class="lc-heading">Publier une annonce</h1>
+
+    <!-- Step indicator -->
+    <div class="lc-steps">
+      <div class="lc-step" *ngFor="let s of [1,2,3,4,5,6]; let i = index"
+           [class.active]="step === s" [class.done]="step > s"
+           [class.hidden]="!isGroupBuying && s === 4"
+           (click)="goToStep(s)">
+        <div class="lc-step-num">{{step > s ? '✓' : s}}</div>
+        <span class="lc-step-label" *ngIf="s===1">Type</span>
+        <span class="lc-step-label" *ngIf="s===2">Produit</span>
+        <span class="lc-step-label" *ngIf="s===3">Infos</span>
+        <span class="lc-step-label" *ngIf="s===4">Groupe</span>
+        <span class="lc-step-label" *ngIf="s===5">Images</span>
+        <span class="lc-step-label" *ngIf="s===6">Récap</span>
+      </div>
+    </div>
+
+    <!-- Step 1: Type -->
+    <div class="lc-card" *ngIf="step === 1">
+      <h2>Quel type d'annonce souhaitez-vous créer ?</h2>
+      <div class="lc-type-grid">
+        <div class="lc-type-card" *ngFor="let t of types"
+             [class.selected]="selectedType === t.value"
+             [style.borderColor]="selectedType === t.value ? t.color : ''"
+             (click)="selectType(t.value)">
+          <span class="lc-type-icon">{{t.icon}}</span>
+          <h3 [style.color]="t.color">{{t.label}}</h3>
+          <p>{{t.desc}}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Product -->
+    <div class="lc-card" *ngIf="step === 2">
+      <h2>Sélectionnez un produit</h2>
+      <div *ngIf="productsFromCatalogFallback && products.length && !productsLoadError"
+           style="margin-bottom:16px;padding:12px 16px;border-radius:8px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.28);color:var(--text2,#1e40af);font-size:14px;">
+        L’API <code>/api/products</code> refuse l’accès à votre compte. La liste ci‑dessous provient du <strong>catalogue général</strong> (<code>retrieve-all-products</code>). Si la création d’annonce échoue, les identifiants produit peuvent ne pas correspondre — demandez alors au backend d’autoriser <code>GET /api/products</code> pour le rôle entreprise.
+      </div>
+      <div class="alert alert-danger" *ngIf="productsLoadError" style="margin-bottom:16px;padding:12px 16px;border-radius:8px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:var(--danger,#dc2626);">
+        {{ productsLoadError }}
+      </div>
+      <div class="form-group" *ngIf="loading && step === 2">
+        <p style="margin:0;color:var(--text3);">Chargement des produits…</p>
+      </div>
+      <div class="form-group">
+        <label>Produit existant</label>
+        <select class="lc-select" [ngModel]="form.get('productId')!.value" (ngModelChange)="form.get('productId')!.setValue($event)">
+          <option [ngValue]="null" disabled>-- Choisir un produit --</option>
+          <option *ngFor="let p of products" [ngValue]="p.idProduct">{{p.name}} {{p.category ? '(' + p.category + ')' : ''}}</option>
+        </select>
+        <div class="form-error" *ngIf="form.get('productId')!.touched && form.get('productId')!.invalid">Veuillez sélectionner un produit</div>
+      </div>
+      <div class="lc-product-preview" *ngIf="selectedProduct">
+        <div class="lc-pp-row"><span>Nom :</span> <strong>{{selectedProduct.name}}</strong></div>
+        <div class="lc-pp-row" *ngIf="selectedProduct.category"><span>Catégorie :</span> {{selectedProduct.category}}</div>
+        <div class="lc-pp-row" *ngIf="selectedProduct.description"><span>Description :</span> {{selectedProduct.description}}</div>
+        <div class="lc-pp-row"><span>Recyclable :</span> {{selectedProduct.recyclable ? 'Oui' : 'Non'}}</div>
+      </div>
+    </div>
+
+    <!-- Step 3: Info -->
+    <div class="lc-card" *ngIf="step === 3" [formGroup]="form">
+      <h2>Informations de l'annonce</h2>
+      <div class="form-group">
+        <label>Titre *</label>
+        <input type="text" formControlName="title" placeholder="Ex: Lot d'aluminium recyclé 2T">
+        <div class="form-error" *ngIf="form.get('title')!.touched && form.get('title')!.hasError('required')">Le titre est obligatoire</div>
+        <div class="form-error" *ngIf="form.get('title')!.hasError('minlength')">Minimum 3 caractères</div>
+        <div class="form-error" *ngIf="form.get('title')!.hasError('maxlength')">Maximum 255 caractères</div>
+      </div>
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea formControlName="description" rows="4" placeholder="Décrivez votre annonce en détail..."></textarea>
+        <div class="form-error" *ngIf="form.get('description')!.touched && form.get('description')!.hasError('required')">La description est obligatoire</div>
+        <div class="form-error" *ngIf="form.get('description')!.hasError('minlength')">Minimum 10 caractères</div>
+        <div class="form-error" *ngIf="form.get('description')!.hasError('maxlength')">Maximum 2000 caractères</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quantité *</label>
+          <input type="number" formControlName="quantity" placeholder="Ex: 2000" min="1">
+          <div class="form-error" *ngIf="form.get('quantity')!.touched && form.get('quantity')!.hasError('required')">La quantité est obligatoire</div>
+          <div class="form-error" *ngIf="form.get('quantity')!.hasError('min')">La quantité doit être supérieure à 0</div>
+        </div>
+        <div class="form-group">
+          <label>Unité *</label>
+          <input type="text" formControlName="unit" placeholder="Ex: kg, tonnes, pièces">
+          <div class="form-error" *ngIf="form.get('unit')!.touched && form.get('unit')!.hasError('required')">L'unité est obligatoire</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prix (TND)</label>
+          <input type="number" formControlName="price" placeholder="Optionnel" min="0" step="0.01">
+          <div class="form-error" *ngIf="form.get('price')!.hasError('min')">Le prix doit être positif</div>
+        </div>
+        <div class="form-group">
+          <label>Localisation</label>
+          <input type="text" formControlName="location" placeholder="Ex: Tunis, Sfax...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Group Buying -->
+    <div class="lc-card" *ngIf="step === 4 && isGroupBuying" [formGroup]="form">
+      <h2>Paramètres de l'achat groupé</h2>
+      <div class="lc-group-info">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Définissez la quantité cible et la date limite pour cet achat groupé
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quantité cible *</label>
+          <input type="number" formControlName="targetQuantity" placeholder="Ex: 5000" min="1">
+          <div class="form-error" *ngIf="form.get('targetQuantity')!.touched && form.get('targetQuantity')!.hasError('required')">La quantité cible est obligatoire</div>
+          <div class="form-error" *ngIf="form.get('targetQuantity')!.hasError('min')">Doit être supérieure à 0</div>
+        </div>
+        <div class="form-group">
+          <label>Date limite *</label>
+          <input type="datetime-local" formControlName="deadline">
+          <div class="form-error" *ngIf="form.get('deadline')!.touched && form.get('deadline')!.hasError('required')">La date limite est obligatoire</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Photos locales (max 5) -->
+    <div class="lc-card" *ngIf="step === 5">
+      <h2>Photos de l'annonce</h2>
+      <p class="lc-hint">
+        Jusqu’à <strong>{{ maxListingPhotos }} photos</strong>. Chaque fichier est envoyé au serveur
+        (<code>POST /api/listing-images</code>), les URLs <code>/files/…</code> sont enregistrées.
+        Sans aucune photo, l’image par défaut est utilisée.
+      </p>
+      <p class="lc-photo-count">{{ attachmentUrlsList.length }} / {{ maxListingPhotos }}</p>
+      <div class="lc-photo-row">
+        <label class="btn btn-outline lc-photo-btn" [class.disabled]="uploadingImage || attachmentUrlsList.length >= maxListingPhotos">
+          Ajouter des photos
+          <input type="file" accept="image/*" multiple class="lc-file-input" [disabled]="uploadingImage || attachmentUrlsList.length >= maxListingPhotos"
+            (change)="onListingImageSelected($event)" #listingPhotoInput />
+        </label>
+        <button type="button" class="btn btn-ghost btn-sm" [disabled]="uploadingImage"
+          (click)="clearListingImage(listingPhotoInput)">
+          Tout retirer (défaut)
+        </button>
+      </div>
+      <p class="lc-hint lc-upload-status" *ngIf="uploadingImage">Envoi des images au serveur…</p>
+      <div class="form-error" *ngIf="imageError">{{ imageError }}</div>
+      <div class="lc-photo-preview">
+        <img [src]="listingImagePreview" alt="Aperçu" />
+        <p class="lc-photo-caption">
+          {{ usesCustomListingPhoto ? (attachmentUrlsList.length + ' photo(s)') : 'Photo par défaut si vous n’ajoutez rien' }}
+        </p>
+      </div>
+      <div class="lc-photo-thumbs" *ngIf="attachmentUrlsList.length">
+        <div class="lc-photo-thumb" *ngFor="let url of attachmentUrlsList; let i = index"
+             [class.active]="i === previewMainIndex">
+          <button type="button" class="lc-photo-thumb-img" (click)="setPreviewIndex(i)">
+            <img [src]="url" alt="" />
+          </button>
+          <button type="button" class="lc-photo-remove" [disabled]="uploadingImage" (click)="removeImageAt(i, listingPhotoInput)" title="Retirer">×</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6: Recap -->
+    <div class="lc-card" *ngIf="step === (isGroupBuying ? 6 : 5) && step === totalSteps">
+      <h2>Récapitulatif</h2>
+      <div class="lc-recap">
+        <div class="lc-recap-row"><span>Type</span><strong>{{selectedType}}</strong></div>
+        <div class="lc-recap-row"><span>Produit</span><strong>{{selectedProduct?.name}}</strong></div>
+        <div class="lc-recap-row"><span>Titre</span><strong>{{form.value.title}}</strong></div>
+        <div class="lc-recap-row"><span>Description</span><span class="lc-recap-desc">{{form.value.description}}</span></div>
+        <div class="lc-recap-row"><span>Quantité</span><strong>{{form.value.quantity}} {{form.value.unit}}</strong></div>
+        <div class="lc-recap-row" *ngIf="form.value.price"><span>Prix</span><strong>{{form.value.price}} TND</strong></div>
+        <div class="lc-recap-row" *ngIf="form.value.location"><span>Localisation</span><strong>{{form.value.location}}</strong></div>
+        <div class="lc-recap-row" *ngIf="isGroupBuying"><span>Quantité cible</span><strong>{{form.value.targetQuantity}}</strong></div>
+        <div class="lc-recap-row" *ngIf="isGroupBuying"><span>Date limite</span><strong>{{form.value.deadline}}</strong></div>
+        <div class="lc-recap-row lc-recap-photo">
+          <span>Photos</span>
+          <div class="lc-recap-photo-cell lc-recap-photo-multi">
+            <img *ngFor="let u of attachmentUrlsList; let i = index" [src]="u" alt="" width="56" height="56" class="lc-recap-mini" />
+            <strong *ngIf="!attachmentUrlsList.length">Image par défaut</strong>
+            <strong *ngIf="attachmentUrlsList.length">{{ attachmentUrlsList.length }} photo(s)</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-danger" *ngIf="error">{{error}}</div>
+
+      <button class="btn btn-primary lc-submit" [disabled]="form.invalid || submitting || uploadingImage" (click)="submit()">
+        <span *ngIf="!submitting">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Publier l'annonce
+        </span>
+        <span *ngIf="submitting" class="spinner-sm"></span>
+      </button>
+    </div>
+
+    <!-- Navigation -->
+    <div class="lc-nav" *ngIf="step > 1">
+      <button class="btn btn-outline" (click)="prevStep()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Précédent
+      </button>
+      <button class="btn btn-primary" *ngIf="step < totalSteps" [disabled]="!canGoNext || uploadingImage" (click)="nextStep()">
+        Suivant
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+  </div>
+</div>

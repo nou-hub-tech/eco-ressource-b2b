@@ -1,1 +1,142 @@
+<<<<<<< HEAD
 /* All header styles are in src/styles.css via theme classes */
+=======
+﻿/* All header styles are in src/styles.css via theme classes */
+/* Language Switcher styling for header */
+:host ::ng-deep .lang-switcher-container {
+  position: relative;
+  display: inline-block;
+}
+
+:host ::ng-deep .lang-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  transition: all 0.2s ease;
+}
+
+:host ::ng-deep .lang-trigger:hover {
+  background: var(--bg3);
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+:host ::ng-deep .lang-flag {
+  font-size: 14px;
+}
+
+:host ::ng-deep .lang-code {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+:host ::ng-deep .lang-chevron {
+  font-size: 8px;
+  transition: transform 0.2s;
+  color: var(--text3);
+}
+
+:host ::ng-deep .lang-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+:host ::ng-deep .lang-dropdown-modern {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 1000;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+:host ::ng-deep .lang-dropdown-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  background: var(--bg2);
+}
+
+:host ::ng-deep .lang-dropdown-items {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+:host ::ng-deep .lang-option-modern {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s;
+  text-align: left;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text2);
+}
+
+:host ::ng-deep .lang-option-modern:hover {
+  background: var(--bg3);
+  color: var(--text);
+}
+
+:host ::ng-deep .lang-option-modern.active {
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--primary);
+}
+
+:host ::ng-deep .lang-option-flag {
+  font-size: 14px;
+}
+
+:host ::ng-deep .lang-option-name {
+  flex: 1;
+}
+
+:host ::ng-deep .lang-option-code {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--bg2);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+:host ::ng-deep .check-mark {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 11px;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+>>>>>>> origin/integration/gestion-annonce-et-product-v2

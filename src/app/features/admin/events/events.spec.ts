@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+<<<<<<< HEAD
 import { Events } from './events';
 
 describe('Events', () => {
@@ -13,6 +14,21 @@ describe('Events', () => {
     .compileComponents();
 
     fixture = TestBed.createComponent(Events);
+=======
+import { AdminEvents } from './events';
+
+describe('AdminEvents', () => {
+  let component: AdminEvents;
+  let fixture: ComponentFixture<AdminEvents>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [AdminEvents]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(AdminEvents);
+>>>>>>> origin/integration/gestion-annonce-et-product-v2
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

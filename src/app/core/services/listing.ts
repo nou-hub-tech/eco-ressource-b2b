@@ -1,6 +1,7 @@
 export {
   ListingService
 } from './listing.service';
+
 export type {
   ListingDto,
   CreateListingPayload,

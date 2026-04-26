@@ -1,0 +1,112 @@
+<div class="page-wrapper">
+  <div class="sie-page">
+    <a
+      *ngIf="item"
+      [routerLink]="['/enterprise/annonces/stock', item.idStock]"
+      class="btn btn-ghost btn-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12" />
+        <polyline points="12 19 5 12 12 5" />
+      </svg>
+      Retour au détail
+    </a>
+
+    <h1 class="sie-heading">Modifier l’article en stock</h1>
+
+    <div class="sie-loading" *ngIf="loading">
+      <div class="spinner-lg"></div>
+      <p>Chargement…</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && error && !item">
+      <span class="empty-icon">⚠️</span>
+      <h3>{{ error }}</h3>
+      <a routerLink="/enterprise/annonces/stock" class="btn btn-primary" style="margin-top:12px">Retour au stock</a>
+    </div>
+
+    <div class="card sie-card" *ngIf="!loading && item" [formGroup]="form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quantité *</label>
+          <input type="number" formControlName="quantity" min="0.0001" step="any" />
+          <div class="form-error" *ngIf="form.get('quantity')!.touched && form.get('quantity')!.hasError('required')">
+            La quantité est obligatoire.
+          </div>
+          <div class="form-error" *ngIf="form.get('quantity')!.touched && form.get('quantity')!.hasError('min')">
+            La quantité doit être strictement positive.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Prix unitaire (TND) *</label>
+          <input type="number" formControlName="unitPrice" min="0" step="0.01" />
+          <div class="form-error" *ngIf="form.get('unitPrice')!.touched && form.get('unitPrice')!.hasError('required')">
+            Le prix unitaire est obligatoire.
+          </div>
+          <div class="form-error" *ngIf="form.get('unitPrice')!.touched && form.get('unitPrice')!.hasError('min')">
+            Le prix unitaire ne peut pas être négatif.
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Produit *</label>
+        <select formControlName="idProduct">
+          <option [ngValue]="null" disabled>— Choisir un produit —</option>
+          <option *ngFor="let p of products" [ngValue]="p.idProduct">
+            {{ p.name }}<span *ngIf="p.category"> ({{ p.category }})</span>
+          </option>
+        </select>
+        <div class="form-error" *ngIf="form.get('idProduct')!.touched && form.get('idProduct')!.invalid">
+          Veuillez sélectionner un produit.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>ID entreprise</label>
+        <input type="number" formControlName="companyId" min="1" placeholder="Optionnel" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>État / condition</label>
+          <input type="text" formControlName="itemCondition" />
+        </div>
+        <div class="form-group">
+          <label>Unité</label>
+          <input type="text" formControlName="unit" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date d’expiration</label>
+          <input type="date" formControlName="expirationDate" />
+        </div>
+        <div class="form-group">
+          <label>Statut</label>
+          <input type="text" formControlName="status" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Image (URL)</label>
+        <input type="url" formControlName="image" />
+      </div>
+
+      <div class="form-group">
+        <label>Emplacement</label>
+        <input type="text" formControlName="location" />
+      </div>
+
+      <div class="alert alert-danger" *ngIf="error && item">{{ error }}</div>
+
+      <div class="sie-actions">
+        <a [routerLink]="['/enterprise/annonces/stock', item.idStock]" class="btn btn-outline">Annuler</a>
+        <button type="button" class="btn btn-primary" [disabled]="form.invalid || submitting" (click)="submit()">
+          <span *ngIf="!submitting">Enregistrer</span>
+          <span *ngIf="submitting" class="spinner-sm"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

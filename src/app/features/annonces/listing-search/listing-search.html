@@ -1,0 +1,78 @@
+<div class="page-wrapper">
+  <div class="ls-page">
+    <a routerLink="/enterprise/annonces" class="btn btn-ghost btn-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Retour aux annonces
+    </a>
+
+    <h1 class="ls-heading">Recherche Avancée</h1>
+
+    <!-- Search form -->
+    <div class="ls-form-card" [formGroup]="form">
+      <div class="ls-form-grid">
+        <div class="form-group">
+          <label>Type d'annonce</label>
+          <select formControlName="type">
+            <option value="">Tous</option>
+            <option value="SURPLUS">Surplus</option>
+            <option value="DEMANDE">Demande</option>
+            <option value="GROUP_BUYING">Achat Groupé</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Catégorie produit</label>
+          <input type="text" formControlName="category" placeholder="Ex: Metal, Plastique...">
+        </div>
+        <div class="form-group">
+          <label>Localisation</label>
+          <input type="text" formControlName="location" placeholder="Ex: Tunis, Sfax...">
+        </div>
+        <div class="form-group">
+          <label>Prix maximum (TND)</label>
+          <input type="number" formControlName="maxPrice" placeholder="Ex: 500" min="0">
+        </div>
+      </div>
+      <div class="ls-form-actions">
+        <button class="btn btn-primary" (click)="search()" [disabled]="loading">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Rechercher
+        </button>
+        <button class="btn btn-outline" (click)="reset()">Réinitialiser</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div *ngIf="searched">
+      <div class="ls-results-header">
+        <span class="toolbar-count">{{results.length}} résultat{{results.length > 1 ? 's' : ''}}</span>
+        <select class="filter-select" [(ngModel)]="sortBy" (ngModelChange)="onSortChange()">
+          <option value="date">Plus récent</option>
+          <option value="price-asc">Prix croissant</option>
+          <option value="price-desc">Prix décroissant</option>
+          <option value="popularity">Popularité</option>
+        </select>
+      </div>
+
+      <div class="ls-loading" *ngIf="loading">
+        <div class="spinner-lg"></div>
+      </div>
+
+      <div class="ll-grid" *ngIf="!loading && paged.length > 0">
+        <app-listing-card *ngFor="let l of paged" [listing]="l" [favoriteIds]="favoriteIds"></app-listing-card>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && results.length === 0">
+        <span class="empty-icon">🔍</span>
+        <h3>Aucun résultat</h3>
+        <p>Essayez d'élargir vos critères de recherche</p>
+      </div>
+
+      <app-pagination
+        [currentPage]="currentPage"
+        [totalItems]="results.length"
+        [pageSize]="pageSize"
+        (pageChange)="onPageChange($event)">
+      </app-pagination>
+    </div>
+  </div>
+</div>

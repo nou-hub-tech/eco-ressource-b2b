@@ -1,0 +1,151 @@
+<div class="page-wrapper">
+  <div class="page-header-row sil-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>Stock</h1>
+      <p>Gestion des articles en entrepôt</p>
+    </div>
+    <div class="sil-actions">
+      <a class="btn btn-outline" routerLink="/enterprise/annonces/stock/movements">
+        Mouvements
+      </a>
+      <a class="btn btn-primary" routerLink="/enterprise/annonces/stock/create">
+        Nouvel article
+      </a>
+    </div>
+  </div>
+
+  <div class="card sil-filters">
+    <div class="form-row sil-filter-row">
+      <div class="form-group sil-grow">
+        <label>Produit</label>
+        <select
+          class="filter-select"
+          [(ngModel)]="filterProductId"
+          (ngModelChange)="onFiltersChange()">
+          <option [ngValue]="''">Tous les produits</option>
+          <option *ngFor="let p of products" [ngValue]="p.idProduct">
+            {{ p.name }}<span *ngIf="p.category"> ({{ p.category }})</span>
+          </option>
+        </select>
+      </div>
+      <div class="form-group sil-company">
+        <label>ID entreprise</label>
+        <input
+          type="number"
+          [(ngModel)]="filterCompanyId"
+          (ngModelChange)="onFiltersChange()"
+          placeholder="Filtrer par société…"
+          min="1" />
+      </div>
+      <div class="form-group sil-filter-actions">
+        <label class="sil-label-spacer">&nbsp;</label>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          *ngIf="filterCompanyId !== null && filterCompanyId !== undefined"
+          (click)="clearCompanyFilter()">
+          Réinitialiser société
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="loadError">{{ loadError }}</div>
+
+  <div class="sil-loading" *ngIf="loading">
+    <div class="spinner-lg"></div>
+    <p>Chargement du stock…</p>
+  </div>
+
+  <!-- Desktop table -->
+  <div class="card sil-table-wrap" *ngIf="!loading && items.length > 0">
+    <div class="sil-table-scroll">
+      <table class="sil-table">
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th>Quantité</th>
+            <th>Unité</th>
+            <th>Prix unitaire</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of items">
+            <td>
+              <button type="button" class="sil-link" (click)="goDetail(row.idStock)">
+                {{ productLabel(row) }}
+              </button>
+            </td>
+            <td>{{ row.quantity | number : '1.0-3' }}</td>
+            <td>{{ row.unit || '—' }}</td>
+            <td>{{ row.unitPrice | number : '1.2-2' }} TND</td>
+            <td>
+              <span class="sil-badge" *ngIf="row.status">{{ row.status }}</span>
+              <span *ngIf="!row.status">—</span>
+            </td>
+            <td class="sil-actions-cell">
+              <a class="btn btn-ghost btn-sm" [routerLink]="['/enterprise/annonces/stock', row.idStock]">Voir</a>
+              <a class="btn btn-outline btn-sm" [routerLink]="['/enterprise/annonces/stock', row.idStock, 'edit']">
+                Modifier
+              </a>
+              <button type="button" class="btn btn-danger btn-sm" (click)="openDelete(row)">
+                Supprimer
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mobile cards -->
+  <div class="sil-cards" *ngIf="!loading && items.length > 0">
+    <div class="card sil-card" *ngFor="let row of items">
+      <div class="sil-card-top">
+        <h3 class="sil-card-title">{{ productLabel(row) }}</h3>
+        <span class="sil-badge" *ngIf="row.status">{{ row.status }}</span>
+      </div>
+      <dl class="sil-dl">
+        <div>
+          <dt>Quantité</dt>
+          <dd>{{ row.quantity | number : '1.0-3' }} {{ row.unit || '' }}</dd>
+        </div>
+        <div>
+          <dt>Prix unitaire</dt>
+          <dd>{{ row.unitPrice | number : '1.2-2' }} TND</dd>
+        </div>
+      </dl>
+      <div class="sil-card-actions">
+        <a class="btn btn-outline btn-sm" [routerLink]="['/enterprise/annonces/stock', row.idStock]">Voir</a>
+        <a class="btn btn-primary btn-sm" [routerLink]="['/enterprise/annonces/stock', row.idStock, 'edit']">
+          Modifier
+        </a>
+        <button type="button" class="btn btn-danger btn-sm" (click)="openDelete(row)">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && items.length === 0">
+    <span class="empty-icon">📦</span>
+    <h3>Aucun article en stock</h3>
+    <p>Ajustez les filtres ou créez un nouvel article.</p>
+    <a class="btn btn-primary" routerLink="/enterprise/annonces/stock/create" style="margin-top:12px">
+      Créer un article
+    </a>
+  </div>
+
+  <app-confirm-dialog
+    [visible]="showDeleteConfirm"
+    title="Supprimer cet article ?"
+    message="Cette action est définitive. Les mouvements associés peuvent être impactés."
+    confirmLabel="Supprimer"
+    cancelLabel="Annuler"
+    [danger]="true"
+    (confirmed)="confirmDelete()"
+    (cancelled)="cancelDelete()">
+  </app-confirm-dialog>
+
+  <div class="alert alert-danger sil-dialog-error" *ngIf="deleteError">{{ deleteError }}</div>
+</div>

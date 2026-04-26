@@ -1,0 +1,116 @@
+<div class="page-wrapper">
+  <div class="le-page">
+    <a [routerLink]="['/enterprise/annonces', listing?.id]" class="btn btn-ghost btn-sm" *ngIf="listing">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Retour au détail
+    </a>
+
+    <h1 class="le-heading">Modifier l'annonce</h1>
+
+    <div class="le-loading" *ngIf="loading">
+      <div class="spinner-lg"></div>
+      <p>Chargement...</p>
+    </div>
+
+    <div class="le-card" *ngIf="!loading && listing" [formGroup]="form">
+      <!-- Type badge (immutable) -->
+      <div class="le-type-row">
+        <span class="le-type-badge">Type : <strong>{{typeLabel}}</strong></span>
+        <span class="le-type-hint">Le type ne peut pas être modifié</span>
+      </div>
+
+      <div class="form-group">
+        <label>Produit *</label>
+        <select formControlName="productId">
+          <option [ngValue]="null" disabled>-- Choisir --</option>
+          <option *ngFor="let p of products" [ngValue]="p.idProduct">{{p.name}} {{p.category ? '(' + p.category + ')' : ''}}</option>
+        </select>
+        <div class="form-error" *ngIf="form.get('productId')!.touched && form.get('productId')!.invalid">Produit obligatoire</div>
+      </div>
+
+      <div class="form-group">
+        <label>Titre *</label>
+        <input type="text" formControlName="title">
+        <div class="form-error" *ngIf="form.get('title')!.touched && form.get('title')!.hasError('required')">Le titre est obligatoire</div>
+        <div class="form-error" *ngIf="form.get('title')!.hasError('minlength')">Minimum 3 caractères</div>
+      </div>
+
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea formControlName="description" rows="4"></textarea>
+        <div class="form-error" *ngIf="form.get('description')!.touched && form.get('description')!.hasError('required')">La description est obligatoire</div>
+        <div class="form-error" *ngIf="form.get('description')!.hasError('minlength')">Minimum 10 caractères</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quantité *</label>
+          <input type="number" formControlName="quantity" min="1">
+          <div class="form-error" *ngIf="form.get('quantity')!.touched && form.get('quantity')!.invalid">Quantité invalide</div>
+        </div>
+        <div class="form-group">
+          <label>Unité *</label>
+          <input type="text" formControlName="unit">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prix (TND)</label>
+          <input type="number" formControlName="price" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Localisation</label>
+          <input type="text" formControlName="location">
+        </div>
+      </div>
+
+      <div class="form-group le-photo-block">
+        <label>Photos de l'annonce (max {{ maxListingPhotos }})</label>
+        <p class="le-hint">
+          Jusqu’à {{ maxListingPhotos }} photos via <code>POST /api/listing-images</code>. Sans photo,
+          l’image par défaut sera appliquée à l’enregistrement.
+        </p>
+        <p class="le-photo-count">{{ attachmentUrlsList.length }} / {{ maxListingPhotos }}</p>
+        <div class="le-photo-row">
+          <label class="btn btn-outline le-photo-btn" [class.disabled]="uploadingImage || attachmentUrlsList.length >= maxListingPhotos">
+            Ajouter des photos
+            <input type="file" accept="image/*" multiple class="le-file-input" [disabled]="uploadingImage || attachmentUrlsList.length >= maxListingPhotos"
+              (change)="onListingImageSelected($event)" #listingPhotoInput />
+          </label>
+          <button type="button" class="btn btn-ghost btn-sm" [disabled]="uploadingImage"
+            (click)="clearListingImage(listingPhotoInput)">
+            Tout retirer (défaut)
+          </button>
+        </div>
+        <p class="le-hint le-upload-status" *ngIf="uploadingImage">Envoi des images au serveur…</p>
+        <div class="form-error" *ngIf="imageError">{{ imageError }}</div>
+        <div class="le-photo-preview">
+          <img [src]="listingImagePreview" alt="Aperçu" />
+          <p class="le-photo-caption">
+            {{ usesCustomListingPhoto ? (attachmentUrlsList.length + ' photo(s)') : 'Par défaut si aucune photo' }}
+          </p>
+        </div>
+        <div class="le-photo-thumbs" *ngIf="attachmentUrlsList.length">
+          <div class="le-photo-thumb" *ngFor="let url of attachmentUrlsList; let i = index"
+               [class.active]="i === previewMainIndex">
+            <button type="button" class="le-photo-thumb-img" (click)="setPreviewIndex(i)">
+              <img [src]="url" alt="" />
+            </button>
+            <button type="button" class="le-photo-remove" [disabled]="uploadingImage" (click)="removeImageAt(i, listingPhotoInput)" title="Retirer">×</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-danger" *ngIf="error">{{error}}</div>
+
+      <div class="le-actions">
+        <a [routerLink]="['/enterprise/annonces', listing.id]" class="btn btn-outline">Annuler</a>
+        <button class="btn btn-primary" [disabled]="form.invalid || submitting || uploadingImage" (click)="submit()">
+          <span *ngIf="!submitting">Enregistrer les modifications</span>
+          <span *ngIf="submitting" class="spinner-sm"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

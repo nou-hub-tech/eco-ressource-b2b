@@ -42,3 +42,13 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+<<<<<<< HEAD
+=======
+
+# Local spec / notes (not versioned)
+/FRONTEND-ANGULAR-SPEC-MODULE-ANNONCES.md
+/module-gestion-annonces-final.md
+/docx/
+/guide code/
+/docs/
+>>>>>>> origin/integration/gestion-annonce-et-product-v2

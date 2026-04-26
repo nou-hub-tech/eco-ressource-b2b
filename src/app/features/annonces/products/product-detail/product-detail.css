@@ -1,0 +1,32 @@
+.pd-loading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:80px 24px;color:var(--text3);font-size:14px}
+.spinner-lg{width:32px;height:32px;border:2.5px solid var(--bg3,#f1f5f9);border-top-color:var(--primary);border-radius:50%;animation:pd-spin .7s linear infinite}
+@keyframes pd-spin{to{transform:rotate(360deg)}}
+
+.pd-page{max-width:1000px;margin:0 auto}
+.pd-back{margin-bottom:18px}
+.pd-layout{display:grid;grid-template-columns:minmax(0,360px) 1fr;gap:28px;align-items:start}
+.pd-visual{overflow:hidden;border-radius:16px;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.pd-img{width:100%;display:block;aspect-ratio:4/3;object-fit:cover}
+.pd-visual-placeholder{min-height:220px;display:flex;align-items:center;justify-content:center;font-size:64px;opacity:.2;background:var(--bg3,#f8fafc)}
+.pd-main{display:flex;flex-direction:column;gap:18px}
+.pd-header{padding:4px 0 8px}
+.pd-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.pd-badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.pd-badge-muted{background:var(--bg3,#f1f5f9);color:var(--text2)}
+.pd-badge-ok{background:#ecfdf5;color:#047857}
+.pd-badge-warn{background:#fffbeb;color:#b45309}
+.pd-title{font-size:clamp(22px,4vw,28px);font-weight:800;color:var(--text);margin:0 0 6px;letter-spacing:-.04em;line-height:1.15}
+.pd-id{font-size:12px;color:var(--muted);margin:0}
+.pd-section{padding:22px 24px;border-radius:16px;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.pd-section h2{font-size:15px;font-weight:700;color:var(--text);margin:0 0 12px;letter-spacing:-.01em}
+.pd-desc{font-size:14.5px;color:var(--text2);line-height:1.65;margin:0;white-space:pre-wrap}
+.pd-info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.pd-info{padding:18px 20px;display:flex;flex-direction:column;gap:6px;border-radius:14px;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.pd-info-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:600}
+.pd-info-value{font-size:15px;font-weight:700;color:var(--text)}
+.pd-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+
+@media(max-width:900px){
+  .pd-layout{grid-template-columns:1fr}
+  .pd-visual{max-width:420px;margin:0 auto;width:100%}
+}

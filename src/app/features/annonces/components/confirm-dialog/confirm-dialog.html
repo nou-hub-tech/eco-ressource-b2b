@@ -1,0 +1,18 @@
+<div class="modal-overlay" *ngIf="visible" (click)="onCancel()">
+  <div class="confirm-box" (click)="$event.stopPropagation()">
+    <div class="confirm-icon" [class.danger]="danger">
+      <svg *ngIf="danger" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <svg *ngIf="!danger" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h3 class="confirm-title">{{title}}</h3>
+    <p class="confirm-msg">{{message}}</p>
+    <div class="confirm-actions">
+      <button class="btn btn-outline" (click)="onCancel()">{{cancelLabel}}</button>
+      <button class="btn" [class.btn-danger]="danger" [class.btn-primary]="!danger" (click)="onConfirm()">{{confirmLabel}}</button>
+    </div>
+  </div>
+</div>

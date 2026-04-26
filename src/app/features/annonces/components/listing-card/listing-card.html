@@ -1,0 +1,60 @@
+<div class="lc" (click)="goToDetail()">
+  <div class="lc-img">
+    <img [src]="coverImageUrl" [alt]="listing.title" loading="lazy">
+    <span class="lc-photo-badge" *ngIf="attachmentPhotoCount > 1">{{ attachmentPhotoCount }}</span>
+  </div>
+
+  <div class="lc-body">
+    <div class="lc-top">
+      <span class="lc-type" [ngClass]="typeClass">{{typeLabel}}</span>
+      <span class="badge lc-status" [ngClass]="statusClass">{{listing.status}}</span>
+    </div>
+
+    <h3 class="lc-title">{{listing.title}}</h3>
+
+    <div class="lc-meta">
+      <span class="lc-cat">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        {{listing.productCategory}}
+      </span>
+      <span class="lc-loc" *ngIf="listing.location">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        {{listing.location}}
+      </span>
+    </div>
+
+    <div class="lc-price-row">
+      <div class="lc-price" *ngIf="listing.price !== null">
+        {{listing.price | number:'1.0-2'}} <span class="lc-currency">TND</span>
+      </div>
+      <div class="lc-price lc-negotiable" *ngIf="listing.price === null">Négociable</div>
+      <div class="lc-qty">{{listing.quantity}} {{listing.unit}}</div>
+    </div>
+
+    <!-- Group Buying progress -->
+    <div class="lc-group" *ngIf="listing.type === 'GROUP_BUYING' && listing.groupPurchase">
+      <div class="lc-progress-bar">
+        <div class="lc-progress-fill" [style.width.%]="groupProgress" [style.background]="progressColor"></div>
+      </div>
+      <div class="lc-progress-info">
+        <span>{{listing.groupPurchase.currentQuantity}}/{{listing.groupPurchase.targetQuantity}} {{listing.unit}}</span>
+        <span class="lc-progress-pct">{{groupProgress}}%</span>
+      </div>
+    </div>
+
+    <div class="lc-footer">
+      <div class="lc-stats">
+        <span>❤ {{listing.favoriteCount}}</span>
+        <span>💬 {{listing.commentCount}}</span>
+        <span class="lc-time">{{timeAgo(listing.createdAt)}}</span>
+      </div>
+      <app-favorite-button
+        [listingId]="listing.id"
+        [isFavorite]="isFav"
+        [count]="listing.favoriteCount"
+        [showCount]="false"
+        (toggled)="onFavoriteToggled($event)">
+      </app-favorite-button>
+    </div>
+  </div>
+</div>

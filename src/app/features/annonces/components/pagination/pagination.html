@@ -1,0 +1,16 @@
+<div class="pagination-wrap" *ngIf="totalPages > 1">
+  <button class="pg-btn pg-nav" [disabled]="currentPage === 1" (click)="goTo(currentPage - 1)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+
+  <ng-container *ngFor="let p of pages">
+    <span class="pg-dots" *ngIf="p === -1">...</span>
+    <button class="pg-btn pg-num" *ngIf="p !== -1" [class.active]="p === currentPage" (click)="goTo(p)">{{p}}</button>
+  </ng-container>
+
+  <button class="pg-btn pg-nav" [disabled]="currentPage === totalPages" (click)="goTo(currentPage + 1)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+
+  <span class="pg-info">Page {{currentPage}} / {{totalPages}}</span>
+</div>

@@ -32,4 +32,8 @@ export class Header implements OnInit {
   toggleTheme(): void {
     this.themeService.toggle();
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/integration/gestion-annonce-et-product-v2

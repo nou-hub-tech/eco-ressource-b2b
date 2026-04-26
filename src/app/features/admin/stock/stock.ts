@@ -1,22 +1,16 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-stock',
   standalone: false,
   templateUrl: './stock.html',
-  styleUrl: './stock.css',
+  styleUrls: ['./stock.css']
 })
-export class Stock {
+export class Stock implements OnInit {
+  constructor(private router: Router) { }
 
-  search = ''; showModal = false;
-  items = [
-    { name:'Aluminum Scrap',  category:'Metal',   qty:2000, unit:'kg', condition:'Good', status:'listed',    ai:'Shortage in 2 weeks' },
-    { name:'Steel Offcuts',   category:'Metal',   qty:800,  unit:'kg', condition:'Fair', status:'listed',    ai:'Optimal price: 780/T' },
-    { name:'Cardboard Bales', category:'Paper',   qty:1000, unit:'kg', condition:'Good', status:'reserved',  ai:'High demand period' },
-    { name:'Plastic Waste',   category:'Plastic', qty:200,  unit:'kg', condition:'Fair', status:'unlisted',  ai:'Post now — price up' },
-  ];
-  get filtered() { return this.items.filter(i => i.name.toLowerCase().includes(this.search.toLowerCase())); }
-  ngOnInit(): void {}
-  openModal(): void { this.showModal = true; }
-  closeModal(): void { this.showModal = false; }
+  ngOnInit(): void {
+    void this.router.navigate(['/admin/stockitems']);
+  }
 }

@@ -1,0 +1,128 @@
+<div class="stats-advanced-container">
+  <!-- Header with toggle -->
+  <div class="stats-header-advanced">
+    <h3>📊 Advanced Analytics</h3>
+    <button class="btn-toggle" (click)="toggleAdvancedStats()">
+      {{ showAdvancedStats ? 'Hide Details' : 'Show Details' }}
+    </button>
+  </div>
+
+  <div *ngIf="showAdvancedStats && !loading">
+    <!-- Health Score Card -->
+    <div class="health-section">
+      <div class="health-card">
+        <div class="health-score">
+          <div class="score-circle" [style.borderColor]="getHealthColor(stats.stockHealthScore)">
+            <span class="score-value">{{ stats.stockHealthScore | number:'1.0-0' }}</span>
+            <span class="score-label">/100</span>
+          </div>
+          <div class="health-info">
+            <h4>Stock Health: {{ getHealthStatus(stats.stockHealthScore) }}</h4>
+            <p>Turnover Rate: {{ stats.turnoverRate | number:'1.1-1' }}%</p>
+            <p>Avg Days in Stock: {{ stats.averageDaysInStock || 45 }} days</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiry Status -->
+    <div class="expiry-section">
+      <h4>⏰ Expiration Status</h4>
+      <div class="expiry-stats">
+        <div class="expiry-item healthy">
+          <span class="label">Healthy</span>
+          <span class="value">{{ stats.healthyItems }}</span>
+          <div class="bar">
+            <div class="bar-fill healthy" [style.width.%]="getPercentage(stats.healthyItems, stats.totalQuantity)"></div>
+          </div>
+        </div>
+        <div class="expiry-item warning">
+          <span class="label">Expiring in 30 days</span>
+          <span class="value">{{ stats.expiringIn30Days }}</span>
+          <div class="bar">
+            <div class="bar-fill warning" [style.width.%]="getPercentage(stats.expiringIn30Days, stats.totalQuantity)"></div>
+          </div>
+        </div>
+        <div class="expiry-item danger">
+          <span class="label">Expired</span>
+          <span class="value">{{ stats.expiredItems }}</span>
+          <div class="bar">
+            <div class="bar-fill danger" [style.width.%]="getPercentage(stats.expiredItems, stats.totalQuantity)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Value Metrics -->
+    <div class="value-metrics">
+      <div class="metric-card-small">
+        <div class="metric-icon">💰</div>
+        <div class="metric-value">{{ stats.totalValue | number:'1.2-2' }} DT</div>
+        <div class="metric-label">Total Stock Value</div>
+      </div>
+      <div class="metric-card-small">
+        <div class="metric-icon">📊</div>
+        <div class="metric-value">{{ stats.averageUnitPrice | number:'1.2-2' }} DT</div>
+        <div class="metric-label">Average Unit Price</div>
+      </div>
+    </div>
+
+    <!-- Top Products -->
+    <div class="top-products">
+      <div class="product-card">
+        <h4>🏆 Most Valuable Products</h4>
+        <div *ngFor="let product of stats.top5MostValuable" class="product-row">
+          <span class="product-name">{{ product.productName }}</span>
+          <span class="product-value">{{ product.totalValue | number:'1.2-2' }} DT</span>
+        </div>
+      </div>
+      <div class="product-card">
+        <h4>📦 Highest Quantity Products</h4>
+        <div *ngFor="let product of stats.top5HighestQuantity" class="product-row">
+          <span class="product-name">{{ product.productName }}</span>
+          <span class="product-value">{{ product.quantity }} units</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Distribution Grid -->
+    <div class="distribution-grid">
+      <div class="dist-card">
+        <h4>Status Distribution</h4>
+        <div *ngFor="let item of stats.statusDistribution | keyvalue" class="dist-item">
+          <span class="dist-label">{{ item.key }}</span>
+          <div class="dist-bar">
+            <div class="dist-fill" [style.width.%]="getPercentage(item.value, stats.totalQuantity)"></div>
+          </div>
+          <span class="dist-value">{{ item.value }}</span>
+        </div>
+      </div>
+
+      <div class="dist-card">
+        <h4>Condition Distribution</h4>
+        <div *ngFor="let item of stats.conditionDistribution | keyvalue" class="dist-item">
+          <span class="dist-label">{{ item.key }}</span>
+          <div class="dist-bar">
+            <div class="dist-fill" [style.width.%]="getPercentage(item.value, stats.totalQuantity)"></div>
+          </div>
+          <span class="dist-value">{{ item.value }}</span>
+        </div>
+      </div>
+
+      <div class="dist-card">
+        <h4>Value by Location</h4>
+        <div *ngFor="let item of stats.valueByLocation | keyvalue" class="dist-item">
+          <span class="dist-label">{{ item.key }}</span>
+          <div class="dist-bar">
+            <div class="dist-fill value" [style.width.%]="(item.value / stats.totalValue) * 100"></div>
+          </div>
+          <span class="dist-value">{{ item.value | number:'1.0-0' }} DT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-indicator" *ngIf="loading && showAdvancedStats">
+    Loading advanced statistics...
+  </div>
+</div>
