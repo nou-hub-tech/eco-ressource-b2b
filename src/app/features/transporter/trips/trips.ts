@@ -96,8 +96,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         return deg * (Math.PI / 180);
     }
     
-    // ========== GESTION DES GAINS ==========
-    
     saveEarning(amount: number, date: Date, deliveryOrderId: number): void {
         const earnings = this.getEarnings();
         earnings.push({
@@ -109,7 +107,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             monthIndex: date.getMonth()
         });
         localStorage.setItem('earnings', JSON.stringify(earnings));
-        console.log(`Gain de ${amount} TND enregistré pour la commande #${deliveryOrderId}`);
     }
     
     getEarnings(): any[] {
@@ -419,81 +416,114 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             }
         });
         
+        // Grouper les commandes par ville
+        const tripsByCity = new Map<string, any[]>();
+        allTrips.forEach(trip => {
+            if (trip.lat && trip.lng) {
+                const city = trip.to;
+                if (!tripsByCity.has(city)) {
+                    tripsByCity.set(city, []);
+                }
+                tripsByCity.get(city)!.push(trip);
+            }
+        });
+        
         const orderIcon = L.divIcon({
-            html: `<div style="background-color: #dc3545; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold;">📦</div>`,
-            iconSize: [24, 24],
+            html: `<div style="background-color: #dc3545; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: bold;">📦</div>`,
+            iconSize: [30, 30],
             className: 'order-marker'
         });
         
         const acceptedIcon = L.divIcon({
-            html: `<div style="background-color: #28a745; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold;">✅</div>`,
-            iconSize: [24, 24],
+            html: `<div style="background-color: #28a745; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: bold;">🚚</div>`,
+            iconSize: [30, 30],
             className: 'accepted-marker'
         });
         
         const completedIcon = L.divIcon({
-            html: `<div style="background-color: #17a2b8; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: bold;">✓</div>`,
-            iconSize: [24, 24],
+            html: `<div style="background-color: #17a2b8; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: bold;">✓</div>`,
+            iconSize: [30, 30],
             className: 'completed-marker'
         });
         
-        allTrips.forEach((trip) => {
-            if (trip.lat && trip.lng) {
-                let icon = orderIcon;
-                
-                if (trip.completed) {
-                    icon = completedIcon;
-                } else if (trip.accepted) {
-                    icon = acceptedIcon;
-                }
-                
-                let popupContent = `
-                    <div style="min-width: 200px;">
-                        <strong style="color: ${trip.completed ? '#17a2b8' : (trip.accepted ? '#28a745' : '#dc3545')};">📍 ${trip.to}</strong><br>
+        // Pour chaque ville, afficher un marqueur
+        tripsByCity.forEach((trips, cityName) => {
+            const firstTrip = trips[0];
+            const lat = firstTrip.lat;
+            const lng = firstTrip.lng;
+            
+            // Filtrer pour ne garder que les commandes NON LIVRÉES
+            const pendingTrips = trips.filter(t => !t.completed);
+            
+            // Si plus aucune commande en attente, ne pas afficher le marqueur
+            if (pendingTrips.length === 0) {
+                return;
+            }
+            
+            const hasAvailable = pendingTrips.some(t => !t.accepted);
+            const hasAccepted = pendingTrips.some(t => t.accepted && !t.completed);
+            const pendingCount = pendingTrips.length;
+            const availableCount = pendingTrips.filter(t => !t.accepted).length;
+            
+            let icon;
+            let statusText = '';
+            let showAcceptButton = false;
+            
+            if (hasAccepted && !hasAvailable) {
+                icon = acceptedIcon;
+                statusText = `🚚 ${pendingCount} commande(s) en cours`;
+                showAcceptButton = false;
+            } else if (hasAccepted && hasAvailable) {
+                icon = acceptedIcon;
+                statusText = `🚚 En cours + ${availableCount} disponible(s)`;
+                showAcceptButton = true;
+            } else {
+                icon = orderIcon;
+                statusText = `📦 ${pendingCount} commande(s) disponible(s)`;
+                showAcceptButton = true;
+            }
+            
+            let popupContent = `
+                <div style="min-width: 280px;">
+                    <strong style="color: ${hasAccepted ? '#28a745' : '#dc3545'};">📍 ${cityName}</strong><br>
+                    <b>Status:</b> ${statusText}<br>
+                    <hr style="margin: 8px 0;">
+            `;
+            
+            // Afficher uniquement les commandes NON LIVRÉES
+            pendingTrips.forEach(trip => {
+                popupContent += `
+                    <div style="margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 8px;">
                         <b>Client:</b> ${trip.clientName}<br>
                         <b>Adresse:</b> ${trip.address}<br>
                         <b>Distance:</b> ${trip.distance} km<br>
+                        <b>Statut:</b> ${trip.accepted ? '🚚 En cours' : '📦 Disponible'}<br>
                 `;
-                
-                if (!trip.accepted && !this.hasActiveTrip) {
+                if (!trip.accepted && !trip.completed && showAcceptButton && !this.hasActiveTrip) {
                     popupContent += `
                         <button onclick="document.querySelector('app-trips').acceptTripById(${trip.id})" 
                                 style="margin-top:8px; padding:5px 12px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">
-                            ✅ Accepter ce trajet
+                            ✅ Accepter cette commande
                         </button>
-                    `;
-                } else if (!trip.accepted && this.hasActiveTrip) {
-                    popupContent += `
-                        <div style="margin-top:8px; padding:5px; background:#ffc107; color:#856404; border-radius:5px; text-align:center;">
-                            ⚠️ Trajet en cours
-                        </div>
                     `;
                 } else if (trip.accepted && !trip.completed) {
                     popupContent += `
-                        <div style="margin-top:8px; padding:5px; background:#28a745; color:white; border-radius:5px; text-align:center;">
-                            🚚 Trajet en cours
-                        </div>
                         <button onclick="document.querySelector('app-trips').completeTrip(${trip.id})" 
                                 style="margin-top:8px; padding:5px 12px; background:#17a2b8; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">
                             ✅ Terminer la livraison
                         </button>
                     `;
-                } else {
-                    popupContent += `
-                        <div style="margin-top:8px; padding:5px; background:#17a2b8; color:white; border-radius:5px; text-align:center;">
-                            ✅ Livraison terminée
-                        </div>
-                    `;
                 }
-                
                 popupContent += `</div>`;
-                
-                const marker = L.marker([trip.lat, trip.lng], { icon: icon })
-                    .addTo(this.mainMap)
-                    .bindPopup(popupContent);
-                
-                this.orderMarkers.push(marker);
-            }
+            });
+            
+            popupContent += `</div>`;
+            
+            const marker = L.marker([lat, lng], { icon: icon })
+                .addTo(this.mainMap)
+                .bindPopup(popupContent);
+            
+            this.orderMarkers.push(marker);
         });
         
         console.log('Marqueurs ajoutés:', this.orderMarkers.length);
@@ -605,7 +635,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             
             this.deliveryOrderService.updateStatut(tripId, StatutCommande.LIVREE).subscribe({
                 next: () => {
-                    // ✅ ENREGISTRER LE GAIN DE 8 TND
                     this.saveEarning(8, new Date(), tripId);
                     
                     this.shipmentService.getAll().subscribe({
@@ -614,9 +643,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                             if (shipment) {
                                 shipment.statut = StatutExpedition.LIVREE;
                                 this.shipmentService.update(shipment.id, shipment).subscribe({
-                                    next: () => {
-                                        console.log('Expédition mise à jour');
-                                    },
+                                    next: () => console.log('Expédition mise à jour'),
                                     error: (err) => console.error('Erreur mise à jour expédition:', err)
                                 });
                             }
@@ -640,11 +667,14 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     this.hasActiveTrip = false;
                     this.currentAcceptedTrip = null;
                     
-                    this.saveAcceptedTripsToStorage();
+                    this.routeLines.forEach(line => {
+                        if (this.mainMap) this.mainMap.removeLayer(line);
+                    });
+                    this.routeLines = [];
                     
+                    this.saveAcceptedTripsToStorage();
                     this.calculateAvailableTrips();
                     this.addOrderMarkersToMap();
-                    this.drawAllAcceptedRoutes();
                     
                     this.cd.detectChanges();
                     
@@ -928,9 +958,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 if (shipment) {
                     shipment.statut = StatutExpedition.LIVREE;
                     this.shipmentService.update(shipment.id, shipment).subscribe({
-                        next: () => {
-                            console.log('Expédition mise à jour automatiquement');
-                        },
+                        next: () => console.log('Expédition mise à jour automatiquement'),
                         error: (err) => console.error('Erreur mise à jour expédition:', err)
                     });
                 }
@@ -938,7 +966,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             error: (err) => console.error('Erreur recherche expédition:', err)
         });
         
-        // ✅ Enregistrer le gain aussi pour les auto-completions
         this.saveEarning(8, new Date(), tripId);
         
         trip.completed = true;
@@ -956,10 +983,14 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             this.currentAcceptedTrip = null;
         }
         
+        this.routeLines.forEach(line => {
+            if (this.mainMap) this.mainMap.removeLayer(line);
+        });
+        this.routeLines = [];
+        
         this.saveAcceptedTripsToStorage();
         this.calculateAvailableTrips();
         this.addOrderMarkersToMap();
-        this.drawAllAcceptedRoutes();
         
         this.locationSuccess = `✅ Livraison terminée automatiquement pour ${trip.to} via QR code ! +8 TND ajoutés.`;
         setTimeout(() => this.locationSuccess = null, 5000);
