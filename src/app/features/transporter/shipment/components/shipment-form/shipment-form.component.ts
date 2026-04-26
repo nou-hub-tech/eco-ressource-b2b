@@ -100,7 +100,7 @@ export class ShipmentFormComponent implements OnInit {
                 const formattedDate = date.toISOString().slice(0, 16);
                 
                 this.shipmentForm.patchValue({
-                    deliveryOrderId: shipment.deliveryOrder.idDelivery,  // ✅ MODIFIÉ
+                    deliveryOrderId: shipment.deliveryOrder.idDelivery,  
                     produitId: shipment.produitId,
                     quantite: shipment.quantite,
                     idTransporter: shipment.idTransporter,
@@ -125,7 +125,7 @@ export class ShipmentFormComponent implements OnInit {
     get dateDepart(): AbstractControl | null { return this.shipmentForm.get('dateDepart'); }
 
     onSubmit(): void {
-        // ✅ Debug
+        //  Debug
         console.log('=== SOUMISSION DU FORMULAIRE ===');
         console.log('Formulaire valide?', this.shipmentForm.valid);
         console.log('Valeurs:', this.shipmentForm.value);
