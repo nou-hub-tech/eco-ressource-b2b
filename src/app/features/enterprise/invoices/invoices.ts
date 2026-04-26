@@ -5,8 +5,9 @@ import { forkJoin } from 'rxjs';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { InvoiceService, RiskReport, SolvabilityReport, ClientSolvabilityProfile, InvoicePaymentPrediction } from '../../../core/services/invoice';
-import { FinanceService } from '../../../core/services/finance';
+import { FinanceService, EnterpriseDto } from '../../../core/services/finance';
 import { AuthService } from '../../../core/services/auth.service';
+import { UserManagementService } from '../../../core/services/user';
 import { Invoice, InvoiceType, EscrowStatus } from '../../../core/models/finance.model';
 
 Chart.register(...registerables);
@@ -107,6 +108,7 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     private invoiceService: InvoiceService,
     private financeService: FinanceService,
     private authService: AuthService,
+    private userManagementService: UserManagementService,
     private fb: FormBuilder,
     private cd: ChangeDetectorRef
   ) {
@@ -131,6 +133,26 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     });
     this.form.get('amountHT')!.valueChanges.subscribe(() => this.cd.detectChanges());
     this.form.get('tva')!.valueChanges.subscribe(() => this.cd.detectChanges());
+    
+    // Auto-remplissage Article Fiscal
+    this.form.get('clientName')!.valueChanges.subscribe(val => {
+      if (this.formInvoiceType === 'VENTE' && val) {
+        const ent = this.globalEnterprises.find(e => e.companyName === val);
+        if (ent && ent.taxId) {
+          this.form.get('buyerArticleFiscal')!.setValue(ent.taxId);
+        }
+      }
+    });
+
+    this.form.get('sellerName')!.valueChanges.subscribe(val => {
+      if (this.formInvoiceType === 'ACHAT' && val) {
+        const ent = this.globalEnterprises.find(e => e.companyName === val);
+        if (ent && ent.taxId) {
+          this.form.get('sellerArticleFiscal')!.setValue(ent.taxId);
+        }
+      }
+    });
+
     // Quand le type change, adapter les validators
     this.form.get('invoiceType')!.valueChanges.subscribe(type => this.onInvoiceTypeChange(type));
   }
@@ -142,11 +164,11 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
       // On est vendeur : sellerName = notre entreprise (auto), clientName = qui nous paye
       this.form.get('sellerName')!.setValue(this.companyName);
       this.form.get('sellerName')!.setValidators([]);
-      this.form.get('clientName')!.setValidators([Validators.required]);
+      this.form.get('clientName')!.setValidators([Validators.required, this.companyExistsValidator]);
     } else {
       // On est acheteur : clientName = notre entreprise (auto), sellerName = notre fournisseur
       this.form.get('clientName')!.setValue(this.companyName);
-      this.form.get('sellerName')!.setValidators([Validators.required]);
+      this.form.get('sellerName')!.setValidators([Validators.required, this.companyExistsValidator]);
       this.form.get('clientName')!.setValidators([]);
     }
     this.form.get('sellerName')!.updateValueAndValidity();
@@ -168,8 +190,32 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     // Récupère le nom de l'entreprise connectée
     this.companyName = this.authService.currentUser?.company ?? '';
+    this.loadGlobalCompanies();
     this.loadInvoices();
   }
+
+  loadGlobalCompanies(): void {
+    this.financeService.getEnterprises().subscribe({
+      next: (enterprises) => {
+        this.globalEnterprises = enterprises.filter(e => e.companyName && e.companyName !== this.companyName);
+        setTimeout(() => this.cd.detectChanges(), 0);
+      },
+      error: (err) => {
+        console.error("Could not load global enterprises", err);
+        setTimeout(() => this.cd.detectChanges(), 0);
+      }
+    });
+  }
+
+  companyExistsValidator = (control: any) => {
+    if (!control.value) return null;
+    if (this.globalEnterprises.length === 0) return null; // allow if not loaded
+    const names = this.globalEnterprises.map(e => e.companyName);
+    if (!names.includes(control.value) && control.value !== this.companyName) {
+      return { companyNotFound: true };
+    }
+    return null;
+  };
 
   ngAfterViewInit(): void {
     this.viewReady = true;
@@ -365,6 +411,13 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
 
   private nowTime(): string {
     return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+  // ==================== AUTOCOMPLETION ====================
+
+  globalEnterprises: EnterpriseDto[] = [];
+
+  get uniqueCompanyNames(): string[] {
+    return this.globalEnterprises.map(e => e.companyName).sort();
   }
 
   // ==================== KPIs ====================

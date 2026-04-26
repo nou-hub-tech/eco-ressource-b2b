@@ -3,6 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import { FinanceTransaction, EscrowEntry, TreasurySummary } from '../models/finance.model';
 
+export interface EnterpriseDto {
+  id: number;
+  companyName: string;
+  taxId: string;
+  sector: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -11,6 +18,11 @@ export class FinanceService {
   private API = '/api';
 
   constructor(private http: HttpClient) {}
+
+  // ================= ENTERPRISES =================
+  getEnterprises(): Observable<EnterpriseDto[]> {
+    return this.http.get<EnterpriseDto[]>(`${this.API}/enterprises`);
+  }
 
   // ================= TRANSACTIONS =================
 

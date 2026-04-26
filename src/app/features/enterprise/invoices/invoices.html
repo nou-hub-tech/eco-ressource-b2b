@@ -485,6 +485,11 @@
       </div>
       <form [formGroup]="form" (ngSubmit)="save()">
 
+        <!-- Datalist for autocomplete -->
+        <datalist id="companyNames">
+          <option *ngFor="let name of uniqueCompanyNames" [value]="name"></option>
+        </datalist>
+
         <!-- ── TYPE DE FACTURE ── -->
         <div class="invoice-type-selector">
           <button type="button" class="type-btn type-vente" [class.active]="form.get('invoiceType')?.value === 'VENTE'"
@@ -524,7 +529,13 @@
           <div class="form-row">
             <div class="form-group">
               <label>Raison sociale client</label>
-              <input type="text" formControlName="clientName" placeholder="Nom du client">
+              <select formControlName="clientName" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-family:'Inter', sans-serif;">
+                <option value="" disabled selected>Sélectionnez un client...</option>
+                <option *ngFor="let ent of globalEnterprises" [value]="ent.companyName">{{ ent.companyName }}</option>
+              </select>
+              <div class="error-msg" *ngIf="form.get('clientName')?.hasError('companyNotFound') && form.get('clientName')?.touched" style="color:#ef4444; font-size:11px; margin-top:4px;">
+                Cette entreprise n'existe pas sur la plateforme. Veuillez sélectionner une entreprise existante.
+              </div>
             </div>
             <div class="form-group">
               <label>Article fiscal client <span class="optional-tag">optionnel</span></label>
@@ -554,7 +565,13 @@
           <div class="form-row">
             <div class="form-group">
               <label>Raison sociale fournisseur</label>
-              <input type="text" formControlName="sellerName" placeholder="Nom du fournisseur">
+              <select formControlName="sellerName" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-family:'Inter', sans-serif;">
+                <option value="" disabled selected>Sélectionnez un fournisseur...</option>
+                <option *ngFor="let ent of globalEnterprises" [value]="ent.companyName">{{ ent.companyName }}</option>
+              </select>
+              <div class="error-msg" *ngIf="form.get('sellerName')?.hasError('companyNotFound') && form.get('sellerName')?.touched" style="color:#ef4444; font-size:11px; margin-top:4px;">
+                Cette entreprise n'existe pas sur la plateforme. Veuillez sélectionner une entreprise existante.
+              </div>
             </div>
             <div class="form-group">
               <label>Article fiscal fournisseur <span class="optional-tag">optionnel</span></label>
