@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { DeliveryOrderService } from '../../../core/services/delivery-order.service';
@@ -20,13 +21,11 @@ import { StatutCommande, StatutExpedition } from '../../../core/models/statut';
 })
 export class Deliveries implements OnInit, OnDestroy {
   
-  // ========== PROPRIÉTÉS COMMUNES ==========
   isLoading = false;
   errorMessage = '';
   successMessage = '';
-  activeTab: string = 'orders'; // 'orders' ou 'shipments'
+  activeTab: string = 'orders';
   
-  // ========== COMMANDES ==========
   deliveryOrders: DeliveryOrder[] = [];
   filteredOrders: DeliveryOrder[] = [];
   searchFormOrders: FormGroup;
@@ -37,13 +36,11 @@ export class Deliveries implements OnInit, OnDestroy {
   showStatsOrders = false;
   rechercheActiveOrders = false;
   
-  // Pagination Commandes
   currentPageOrders: number = 1;
   itemsPerPageOrders: number = 3;
   totalItemsOrders: number = 0;
   paginatedOrders: DeliveryOrder[] = [];
   
-  // ========== EXPÉDITIONS ==========
   shipments: Shipment[] = [];
   filteredShipments: Shipment[] = [];
   deliveryOrdersMap: Map<number, DeliveryOrder> = new Map();
@@ -55,7 +52,6 @@ export class Deliveries implements OnInit, OnDestroy {
   showStatsShipments = false;
   rechercheActiveShipments = false;
   
-  // Pagination Expéditions
   currentPageShipments: number = 1;
   itemsPerPageShipments: number = 3;
   totalItemsShipments: number = 0;
@@ -73,7 +69,6 @@ export class Deliveries implements OnInit, OnDestroy {
     private cd: ChangeDetectorRef,
     private pdfGenerator: PdfGeneratorService
   ) {
-    // Formulaire Commandes
     this.searchFormOrders = this.fb.group({
       nomClient: [''],
       adresseLivraison: [''],
@@ -81,7 +76,6 @@ export class Deliveries implements OnInit, OnDestroy {
       datePrevue: ['']
     });
     
-    // Formulaire Expéditions
     this.searchFormShipments = this.fb.group({
       produitId: [''],
       quantite: [''],
@@ -105,6 +99,38 @@ export class Deliveries implements OnInit, OnDestroy {
       this.loadShipments();
     });
     
+    // Détecter le retour à cette page pour rafraîchir
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      if (event.url === '/admin/deliveries' || event.url.startsWith('/admin/deliveries?')) {
+        console.log('Retour à deliveries, rafraîchissement des données');
+        this.loadDeliveryOrders();
+        this.loadShipments();
+        this.loadStatistiquesOrders();
+        this.loadStatistiquesShipments();
+        this.cd.detectChanges();
+        
+        // Lire le paramètre tab depuis l'URL
+        const urlParams = new URLSearchParams(event.url.split('?')[1]);
+        const tab = urlParams.get('tab');
+        if (tab === 'shipments') {
+          this.activeTab = 'shipments';
+        } else if (tab === 'orders') {
+          this.activeTab = 'orders';
+        }
+      }
+    });
+    
+    // Lire le paramètre tab au chargement initial
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab');
+    if (initialTab === 'shipments') {
+      this.activeTab = 'shipments';
+    } else if (initialTab === 'orders') {
+      this.activeTab = 'orders';
+    }
+    
     this.refreshInterval = setInterval(() => {
       this.refreshData();
     }, 5000);
@@ -119,12 +145,14 @@ export class Deliveries implements OnInit, OnDestroy {
     }
   }
 
-  // ========== CHANGEMENT D'ONGLET ==========
   setActiveTab(tab: string): void {
     this.activeTab = tab;
+    // Met à jour l'URL avec le paramètre tab sans recharger la page
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    window.history.pushState({}, '', url.toString());
   }
 
-  // ========== RAFFRAÎCHISSEMENT ==========
   refreshData(): void {
     this.loadDeliveryOrders();
     this.loadShipments();
@@ -134,21 +162,17 @@ export class Deliveries implements OnInit, OnDestroy {
   
   setupDynamicSearchOrders(): void {
     const nomClientSub = this.searchFormOrders.get('nomClient')?.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (value && value.trim()) {
-            this.rechercheActiveOrders = true;
-            this.isLoading = true;
-            return this.deliveryOrderService.searchByNomClient(value);
-          } else if (!this.hasActiveFiltersOrders()) {
-            this.rechercheActiveOrders = false;
-            return this.deliveryOrderService.getAll();
-          }
+      .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
+        if (value && value.trim()) {
+          this.rechercheActiveOrders = true;
+          this.isLoading = true;
+          return this.deliveryOrderService.searchByNomClient(value);
+        } else if (!this.hasActiveFiltersOrders()) {
+          this.rechercheActiveOrders = false;
           return this.deliveryOrderService.getAll();
-        })
-      )
+        }
+        return this.deliveryOrderService.getAll();
+      }))
       .subscribe({
         next: (data: any) => {
           this.deliveryOrders = data;
@@ -156,8 +180,7 @@ export class Deliveries implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cd.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Erreur recherche nom:', error);
+        error: () => {
           this.errorMessage = 'Erreur lors de la recherche par nom';
           this.isLoading = false;
           this.cd.detectChanges();
@@ -166,21 +189,17 @@ export class Deliveries implements OnInit, OnDestroy {
     this.subscriptions.add(nomClientSub);
     
     const adresseSub = this.searchFormOrders.get('adresseLivraison')?.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (value && value.trim()) {
-            this.rechercheActiveOrders = true;
-            this.isLoading = true;
-            return this.deliveryOrderService.searchByAdresse(value);
-          } else if (!this.hasActiveFiltersOrders()) {
-            this.rechercheActiveOrders = false;
-            return this.deliveryOrderService.getAll();
-          }
+      .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
+        if (value && value.trim()) {
+          this.rechercheActiveOrders = true;
+          this.isLoading = true;
+          return this.deliveryOrderService.searchByAdresse(value);
+        } else if (!this.hasActiveFiltersOrders()) {
+          this.rechercheActiveOrders = false;
           return this.deliveryOrderService.getAll();
-        })
-      )
+        }
+        return this.deliveryOrderService.getAll();
+      }))
       .subscribe({
         next: (data: any) => {
           this.deliveryOrders = data;
@@ -188,8 +207,7 @@ export class Deliveries implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cd.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Erreur recherche adresse:', error);
+        error: () => {
           this.errorMessage = 'Erreur lors de la recherche par adresse';
           this.isLoading = false;
           this.cd.detectChanges();
@@ -198,20 +216,17 @@ export class Deliveries implements OnInit, OnDestroy {
     this.subscriptions.add(adresseSub);
     
     const statutSub = this.searchFormOrders.get('statut')?.valueChanges
-      .pipe(
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (value) {
-            this.rechercheActiveOrders = true;
-            this.isLoading = true;
-            return this.deliveryOrderService.getByStatut(value);
-          } else if (!this.hasActiveFiltersOrders()) {
-            this.rechercheActiveOrders = false;
-            return this.deliveryOrderService.getAll();
-          }
+      .pipe(distinctUntilChanged(), switchMap(value => {
+        if (value) {
+          this.rechercheActiveOrders = true;
+          this.isLoading = true;
+          return this.deliveryOrderService.getByStatut(value);
+        } else if (!this.hasActiveFiltersOrders()) {
+          this.rechercheActiveOrders = false;
           return this.deliveryOrderService.getAll();
-        })
-      )
+        }
+        return this.deliveryOrderService.getAll();
+      }))
       .subscribe({
         next: (data: any) => {
           this.deliveryOrders = data;
@@ -219,8 +234,7 @@ export class Deliveries implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cd.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Erreur recherche statut:', error);
+        error: () => {
           this.errorMessage = 'Erreur lors de la recherche par statut';
           this.isLoading = false;
           this.cd.detectChanges();
@@ -229,21 +243,17 @@ export class Deliveries implements OnInit, OnDestroy {
     this.subscriptions.add(statutSub);
     
     const dateSub = this.searchFormOrders.get('datePrevue')?.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (value) {
-            this.rechercheActiveOrders = true;
-            this.isLoading = true;
-            return this.deliveryOrderService.searchByDate(value);
-          } else if (!this.hasActiveFiltersOrders()) {
-            this.rechercheActiveOrders = false;
-            return this.deliveryOrderService.getAll();
-          }
+      .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
+        if (value) {
+          this.rechercheActiveOrders = true;
+          this.isLoading = true;
+          return this.deliveryOrderService.searchByDate(value);
+        } else if (!this.hasActiveFiltersOrders()) {
+          this.rechercheActiveOrders = false;
           return this.deliveryOrderService.getAll();
-        })
-      )
+        }
+        return this.deliveryOrderService.getAll();
+      }))
       .subscribe({
         next: (data: any) => {
           this.deliveryOrders = data;
@@ -251,8 +261,7 @@ export class Deliveries implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cd.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Erreur recherche date:', error);
+        error: () => {
           this.errorMessage = 'Erreur lors de la recherche par date';
           this.isLoading = false;
           this.cd.detectChanges();
@@ -283,8 +292,7 @@ export class Deliveries implements OnInit, OnDestroy {
         this.alertService.checkRappelLivraison(data);
         this.cd.detectChanges();
       },
-      error: (error) => {
-        console.error('Erreur chargement:', error);
+      error: () => {
         this.errorMessage = 'Erreur lors du chargement';
         this.isLoading = false;
         this.cd.detectChanges();
@@ -296,9 +304,7 @@ export class Deliveries implements OnInit, OnDestroy {
   filterOrders(): void {
     const statutFiltre = this.searchFormOrders.get('statut')?.value;
     if (statutFiltre && !this.rechercheActiveOrders) {
-      this.filteredOrders = this.deliveryOrders.filter(
-        order => order.statut === statutFiltre
-      );
+      this.filteredOrders = this.deliveryOrders.filter(order => order.statut === statutFiltre);
     } else {
       this.filteredOrders = [...this.deliveryOrders];
     }
@@ -318,8 +324,7 @@ export class Deliveries implements OnInit, OnDestroy {
   
   setPaginatedOrders(): void {
     const startIndex = (this.currentPageOrders - 1) * this.itemsPerPageOrders;
-    const endIndex = startIndex + this.itemsPerPageOrders;
-    this.paginatedOrders = this.filteredOrders.slice(startIndex, endIndex);
+    this.paginatedOrders = this.filteredOrders.slice(startIndex, startIndex + this.itemsPerPageOrders);
   }
   
   nextPageOrders(): void {
@@ -348,9 +353,8 @@ export class Deliveries implements OnInit, OnDestroy {
   }
   
   getPageNumbersOrders(): number[] {
-    const totalPages = this.getTotalPagesOrders();
     const pages: number[] = [];
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = 1; i <= this.getTotalPagesOrders(); i++) {
       pages.push(i);
     }
     return pages;
@@ -380,8 +384,7 @@ export class Deliveries implements OnInit, OnDestroy {
         this.isLoading = false;
         this.cd.detectChanges();
       },
-      error: (error: any) => {
-        console.error('Erreur tri:', error);
+      error: () => {
         this.errorMessage = 'Erreur lors du tri';
         this.isLoading = false;
         this.cd.detectChanges();
@@ -396,9 +399,7 @@ export class Deliveries implements OnInit, OnDestroy {
         this.statistiquesOrders = data;
         this.cd.detectChanges();
       },
-      error: (error: any) => {
-        console.error('Erreur chargement statistiques commandes', error);
-      }
+      error: () => {}
     });
     this.subscriptions.add(sub);
   }
@@ -482,43 +483,21 @@ export class Deliveries implements OnInit, OnDestroy {
     }
   }
 
-  // ========== GESTION DES LIVRAISONS ================
-  
-  updateOrderStatus(order: DeliveryOrder, newStatus: StatutCommande): void {
-    if (confirm(`Changer le statut de la commande #${order.idDelivery} vers ${newStatus} ?`)) {
-      this.deliveryOrderService.updateStatut(order.idDelivery, newStatus).subscribe({
-        next: () => {
-          this.loadDeliveryOrders();
-          this.successMessage = `Statut de la commande #${order.idDelivery} mis à jour`;
-          setTimeout(() => { this.successMessage = ''; }, 3000);
-        },
-        error: () => {
-          this.errorMessage = 'Erreur lors de la mise à jour du statut';
-          setTimeout(() => { this.errorMessage = ''; }, 3000);
-        }
-      });
-    }
-  }
-
   // ==================== EXPÉDITIONS ====================
   
   setupDynamicSearchShipments(): void {
     const produitSub = this.searchFormShipments.get('produitId')?.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (value && value.toString().trim()) {
-            this.rechercheActiveShipments = true;
-            this.isLoading = true;
-            return this.shipmentService.searchByProduit(value);
-          } else if (!this.hasActiveFiltersShipments()) {
-            this.rechercheActiveShipments = false;
-            return this.shipmentService.getAll();
-          }
+      .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
+        if (value && value.toString().trim()) {
+          this.rechercheActiveShipments = true;
+          this.isLoading = true;
+          return this.shipmentService.searchByProduit(value);
+        } else if (!this.hasActiveFiltersShipments()) {
+          this.rechercheActiveShipments = false;
           return this.shipmentService.getAll();
-        })
-      )
+        }
+        return this.shipmentService.getAll();
+      }))
       .subscribe({
         next: (data: any) => {
           this.shipments = data;
@@ -526,8 +505,7 @@ export class Deliveries implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cd.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Erreur recherche produit:', error);
+        error: () => {
           this.errorMessage = 'Erreur lors de la recherche par produit';
           this.isLoading = false;
           this.cd.detectChanges();
@@ -536,21 +514,17 @@ export class Deliveries implements OnInit, OnDestroy {
     this.subscriptions.add(produitSub);
     
     const quantiteSub = this.searchFormShipments.get('quantite')?.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (value && value.toString().trim()) {
-            this.rechercheActiveShipments = true;
-            this.isLoading = true;
-            return this.shipmentService.searchByQuantite(value);
-          } else if (!this.hasActiveFiltersShipments()) {
-            this.rechercheActiveShipments = false;
-            return this.shipmentService.getAll();
-          }
+      .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
+        if (value && value.toString().trim()) {
+          this.rechercheActiveShipments = true;
+          this.isLoading = true;
+          return this.shipmentService.searchByQuantite(value);
+        } else if (!this.hasActiveFiltersShipments()) {
+          this.rechercheActiveShipments = false;
           return this.shipmentService.getAll();
-        })
-      )
+        }
+        return this.shipmentService.getAll();
+      }))
       .subscribe({
         next: (data: any) => {
           this.shipments = data;
@@ -558,8 +532,7 @@ export class Deliveries implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cd.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Erreur recherche quantité:', error);
+        error: () => {
           this.errorMessage = 'Erreur lors de la recherche par quantité';
           this.isLoading = false;
           this.cd.detectChanges();
@@ -568,20 +541,17 @@ export class Deliveries implements OnInit, OnDestroy {
     this.subscriptions.add(quantiteSub);
     
     const statutSub = this.searchFormShipments.get('statut')?.valueChanges
-      .pipe(
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (value) {
-            this.rechercheActiveShipments = true;
-            this.isLoading = true;
-            return this.shipmentService.getByStatut(value);
-          } else if (!this.hasActiveFiltersShipments()) {
-            this.rechercheActiveShipments = false;
-            return this.shipmentService.getAll();
-          }
+      .pipe(distinctUntilChanged(), switchMap(value => {
+        if (value) {
+          this.rechercheActiveShipments = true;
+          this.isLoading = true;
+          return this.shipmentService.getByStatut(value);
+        } else if (!this.hasActiveFiltersShipments()) {
+          this.rechercheActiveShipments = false;
           return this.shipmentService.getAll();
-        })
-      )
+        }
+        return this.shipmentService.getAll();
+      }))
       .subscribe({
         next: (data: any) => {
           this.shipments = data;
@@ -589,8 +559,7 @@ export class Deliveries implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cd.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Erreur recherche statut:', error);
+        error: () => {
           this.errorMessage = 'Erreur lors de la recherche par statut';
           this.isLoading = false;
           this.cd.detectChanges();
@@ -599,21 +568,17 @@ export class Deliveries implements OnInit, OnDestroy {
     this.subscriptions.add(statutSub);
     
     const dateSub = this.searchFormShipments.get('dateDepart')?.valueChanges
-      .pipe(
-        debounceTime(500),
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (value) {
-            this.rechercheActiveShipments = true;
-            this.isLoading = true;
-            return this.shipmentService.searchByDate(value);
-          } else if (!this.hasActiveFiltersShipments()) {
-            this.rechercheActiveShipments = false;
-            return this.shipmentService.getAll();
-          }
+      .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
+        if (value) {
+          this.rechercheActiveShipments = true;
+          this.isLoading = true;
+          return this.shipmentService.searchByDate(value);
+        } else if (!this.hasActiveFiltersShipments()) {
+          this.rechercheActiveShipments = false;
           return this.shipmentService.getAll();
-        })
-      )
+        }
+        return this.shipmentService.getAll();
+      }))
       .subscribe({
         next: (data: any) => {
           this.shipments = data;
@@ -621,8 +586,7 @@ export class Deliveries implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cd.detectChanges();
         },
-        error: (error: any) => {
-          console.error('Erreur recherche date:', error);
+        error: () => {
           this.errorMessage = 'Erreur lors de la recherche par date';
           this.isLoading = false;
           this.cd.detectChanges();
@@ -652,8 +616,7 @@ export class Deliveries implements OnInit, OnDestroy {
         this.isLoading = false;
         this.cd.detectChanges();
       },
-      error: (error: any) => {
-        console.error('Erreur chargement:', error);
+      error: () => {
         this.errorMessage = 'Erreur lors du chargement des expéditions';
         this.isLoading = false;
         this.cd.detectChanges();
@@ -670,9 +633,7 @@ export class Deliveries implements OnInit, OnDestroy {
         });
         this.cd.detectChanges();
       },
-      error: (error: any) => {
-        console.error('Erreur chargement commandes:', error);
-      }
+      error: () => {}
     });
     this.subscriptions.add(sub);
   }
@@ -680,9 +641,7 @@ export class Deliveries implements OnInit, OnDestroy {
   filterShipments(): void {
     const statutFiltre = this.searchFormShipments.get('statut')?.value;
     if (statutFiltre && !this.rechercheActiveShipments) {
-      this.filteredShipments = this.shipments.filter(
-        shipment => shipment.statut === statutFiltre
-      );
+      this.filteredShipments = this.shipments.filter(shipment => shipment.statut === statutFiltre);
     } else {
       this.filteredShipments = [...this.shipments];
     }
@@ -702,8 +661,7 @@ export class Deliveries implements OnInit, OnDestroy {
   
   setPaginatedShipments(): void {
     const startIndex = (this.currentPageShipments - 1) * this.itemsPerPageShipments;
-    const endIndex = startIndex + this.itemsPerPageShipments;
-    this.paginatedShipments = this.filteredShipments.slice(startIndex, endIndex);
+    this.paginatedShipments = this.filteredShipments.slice(startIndex, startIndex + this.itemsPerPageShipments);
   }
   
   nextPageShipments(): void {
@@ -732,9 +690,8 @@ export class Deliveries implements OnInit, OnDestroy {
   }
   
   getPageNumbersShipments(): number[] {
-    const totalPages = this.getTotalPagesShipments();
     const pages: number[] = [];
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = 1; i <= this.getTotalPagesShipments(); i++) {
       pages.push(i);
     }
     return pages;
@@ -764,8 +721,7 @@ export class Deliveries implements OnInit, OnDestroy {
         this.isLoading = false;
         this.cd.detectChanges();
       },
-      error: (error: any) => {
-        console.error('Erreur tri:', error);
+      error: () => {
         this.errorMessage = 'Erreur lors du tri';
         this.isLoading = false;
         this.cd.detectChanges();
@@ -780,9 +736,7 @@ export class Deliveries implements OnInit, OnDestroy {
         this.statistiquesShipments = data;
         this.cd.detectChanges();
       },
-      error: (error: any) => {
-        console.error('Erreur chargement statistiques expéditions', error);
-      }
+      error: () => {}
     });
     this.subscriptions.add(sub);
   }
@@ -795,8 +749,7 @@ export class Deliveries implements OnInit, OnDestroy {
   }
   
   getClientName(deliveryOrderId: number): string {
-    const order = this.deliveryOrdersMap.get(deliveryOrderId);
-    return order ? order.nomClient : 'Inconnu';
+    return this.deliveryOrdersMap.get(deliveryOrderId)?.nomClient || 'Inconnu';
   }
   
   // ========== NAVIGATION EXPÉDITIONS ==========
