@@ -2,12 +2,47 @@
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
       <h1><i class="bi bi-currency-dollar"></i> Earnings</h1>
-      <p>Revenus et paiements liés à vos trajets</p>
+      <p>Revenus et paiements liés à vos trajets (8 TND par livraison)</p>
     </div>
-    <button type="button" class="btn btn-outline btn-sm" disabled>Exporter</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="button" class="btn btn-outline btn-sm" (click)="clearEarnings()">
+        <i class="bi bi-trash"></i> Effacer l'historique
+      </button>
+    </div>
   </div>
 
-  
+  <!-- Cartes de statistiques -->
+  <div class="stats-cards">
+    <div class="stat-card-earnings">
+      <div class="stat-icon">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-label">Total des gains</div>
+        <div class="stat-value">{{ totalEarnings }} TND</div>
+      </div>
+    </div>
+    
+    <div class="stat-card-earnings">
+      <div class="stat-icon">
+        <i class="bi bi-truck"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-label">Total livraisons</div>
+        <div class="stat-value">{{ totalDeliveries }}</div>
+      </div>
+    </div>
+    
+    <div class="stat-card-earnings">
+      <div class="stat-icon">
+        <i class="bi bi-calendar"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-label">Gain moyen</div>
+        <div class="stat-value">{{ totalDeliveries > 0 ? (totalEarnings / totalDeliveries) : 0 }} TND</div>
+      </div>
+    </div>
+  </div>
 
   <div class="card" style="padding:0">
     <table class="data-table">
@@ -20,17 +55,17 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td style="color:var(--text2)">Mars 2026</td>
-          <td>12</td>
-          <td><strong style="color:var(--accent)">4&nbsp;280 TND</strong></td>
-          <td><span class="badge badge-success">Payé</span></td>
+        <tr *ngFor="let earning of monthlyEarnings">
+          <td style="color:var(--text2)">{{ earning.periode }}</td>
+          <td>{{ earning.livraisons }}</td>
+          <td><strong style="color:var(--accent)">{{ earning.montant }} TND</strong></td>
+          <td><span class="badge badge-success">{{ earning.statut }}</span></td>
         </tr>
-        <tr>
-          <td style="color:var(--text2)">Février 2026</td>
-          <td>9</td>
-          <td><strong style="color:var(--accent)">3&nbsp;120 TND</strong></td>
-          <td><span class="badge badge-success">Payé</span></td>
+        <tr *ngIf="monthlyEarnings.length === 0">
+          <td colspan="4" class="text-center" style="padding:32px;color:var(--text3)">
+            <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
+            Aucun gain enregistré pour le moment
+          </td>
         </tr>
       </tbody>
     </table>

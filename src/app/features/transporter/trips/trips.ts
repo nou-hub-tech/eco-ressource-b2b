@@ -59,10 +59,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         this.loadAcceptedTripsFromStorage();
         this.loadDeliveryOrders();
         
-        // Écouter les changements d'ordre (notamment via QR code)
         window.addEventListener('orderChanged', this.handleOrderChange.bind(this));
         
-        // Actualisation automatique toutes les 5 secondes
         this.refreshInterval = setInterval(() => {
             this.checkForOrderChanges();
         }, 5000);
@@ -96,6 +94,27 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     
     private deg2rad(deg: number): number {
         return deg * (Math.PI / 180);
+    }
+    
+    // ========== GESTION DES GAINS ==========
+    
+    saveEarning(amount: number, date: Date, deliveryOrderId: number): void {
+        const earnings = this.getEarnings();
+        earnings.push({
+            id: deliveryOrderId,
+            amount: amount,
+            date: date.toISOString(),
+            month: date.toLocaleString('fr-FR', { month: 'long', year: 'numeric' }),
+            year: date.getFullYear(),
+            monthIndex: date.getMonth()
+        });
+        localStorage.setItem('earnings', JSON.stringify(earnings));
+        console.log(`Gain de ${amount} TND enregistré pour la commande #${deliveryOrderId}`);
+    }
+    
+    getEarnings(): any[] {
+        const saved = localStorage.getItem('earnings');
+        return saved ? JSON.parse(saved) : [];
     }
     
     saveAcceptedTripsToStorage(): void {
@@ -487,9 +506,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
     }
     
-    // ========== MÉTHODE ACCEPTER MODIFIÉE ==========
-    // À l'acceptation, on génère le PDF du bon de livraison (commande)
-    
     acceptTrip(trip: any): void {
         if (this.hasActiveTrip) {
             this.locationError = '❌ Vous avez déjà un trajet en cours. Terminez-le avant d\'en accepter un nouveau.';
@@ -510,10 +526,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     this.deliveryOrderService.getById(trip.id).subscribe({
                         next: (deliveryOrder: DeliveryOrder) => {
                             
-                            // GÉNÉRER LE PDF DU BON DE LIVRAISON (commande)
                             this.pdfGenerator.generateDeliveryOrderPDF(deliveryOrder);
                             
-                            // Créer l'expédition en arrière-plan
                             const newShipment: Shipment = {
                                 id: 0,
                                 deliveryOrder: { idDelivery: trip.id },
@@ -533,7 +547,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                 }
                             });
                             
-                            // Mise à jour locale
                             trip.accepted = true;
                             trip.completed = false;
                             this.hasActiveTrip = true;
@@ -579,9 +592,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
     }
     
-    // ========== MÉTHODE COMPLETER MODIFIÉE ==========
-    // À la finalisation, on ne génère plus de PDF (déjà généré à l'acceptation)
-    
     completeTrip(tripId: number): void {
         const trip = this.acceptedTrips.get(tripId) || this.availableTrips.find(t => t.id === tripId);
         
@@ -593,10 +603,11 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         
         if (confirm(`Confirmez-vous la livraison terminée pour ${trip.to} ?`)) {
             
-            // Mettre à jour le statut de la commande à LIVREE
             this.deliveryOrderService.updateStatut(tripId, StatutCommande.LIVREE).subscribe({
                 next: () => {
-                    // Mettre à jour l'expédition
+                    // ✅ ENREGISTRER LE GAIN DE 8 TND
+                    this.saveEarning(8, new Date(), tripId);
+                    
                     this.shipmentService.getAll().subscribe({
                         next: (shipments: Shipment[]) => {
                             const shipment = shipments.find(s => s.deliveryOrder.idDelivery === tripId);
@@ -613,7 +624,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                         error: (err) => console.error('Erreur recherche expédition:', err)
                     });
                     
-                    // MISE À JOUR LOCALE DYNAMIQUE
                     if (this.acceptedTrips.has(tripId)) {
                         const updatedTrip = this.acceptedTrips.get(tripId);
                         updatedTrip.completed = true;
@@ -638,7 +648,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     
                     this.cd.detectChanges();
                     
-                    this.locationSuccess = `✅ Livraison terminée pour ${trip.to} ! Vous pouvez accepter de nouveaux trajets.`;
+                    this.locationSuccess = `✅ Livraison terminée pour ${trip.to} ! +8 TND ajoutés à vos gains.`;
                     setTimeout(() => this.locationSuccess = null, 5000);
                 },
                 error: (error) => {
@@ -891,12 +901,10 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         console.log('Changement d\'ordre détecté, rechargement des données...');
         this.loadDeliveryOrders();
         
-        // Vérifier si des commandes ont été marquées comme LIVREE
         this.deliveryOrderService.getAll().subscribe({
             next: (orders: DeliveryOrder[]) => {
                 orders.forEach(order => {
                     if (order.statut === StatutCommande.LIVREE) {
-                        // Si la commande est LIVREE et qu'il y a un trajet accepté correspondant, le marquer comme terminé
                         if (this.acceptedTrips.has(order.idDelivery) && !this.acceptedTrips.get(order.idDelivery).completed) {
                             console.log(`Marquage automatique du trajet ${order.idDelivery} comme terminé`);
                             this.autoCompleteTrip(order.idDelivery);
@@ -914,7 +922,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         const trip = this.acceptedTrips.get(tripId);
         if (!trip) return;
         
-        // Mettre à jour l'expédition
         this.shipmentService.getAll().subscribe({
             next: (shipments: Shipment[]) => {
                 const shipment = shipments.find(s => s.deliveryOrder.idDelivery === tripId);
@@ -931,7 +938,9 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             error: (err) => console.error('Erreur recherche expédition:', err)
         });
         
-        // MISE À JOUR LOCALE DYNAMIQUE
+        // ✅ Enregistrer le gain aussi pour les auto-completions
+        this.saveEarning(8, new Date(), tripId);
+        
         trip.completed = true;
         trip.completedAt = new Date().toISOString();
         this.acceptedTrips.set(tripId, trip);
@@ -942,7 +951,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             availableTrip.accepted = true;
         }
         
-        // Vérifier si c'était le trajet actif
         if (this.currentAcceptedTrip && this.currentAcceptedTrip.id === tripId) {
             this.hasActiveTrip = false;
             this.currentAcceptedTrip = null;
@@ -953,7 +961,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         this.addOrderMarkersToMap();
         this.drawAllAcceptedRoutes();
         
-        this.locationSuccess = `✅ Livraison terminée automatiquement pour ${trip.to} via QR code !`;
+        this.locationSuccess = `✅ Livraison terminée automatiquement pour ${trip.to} via QR code ! +8 TND ajoutés.`;
         setTimeout(() => this.locationSuccess = null, 5000);
         
         this.cd.detectChanges();
@@ -964,7 +972,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             next: (orders: DeliveryOrder[]) => {
                 let hasChanges = false;
                 
-                // Vérifier les changements de statut pour les trajets acceptés
                 orders.forEach(order => {
                     if (this.acceptedTrips.has(order.idDelivery)) {
                         const trip = this.acceptedTrips.get(order.idDelivery);
@@ -976,7 +983,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     }
                 });
                 
-                // Si des changements ont été détectés, recharger les données
                 if (hasChanges) {
                     this.loadDeliveryOrders();
                 }
