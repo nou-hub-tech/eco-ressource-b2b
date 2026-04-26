@@ -31,6 +31,18 @@ export interface TransportOfferPayload {
   proposedEarn: number;
 }
 
+// AJOUTEZ CETTE INTERFACE
+export interface Transporter {
+  id: number;
+  companyName: string;
+  sector?: string;
+  taxId?: string;
+  listingsCount: number;
+  ordersCount: number;
+  revenue?: string;
+  createdAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TransportService {
   private readonly apiUrl = environment.apiUrl;
@@ -51,5 +63,10 @@ export class TransportService {
 
   createOffer(body: TransportOfferPayload): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/transport/offer`, body);
+  }
+
+  // AJOUTEZ CETTE MÉTHODE
+  getAllTransporters(): Observable<Transporter[]> {
+    return this.http.get<Transporter[]>(`${this.apiUrl}/transport/transporters`);
   }
 }
