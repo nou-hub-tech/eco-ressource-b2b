@@ -19,16 +19,28 @@ const routes: Routes = [
     path: '',
     component: Layout,
     children: [
-      { path: '',             redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard',    component: Dashboard },
-      { path: 'users',        component: Users },
-      { path: 'events',       component: Events },
-      { path: 'stock',        component: Stock },
-      { path: 'deliveries',   component: Deliveries },
-      { path: 'listings',     component: Listings },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard', component: Dashboard },
+      { path: 'users', component: Users },
+      { path: 'events', component: Events },
+      { path: 'stock', component: Stock },
+      { path: 'deliveries', component: Deliveries },
+      { path: 'listings', component: Listings },
       { path: 'reservations', component: Reservations },
-      { path: 'treasury',     component: Treasury },
-      { path: 'solidarity',   component: Solidarity },
+      { path: 'treasury', component: Treasury },
+      { path: 'solidarity', component: Solidarity },
+      
+      // ✅ LAZY LOADING pour les commandes
+      { 
+        path: 'delivery-orders', 
+        loadChildren: () => import('../transporter/delivery-order/delivery-order.module').then(m => m.DeliveryOrderModule)
+      },
+      
+      // ✅ LAZY LOADING pour les expéditions
+      { 
+        path: 'shipments', 
+        loadChildren: () => import('../transporter/shipment/shipment.module').then(m => m.ShipmentModule)
+      },
     ]
   }
 ];

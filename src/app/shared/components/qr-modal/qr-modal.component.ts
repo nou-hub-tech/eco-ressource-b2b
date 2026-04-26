@@ -1,6 +1,8 @@
 import { ChangeDetectorRef, Component, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DeliveryOrderService } from '../../../core/services/delivery-order.service';
+import { PdfGeneratorService } from '../../../core/services/pdf-generator.service';
+import { QrCodeService } from '../../../core/services/qr-code.service';
 import { StatutCommande } from '../../../core/models/statut';
 
 @Component({
@@ -15,6 +17,8 @@ export class QrModalComponent {
 
     private readonly cd = inject(ChangeDetectorRef);
     private readonly deliveryOrderService = inject(DeliveryOrderService);
+    private readonly pdfGenerator = inject(PdfGeneratorService);
+    private readonly qrCodeService = inject(QrCodeService);
 
     isLoading = false;
     errorMessage = '';
@@ -22,15 +26,22 @@ export class QrModalComponent {
     qrUrl = '';
     lienConfirmation = '';
 
-    open(order: any): void {
+    async open(order: any): Promise<void> {
         this.order = order;
         this.showModal = true;
         this.isLoading = false;
         this.errorMessage = '';
         
-        //  l'URL ngrok
-        const ngrokUrl = 'https://exes-unreal-movable.ngrok-free.dev';
-        this.lienConfirmation = `${ngrokUrl}/api/delivery-orders/update-by-qr/${this.order.idDelivery}`;
+        // Générer automatiquement le PDF avec QR code lors de l'acceptation
+        try {
+            await this.pdfGenerator.generateDeliveryOrderPDF(order);
+            console.log(`PDF généré automatiquement pour la commande #${order.idDelivery}`);
+        } catch (error) {
+            console.error('Erreur lors de la génération automatique du PDF:', error);
+        }
+        
+        // Générer l'URL du QR code via le service
+        this.lienConfirmation = this.qrCodeService.generateQrData(this.order.idDelivery);
         
         this.qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(this.lienConfirmation)}&size=250`;
         

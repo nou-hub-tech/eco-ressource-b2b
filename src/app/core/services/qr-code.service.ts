@@ -8,7 +8,7 @@ export class QrCodeService {
     constructor() { }
 
     generateQrData(orderId: number): string {
-        // ✅ Utilise TON IP
-        return `http://192.168.1.18:8080/api/delivery-orders/update-by-qr/${orderId}`;
+        
+        return `https://exes-unreal-movable.ngrok-free.dev/api/delivery-orders/update-by-qr/${orderId}`;
     }
 }

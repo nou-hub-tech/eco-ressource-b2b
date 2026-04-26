@@ -1,15 +1,19 @@
 import { Injectable } from '@angular/core';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as QRCode from 'qrcode';
 import { Shipment } from '../models/shipment';
 import { DeliveryOrder } from '../models/delivery-order';
 import { StatutExpedition } from '../models/statut';
 import { StatutCommande } from '../models/statut';
+import { QrCodeService } from './qr-code.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class PdfGeneratorService {
+    
+    constructor(private qrCodeService: QrCodeService) {}
     
     // ========== MÉTHODE POUR LES EXPÉDITIONS ==========
     
@@ -212,7 +216,7 @@ export class PdfGeneratorService {
     
     // ========== MÉTHODE POUR LES COMMANDES DE LIVRAISON ==========
     
-    generateDeliveryOrderPDF(order: DeliveryOrder): void {
+    async generateDeliveryOrderPDF(order: DeliveryOrder): Promise<void> {
         const doc = new jsPDF();
         
         // En-tête
@@ -329,8 +333,45 @@ export class PdfGeneratorService {
         doc.setTextColor(52, 58, 64);
         doc.text(`${progress}%`, barX + barWidth + 5, barY + 6);
         
-        // ========== SECTION 4 : INFORMATIONS SUPPLEMENTAIRES ==========
-        currentY = barY + barHeight + 10;
+        // ========== SECTION 4 : QR CODE POUR CONFIRMATION ==========
+        currentY = barY + barHeight + 15;
+        
+        doc.setFontSize(13);
+        doc.setTextColor(40, 167, 69);
+        doc.text('CONFIRMATION DE LIVRAISON', 14, currentY);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(108, 117, 125);
+        doc.text('Scannez ce QR code pour confirmer la livraison :', 14, currentY + 8);
+        
+        // Générer le QR code
+        try {
+            const qrUrl = this.qrCodeService.generateQrData(order.idDelivery);
+            const qrDataURL = await QRCode.toDataURL(qrUrl, {
+                width: 150,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            });
+            
+            // Ajouter le QR code au PDF
+            doc.addImage(qrDataURL, 'PNG', 14, currentY + 15, 40, 40);
+            
+            doc.setFontSize(8);
+            doc.setTextColor(173, 181, 189);
+            doc.text('QR Code de confirmation', 14, currentY + 60);
+        } catch (error) {
+            console.error('Erreur lors de la génération du QR code:', error);
+            doc.setFontSize(8);
+            doc.setTextColor(173, 181, 189);
+            doc.text('[Erreur génération QR code]', 14, currentY + 25);
+            doc.text(`URL: https://exes-unreal-movable.ngrok-free.dev/api/delivery-orders/update-by-qr/${order.idDelivery}`, 14, currentY + 35);
+        }
+        
+        // ========== SECTION 5 : INFORMATIONS SUPPLEMENTAIRES ==========
+        currentY = currentY + 70;
         
         if (currentY < 250) {
             doc.setFontSize(13);

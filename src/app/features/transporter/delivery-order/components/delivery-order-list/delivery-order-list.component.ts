@@ -407,9 +407,9 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
 
     // ============ QR CODE =================
     
-    openQrCode(order: DeliveryOrder): void {
+    async openQrCode(order: DeliveryOrder): Promise<void> {
         if (this.qrModal) {
-            this.qrModal.open(order);
+            await this.qrModal.open(order);
         } else {
             console.error('qrModal not found');
         }
@@ -417,9 +417,9 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
 
     // ============ GÉNÉRATION PDF =================
     
-    onGeneratePDF(order: DeliveryOrder): void {
+    async onGeneratePDF(order: DeliveryOrder): Promise<void> {
         try {
-            this.pdfGenerator.generateDeliveryOrderPDF(order);
+            await this.pdfGenerator.generateDeliveryOrderPDF(order);
             this.successMessage = `PDF généré pour la commande #${order.idDelivery}`;
             setTimeout(() => {
                 this.successMessage = '';
@@ -433,7 +433,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         }
     }
 
-    generateAllPDFs(): void {
+    async generateAllPDFs(): Promise<void> {
         if (this.filteredOrders.length === 0) {
             this.errorMessage = 'Aucune commande à exporter';
             setTimeout(() => {
@@ -449,31 +449,27 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
         let count = 0;
         let errors = 0;
         
-        this.filteredOrders.forEach((order, index) => {
-            setTimeout(() => {
-                try {
-                    this.pdfGenerator.generateDeliveryOrderPDF(order);
-                    count++;
-                } catch (error) {
-                    console.error(`Erreur PDF pour commande ${order.idDelivery}:`, error);
-                    errors++;
-                }
-                
-                if (index === this.filteredOrders.length - 1) {
-                    this.isLoading = false;
-                    if (errors === 0) {
-                        this.successMessage = `${count} PDF(s) généré(s) avec succès !`;
-                    } else {
-                        this.errorMessage = `${count} PDF(s) généré(s), ${errors} erreur(s)`;
-                    }
-                    setTimeout(() => {
-                        this.successMessage = '';
-                        this.errorMessage = '';
-                    }, 3000);
-                    this.cd.detectChanges();
-                }
-            }, index * 300);
-        });
+        for (const order of this.filteredOrders) {
+            try {
+                await this.pdfGenerator.generateDeliveryOrderPDF(order);
+                count++;
+            } catch (error) {
+                console.error(`Erreur PDF pour commande ${order.idDelivery}:`, error);
+                errors++;
+            }
+        }
+        
+        this.isLoading = false;
+        if (errors === 0) {
+            this.successMessage = `${count} PDF(s) généré(s) avec succès !`;
+        } else {
+            this.errorMessage = `${count} PDF(s) généré(s), ${errors} erreur(s)`;
+        }
+        setTimeout(() => {
+            this.successMessage = '';
+            this.errorMessage = '';
+        }, 3000);
+        this.cd.detectChanges();
     }
 
     // ========= ACTIONS ===============
