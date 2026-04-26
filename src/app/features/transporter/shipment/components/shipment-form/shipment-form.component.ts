@@ -154,7 +154,7 @@ export class ShipmentFormComponent implements OnInit {
             }
         }
         
-        // ✅ Construction de l'objet shipment
+        //  Construction de l'objet shipment
         let shipment: any;
         if (this.isEditMode) {
             shipment = {
