@@ -482,7 +482,7 @@ export class Deliveries implements OnInit, OnDestroy {
     }
   }
 
-  // ============= GESTION DES LIVRAISONS ====================
+  // ============= GESTION DES LIVRAISONS ==================
   
   updateOrderStatus(order: DeliveryOrder, newStatus: StatutCommande): void {
     if (confirm(`Changer le statut de la commande #${order.idDelivery} vers ${newStatus} ?`)) {
