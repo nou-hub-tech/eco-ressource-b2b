@@ -59,8 +59,9 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   //  Cash Threshold Alert
   cashThreshold = 50000;
 
-  // Onglets : 'data' (défaut) | 'stats' | 'dashboard'
+  // Onglets : 'data' (défaut) | 'dashboard'
   activeTab: 'data' | 'stats' | 'dashboard' = 'data';
+  activeTreasuryTab: 'data' | 'dashboard' = 'data';
 
 
   //  Chart instances
@@ -245,6 +246,46 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   }
   countByStatus(status: string): number { return this.transactions.filter(t => t.status === status).length; }
 
+  // ==================== TRANSACTION FLOW DIRECTION ====================
+
+  /**
+   * Types ENTRANTS = créditent le compte (argent qui RENTRE)
+   * Types SORTANTS = débitent le compte (argent qui SORT)
+   */
+  isIncoming(type: string): boolean {
+    return ['PAYMENT', 'REFUND', 'LOAN'].includes(type?.toUpperCase());
+  }
+
+  getTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      PAYMENT:     '💳 Paiement',
+      REFUND:      '↩️ Remboursement',
+      LOAN:        '🏦 Prêt',
+      DISBURSEMENT:'📤 Décaissement',
+      FEE:         '🏷️ Frais',
+      ESCROW:      '🔒 Escrow',
+    };
+    return labels[type?.toUpperCase()] ?? type;
+  }
+
+  /** Total des montants ENTRANTS (PAYMENT, REFUND, LOAN) */
+  get totalIn(): number {
+    return this.transactions
+      .filter(t => this.isIncoming(t.type))
+      .reduce((s, t) => s + (t.amount || 0), 0);
+  }
+
+  /** Total des montants SORTANTS (DISBURSEMENT, FEE, ESCROW) */
+  get totalOut(): number {
+    return this.transactions
+      .filter(t => !this.isIncoming(t.type))
+      .reduce((s, t) => s + (t.amount || 0), 0);
+  }
+
+  get countIn(): number { return this.transactions.filter(t => this.isIncoming(t.type)).length; }
+  get countOut(): number { return this.transactions.filter(t => !this.isIncoming(t.type)).length; }
+  get netBalance(): number { return this.totalIn - this.totalOut; }
+
   // ==================== EXCEL EXPORT ====================
 
   exportToExcel(): void {
@@ -302,6 +343,8 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   get dashReceivables(): number { return this.salesInvoices.filter(i => i.status === 'UNPAID').reduce((s, i) => s + (i.amountTTC || 0), 0); }
   /** ⏳ Dettes (achats UNPAID = à payer) */
   get dashPayables(): number { return this.purchaseInvoices.filter(i => i.status === 'UNPAID').reduce((s, i) => s + (i.amountTTC || 0), 0); }
+  /** 🔒 Montant total des escrows bloqués */
+  get escrowLockedAmount(): number { return this.escrowEntries.filter(e => e.status === 'LOCKED').reduce((s, e) => s + (e.amount || 0), 0); }
 
   /** Top 5 clients (par montant encaissé) */
   get topClients(): { name: string; amount: number; count: number }[] {

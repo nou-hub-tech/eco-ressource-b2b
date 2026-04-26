@@ -910,3 +910,336 @@ body.dark-mode .chat-input {
   background: #0a1020; border-color: #334155; color: #f1f5f9;
 }
 body.dark-mode .chat-input::placeholder { color: #334155; }
+
+/* ─────────────────────────────────────────────────────
+   TRANSACTION FLOW DIRECTION — Entrées vs Sorties
+───────────────────────────────────────────────────── */
+
+/* KPI strip */
+.tx-flow-strip {
+  display: flex;
+  align-items: stretch;
+  padding: 0 8px;
+  margin: 0 16px 12px;
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.85);
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+.tx-flow-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  transition: background 0.2s;
+}
+
+.tx-flow-in  { border-left: 4px solid #059669; }
+.tx-flow-out { border-left: 4px solid #dc2626; }
+
+.tx-flow-arrow {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+.tx-flow-in  .tx-flow-arrow { color: #059669; }
+.tx-flow-out .tx-flow-arrow { color: #dc2626; }
+
+.tx-flow-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.tx-flow-in  .tx-flow-val { color: #059669; }
+.tx-flow-out .tx-flow-val { color: #dc2626; }
+
+.tx-flow-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.tx-flow-sep {
+  width: 1px;
+  background: rgba(0,0,0,0.06);
+  margin: 12px 0;
+}
+
+/* Table row coloring */
+.tx-row-in  { background: rgba(5,150,105,0.025) !important; }
+.tx-row-out { background: rgba(220,38,38,0.025)  !important; }
+.tx-row-in:hover  td { background: rgba(5,150,105,0.07) !important; }
+.tx-row-out:hover td { background: rgba(220,38,38,0.07)  !important; }
+
+/* Type chip variants */
+.type-chip-in {
+  background: rgba(5,150,105,0.1) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(5,150,105,0.2) !important;
+}
+.type-chip-out {
+  background: rgba(220,38,38,0.1) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(220,38,38,0.2) !important;
+}
+
+/* Flow badge */
+.flow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.flow-badge-in {
+  background: rgba(5,150,105,0.12);
+  color: #059669;
+  border: 1px solid rgba(5,150,105,0.2);
+}
+.flow-badge-out {
+  background: rgba(220,38,38,0.10);
+  color: #dc2626;
+  border: 1px solid rgba(220,38,38,0.2);
+}
+
+/* Amount coloring */
+.amount-in {
+  color: #059669 !important;
+  font-size: 13px;
+}
+.amount-out {
+  color: #dc2626 !important;
+  font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DASHBOARD FINANCIER — KPI Cards & Tables
+   (Déplacé depuis invoices.css → Treasury uniquement)
+═══════════════════════════════════════════════════════ */
+
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.dash-kpi-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  padding: 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-kpi-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(14, 165, 233, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.dash-kpi-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), inset 0 2px 4px rgba(255, 255, 255, 1);
+  flex-shrink: 0;
+}
+
+/* Couleurs des icônes par type */
+.dash-revenue     .dash-kpi-icon { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); }
+.dash-expenses    .dash-kpi-icon { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+.dash-receivables .dash-kpi-icon { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
+.dash-payables    .dash-kpi-icon { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); }
+.dash-escrow      .dash-kpi-icon { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); }
+.dash-margin-pos  .dash-kpi-icon { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); }
+.dash-margin-neg  .dash-kpi-icon { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+.dash-balance-pos .dash-kpi-icon { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); }
+.dash-balance-neg .dash-kpi-icon { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+
+.dash-kpi-body { flex: 1; }
+
+.dash-kpi-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+/* Couleurs des valeurs */
+.dash-revenue     .dash-kpi-val { color: #059669; }
+.dash-expenses    .dash-kpi-val { color: #dc2626; }
+.dash-escrow      .dash-kpi-val { color: #7c3aed; }
+.dash-margin-pos  .dash-kpi-val,
+.dash-balance-pos .dash-kpi-val { color: #059669; }
+.dash-margin-neg  .dash-kpi-val,
+.dash-balance-neg .dash-kpi-val { color: #dc2626; }
+
+.dash-kpi-lbl {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.dash-kpi-sub {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Tables Grid ── */
+.dash-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 32px;
+  margin-top: 32px;
+}
+
+.dash-tables-grid .card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 1);
+  overflow: hidden;
+}
+
+.dash-tables-grid .card-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dash-tables-grid .card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.2px;
+}
+
+.chart-badge {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0ea5e9;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.3);
+}
+
+.dash-tables-grid .data-table td { padding: 16px 32px !important; }
+.dash-tables-grid .data-table th {
+  padding: 16px 32px !important;
+  background: rgba(248, 250, 252, 0.8) !important;
+}
+
+.progress-bar-wrap {
+  width: 100px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Project Profitability Bar ── */
+.project-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.project-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+/* ── Dashboard Tab Button ── */
+.dashboard-tab-btn.active {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(14,165,233,.4) !important;
+}
+
+.dash-badge {
+  background: #dc2626;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+
+/* ── Dark mode ── */
+body.dark-mode .dash-kpi-card {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(51, 65, 85, 0.5);
+}
+body.dark-mode .dash-kpi-val { color: #f1f5f9; }
+body.dark-mode .dash-kpi-lbl { color: #94a3b8; }
+body.dark-mode .dash-kpi-sub { color: #64748b; }
+body.dark-mode .dash-tables-grid .card {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(51, 65, 85, 0.5);
+}

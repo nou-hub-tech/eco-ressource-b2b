@@ -9,6 +9,6 @@ import { Layout } from './components/layout/layout';
 @NgModule({
   declarations: [Sidebar, Header, Layout],
   imports: [CommonModule, RouterModule, FormsModule],
-  exports: [Sidebar, Header, Layout, FormsModule]
+  exports: [Sidebar, Header, Layout, CommonModule, FormsModule, RouterModule]
 })
 export class SharedModule {}

@@ -9,7 +9,7 @@
     </div>
   </div>
 
-  <!--  CONFIRM -->
+  <!-- CONFIRM -->
   <div *ngIf="showConfirm" class="modal-overlay" (click)="onConfirmNo()">
     <div class="modal confirm-modal" (click)="$event.stopPropagation()">
       <div class="confirm-icon">⚠️</div>
@@ -22,25 +22,34 @@
     </div>
   </div>
 
-
-
   <!-- ====== HEADER + ONGLETS ====== -->
   <div class="page-top">
     <div class="page-title-row">
       <div>
         <h1 class="page-title">💼 Trésorerie</h1>
-        <p class="page-subtitle">Transactions & Escrow en temps réel</p>
+        <p class="page-subtitle">Transactions, Escrow &amp; Dashboard Financier</p>
       </div>
       <button class="btn btn-outline btn-sm" (click)="exportToExcel()">📊 Export</button>
     </div>
 
+    <!-- Barre d'onglets -->
+    <div class="tab-bar">
+      <button class="tab-btn" [class.active]="activeTreasuryTab==='data'" (click)="activeTreasuryTab='data'">
+        <span class="tab-icon">📋</span> Données
+      </button>
+      <button class="tab-btn dashboard-tab-btn" [class.active]="activeTreasuryTab==='dashboard'"
+        (click)="activeTreasuryTab='dashboard'">
+        <span class="tab-icon">📊</span> Dashboard Financier
+        <span class="tab-badge dash-badge" *ngIf="dashMargin < 0">!</span>
+      </button>
+    </div>
   </div>
 
   <!-- ====== ONGLET DONNÉES ====== -->
-  <div class="tab-content">
+  <div *ngIf="activeTreasuryTab==='data'" class="tab-content">
     <div class="two-col-section">
 
-      <!-- ── ESCROW (en haut) ── -->
+      <!-- ── ESCROW ── -->
       <div class="card section-card" style="padding:0">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:8px">
@@ -50,7 +59,6 @@
           <button class="btn btn-primary btn-sm" (click)="openEscrowForm()">+ Ajouter</button>
         </div>
 
-        <!-- 3 mini compteurs -->
         <div class="escrow-kpi-strip">
           <div class="escrow-kpi">
             <div class="escrow-kpi-val" style="color:var(--warning,#d97706)">{{ escrowLockedCount }}</div>
@@ -81,7 +89,8 @@
               <td colspan="5" class="empty-cell">Aucun escrow</td>
             </tr>
             <tr *ngFor="let esc of escrowEntries" [class.escrow-locked-row]="esc.status==='LOCKED'"
-              [class.escrow-released-row]="esc.status==='RELEASED'" [class.escrow-disputed-row]="esc.status==='DISPUTED'">
+              [class.escrow-released-row]="esc.status==='RELEASED'"
+              [class.escrow-disputed-row]="esc.status==='DISPUTED'">
               <td><strong style="font-size:12px">{{ esc.project }}</strong></td>
               <td><strong style="font-size:12px">{{ esc.amount | number:'1.0-0' }} TND</strong></td>
               <td>
@@ -102,7 +111,7 @@
         </table>
       </div>
 
-      <!-- ── TRANSACTIONS (en bas) ── -->
+      <!-- ── TRANSACTIONS ── -->
       <div class="card section-card" style="padding:0">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:8px">
@@ -129,6 +138,7 @@
             <tr>
               <th (click)="sortBy('project')">Projet</th>
               <th>Type</th>
+              <th>Flux</th>
               <th (click)="sortBy('amount')">Montant</th>
               <th (click)="sortBy('status')">Statut</th>
               <th (click)="sortBy('date')">Date</th>
@@ -137,14 +147,31 @@
           </thead>
           <tbody>
             <tr *ngIf="paginatedTransactions.length===0">
-              <td colspan="6" class="empty-cell">Aucune transaction</td>
+              <td colspan="7" class="empty-cell">Aucune transaction</td>
             </tr>
-            <tr *ngFor="let tx of paginatedTransactions">
+            <tr *ngFor="let tx of paginatedTransactions" [class.tx-row-in]="isIncoming(tx.type)"
+              [class.tx-row-out]="!isIncoming(tx.type)">
               <td><strong style="font-size:12px">{{ tx.project }}</strong></td>
-              <td><span class="type-chip">{{ tx.type }}</span></td>
-              <td><strong [class.positive]="tx.amount>0" [class.negative]="tx.amount<0">{{ tx.amount | number:'1.0-0' }}
-                  TND</strong></td>
-              <td><span class="badge" [class.badge-success]="tx.status==='COMPLETED'">{{ tx.status }}</span></td>
+              <td>
+                <span class="type-chip" [class.type-chip-in]="isIncoming(tx.type)"
+                  [class.type-chip-out]="!isIncoming(tx.type)">
+                  {{ getTypeLabel(tx.type) }}
+                </span>
+              </td>
+              <td>
+                <span class="flow-badge" [class.flow-badge-in]="isIncoming(tx.type)"
+                  [class.flow-badge-out]="!isIncoming(tx.type)">
+                  {{ isIncoming(tx.type) ? '↑ Entrée' : '↓ Sortie' }}
+                </span>
+              </td>
+              <td>
+                <strong [class.amount-in]="isIncoming(tx.type)" [class.amount-out]="!isIncoming(tx.type)">
+                  {{ isIncoming(tx.type) ? '+' : '−' }}{{ tx.amount | number:'1.0-0' }} TND
+                </strong>
+              </td>
+              <td><span class="badge" [class.badge-success]="tx.status==='COMPLETED'"
+                  [class.badge-warning]="tx.status==='PENDING'" [class.badge-danger]="tx.status==='FAILED'">{{ tx.status
+                  }}</span></td>
               <td class="date-cell">{{ tx.date }}</td>
               <td class="action-cell">
                 <button class="btn btn-ghost btn-sm" (click)="openTransactionForm(tx)">✏️</button>
@@ -164,7 +191,214 @@
         </div>
       </div>
     </div>
-  </div>
+  </div><!-- /DONNÉES TAB -->
+
+  <!-- ====== ONGLET DASHBOARD FINANCIER ====== -->
+  <div *ngIf="activeTreasuryTab==='dashboard'" class="tab-content">
+
+    <!-- ── 8 KPI CARDS ── -->
+    <div class="dash-kpi-grid">
+
+      <div class="dash-kpi-card dash-revenue">
+        <div class="dash-kpi-icon">💰</div>
+        <div class="dash-kpi-body">
+          <div class="dash-kpi-val">{{ dashRevenue | number:'1.0-0' }} TND</div>
+          <div class="dash-kpi-lbl">Chiffre d'affaires encaissé</div>
+          <div class="dash-kpi-sub">{{ salesInvoices.length }} factures de vente</div>
+        </div>
+      </div>
+
+      <div class="dash-kpi-card dash-expenses">
+        <div class="dash-kpi-icon">💸</div>
+        <div class="dash-kpi-body">
+          <div class="dash-kpi-val">{{ dashExpenses | number:'1.0-0' }} TND</div>
+          <div class="dash-kpi-lbl">Dépenses réglées</div>
+          <div class="dash-kpi-sub">{{ purchaseInvoices.length }} factures d'achat</div>
+        </div>
+      </div>
+
+      <div class="dash-kpi-card" [class.dash-margin-pos]="dashMargin >= 0" [class.dash-margin-neg]="dashMargin < 0">
+        <div class="dash-kpi-icon">{{ dashMargin >= 0 ? '📈' : '📉' }}</div>
+        <div class="dash-kpi-body">
+          <div class="dash-kpi-val">{{ dashMargin | number:'1.0-0' }} TND</div>
+          <div class="dash-kpi-lbl">Marge nette (CA − Dépenses)</div>
+          <div class="dash-kpi-sub">{{ dashMarginRate | number:'1.1-1' }}% de taux de marge</div>
+        </div>
+      </div>
+
+      <div class="dash-kpi-card dash-receivables">
+        <div class="dash-kpi-icon">⏳</div>
+        <div class="dash-kpi-body">
+          <div class="dash-kpi-val">{{ dashReceivables | number:'1.0-0' }} TND</div>
+          <div class="dash-kpi-lbl">Créances à encaisser</div>
+          <div class="dash-kpi-sub">{{ salesInvoices.length - dashRevenueCount }} factures impayées</div>
+        </div>
+      </div>
+
+      <div class="dash-kpi-card dash-payables">
+        <div class="dash-kpi-icon">🔴</div>
+        <div class="dash-kpi-body">
+          <div class="dash-kpi-val">{{ dashPayables | number:'1.0-0' }} TND</div>
+          <div class="dash-kpi-lbl">Dettes à payer</div>
+          <div class="dash-kpi-sub">{{ purchaseInvoices.length - dashExpensesCount }} factures dues</div>
+        </div>
+      </div>
+
+      <div class="dash-kpi-card dash-escrow">
+        <div class="dash-kpi-icon">🔒</div>
+        <div class="dash-kpi-body">
+          <div class="dash-kpi-val">{{ escrowLockedAmount | number:'1.0-0' }} TND</div>
+          <div class="dash-kpi-lbl">Fonds bloqués en Escrow</div>
+          <div class="dash-kpi-sub">{{ escrowLockedCount }} escrows actifs</div>
+        </div>
+      </div>
+
+      <div class="dash-kpi-card" [class.dash-balance-pos]="dashReceivables >= dashPayables"
+        [class.dash-balance-neg]="dashReceivables < dashPayables">
+        <div class="dash-kpi-icon">⚖️</div>
+        <div class="dash-kpi-body">
+          <div class="dash-kpi-val">{{ (dashReceivables - dashPayables) | number:'1.0-0' }} TND</div>
+          <div class="dash-kpi-lbl">Position nette (Créances − Dettes)</div>
+          <div class="dash-kpi-sub">{{ dashReceivables >= dashPayables ? '✅ Position favorable' : '⚠️ Attention dettes >
+            créances' }}</div>
+        </div>
+      </div>
+
+      <div class="dash-kpi-card" [class.dash-balance-pos]="netBalance >= 0" [class.dash-balance-neg]="netBalance < 0">
+        <div class="dash-kpi-icon">💳</div>
+        <div class="dash-kpi-body">
+          <div class="dash-kpi-val">{{ netBalance | number:'1.0-0' }} TND</div>
+          <div class="dash-kpi-lbl">Solde net Transactions</div>
+          <div class="dash-kpi-sub">↑{{ countIn }} entrées · ↓{{ countOut }} sorties</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── TOP CLIENTS / TOP FOURNISSEURS ── -->
+    <div class="dash-tables-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <h3>🏆 Top Clients (par CA)</h3>
+          <span class="chart-badge">{{ salesInvoices.length }} factures</span>
+        </div>
+        <div *ngIf="topClients.length === 0" style="padding:24px;text-align:center;color:var(--text3)">
+          Aucune donnée de vente
+        </div>
+        <table class="data-table" *ngIf="topClients.length > 0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Client</th>
+              <th>Factures</th>
+              <th>CA TTC</th>
+              <th>Part</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of topClients; let i = index">
+              <td><span class="rank-badge">{{ i+1 }}</span></td>
+              <td><strong>{{ c.name }}</strong></td>
+              <td style="text-align:center">{{ c.count }}</td>
+              <td><strong style="color:#059669">{{ c.amount | number:'1.0-0' }} TND</strong></td>
+              <td>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill"
+                    [style.width]="(dashRevenue > 0 ? (c.amount/dashRevenue*100) : 0) + '%'" style="background:#059669">
+                  </div>
+                </div>
+                <span style="font-size:10px;color:#059669">{{ (dashRevenue > 0 ? c.amount/dashRevenue*100 : 0) |
+                  number:'1.0-0' }}%</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>🏭 Top Fournisseurs (par dépenses)</h3>
+          <span class="chart-badge">{{ purchaseInvoices.length }} factures</span>
+        </div>
+        <div *ngIf="topSuppliers.length === 0" style="padding:24px;text-align:center;color:var(--text3)">
+          Aucune donnée d'achat
+        </div>
+        <table class="data-table" *ngIf="topSuppliers.length > 0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fournisseur</th>
+              <th>Factures</th>
+              <th>Dépenses TTC</th>
+              <th>Part</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of topSuppliers; let i = index">
+              <td><span class="rank-badge">{{ i+1 }}</span></td>
+              <td><strong>{{ s.name }}</strong></td>
+              <td style="text-align:center">{{ s.count }}</td>
+              <td><strong style="color:#dc2626">{{ s.amount | number:'1.0-0' }} TND</strong></td>
+              <td>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill"
+                    [style.width]="(dashExpenses > 0 ? (s.amount/dashExpenses*100) : 0) + '%'"
+                    style="background:#dc2626"></div>
+                </div>
+                <span style="font-size:10px;color:#dc2626">{{ (dashExpenses > 0 ? s.amount/dashExpenses*100 : 0) |
+                  number:'1.0-0' }}%</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ── RENTABILITÉ PAR PROJET ── -->
+    <div class="card" *ngIf="topProjects.length > 0" style="margin-top:32px">
+      <div class="card-header">
+        <h3>📁 Rentabilité par Projet</h3>
+        <span class="chart-badge">Ventes vs Achats</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Projet</th>
+            <th style="text-align:right">CA (Ventes)</th>
+            <th style="text-align:right">Dépenses (Achats)</th>
+            <th style="text-align:right">Marge</th>
+            <th>Ratio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of topProjects">
+            <td><strong>{{ p.name }}</strong></td>
+            <td style="text-align:right;color:#059669"><strong>{{ p.revenue | number:'1.0-0' }}</strong></td>
+            <td style="text-align:right;color:#dc2626"><strong>{{ p.expenses | number:'1.0-0' }}</strong></td>
+            <td style="text-align:right">
+              <strong [style.color]="p.margin >= 0 ? '#059669' : '#dc2626'">
+                {{ p.margin | number:'1.0-0' }} TND
+              </strong>
+            </td>
+            <td>
+              <div class="project-bar">
+                <div class="project-bar-fill" *ngIf="p.revenue > 0"
+                  [style.width]="((p.revenue - p.expenses) / p.revenue * 100) + '%'"
+                  [style.background]="p.margin >= 0 ? '#059669' : '#dc2626'">
+                </div>
+              </div>
+              <span style="font-size:10px" [style.color]="p.margin >= 0 ? '#059669' : '#dc2626'">
+                {{ p.revenue > 0 ? ((p.revenue - p.expenses) / p.revenue * 100 | number:'1.0-0') : 0 }}%
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /DASHBOARD TAB -->
 
   <!-- ====== MODAL TRANSACTION ====== -->
   <div *ngIf="showTransactionForm" class="modal-overlay" (click)="closeForm()">
@@ -179,19 +413,27 @@
           <div class="form-group">
             <label>Type</label>
             <select formControlName="type">
-              <option value="PAYMENT">💳 Paiement</option>
-              <option value="DISBURSEMENT">📤 Décaissement</option>
-              <option value="ESCROW">🔒 Escrow</option>
+              <optgroup label="↑ Entrées (créditent le compte)">
+                <option value="PAYMENT">💳 Paiement reçu</option>
+                <option value="REFUND">↩️ Remboursement reçu</option>
+                <option value="LOAN">🏦 Prêt reçu</option>
+              </optgroup>
+              <optgroup label="↓ Sorties (débitent le compte)">
+                <option value="DISBURSEMENT">📤 Décaissement</option>
+                <option value="FEE">🏷️ Commission / Frais</option>
+                <option value="ESCROW">🔒 Blocage Escrow</option>
+              </optgroup>
             </select>
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Montant</label><input type="number" formControlName="amount"></div>
+          <div class="form-group"><label>Montant (TND)</label><input type="number" formControlName="amount"></div>
           <div class="form-group">
             <label>Statut</label>
             <select formControlName="status">
               <option value="COMPLETED">✅ Complété</option>
               <option value="PENDING">⏳ En attente</option>
+              <option value="FAILED">❌ Échoué</option>
             </select>
           </div>
         </div>

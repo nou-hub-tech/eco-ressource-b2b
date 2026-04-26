@@ -78,6 +78,7 @@ export class Sidebar implements OnInit {
     { label: 'Reservations', icon: 'reservations', route: '/admin/reservations' },
     { section: 'Finance' },
     { label: 'Treasury', icon: 'earnings', route: '/admin/treasury' },
+    { label: 'Finance Admin', icon: 'reports', route: '/admin/treasury-finance' },
     { label: 'Events', icon: 'events', route: '/admin/events' },
     { label: 'Solidarity', icon: 'users', route: '/admin/solidarity' },
   ];

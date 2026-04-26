@@ -13,28 +13,37 @@ import { Listings } from './listings/listings';
 import { Reservations } from './reservations/reservations';
 import { Treasury } from './treasury/treasury';
 import { Solidarity } from './solidarity/solidarity';
+import { TreasuryAdmin } from './treasury/treasuryadmin';
 
 const routes: Routes = [
   {
     path: '',
     component: Layout,
     children: [
-      { path: '',             redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard',    component: Dashboard },
-      { path: 'users',        component: Users },
-      { path: 'events',       component: Events },
-      { path: 'stock',        component: Stock },
-      { path: 'deliveries',   component: Deliveries },
-      { path: 'listings',     component: Listings },
-      { path: 'reservations', component: Reservations },
-      { path: 'treasury',     component: Treasury },
-      { path: 'solidarity',   component: Solidarity },
+      { path: '',                  redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard',         component: Dashboard },
+      { path: 'users',             component: Users },
+      { path: 'events',            component: Events },
+      { path: 'stock',             component: Stock },
+      { path: 'deliveries',        component: Deliveries },
+      { path: 'listings',          component: Listings },
+      { path: 'reservations',      component: Reservations },
+      { path: 'treasury',          component: Treasury },
+      { path: 'treasury-finance',  component: TreasuryAdmin },
+      { path: 'solidarity',        component: Solidarity },
     ]
   }
 ];
 
 @NgModule({
-  declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Reservations, Treasury, Solidarity],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
+  declarations: [
+    Dashboard, Users, Events, Stock, Deliveries,
+    Listings, Reservations, Treasury, Solidarity,
+    TreasuryAdmin
+  ],
+  imports: [
+    CommonModule, FormsModule, ReactiveFormsModule,
+    SharedModule, RouterModule.forChild(routes)
+  ]
 })
 export class AdminModule {}

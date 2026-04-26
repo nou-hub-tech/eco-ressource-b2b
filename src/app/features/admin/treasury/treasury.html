@@ -1,28 +1,43 @@
 <div class="page-wrapper">
-  <div class="page-header"><h1>Treasury & Finance</h1><p>Track payments, escrow accounts and financial flows</p></div>
+  <div class="page-header">
+    <h1>Treasury Overview</h1>
+    <p>Platform-wide treasury statistics</p>
+  </div>
+
   <div class="stats-grid">
     <div class="stat-card" *ngFor="let s of stats">
-      <div class="stat-icon" [style.background]="s.bg">{{s.icon}}</div>
+      <div class="stat-icon" [style.background]="s.bg">{{ s.icon }}</div>
       <div>
-        <div class="stat-value">{{s.value}} <span style="font-size:13px;font-weight:500;opacity:.6">{{s.unit}}</span></div>
-        <div class="stat-label">{{s.label}}</div>
-        <div class="stat-change" [class.up]="s.up" [class.down]="!s.up">{{s.up?'▲':'▼'}} {{s.change}} vs last month</div>
+        <div class="stat-value">{{ s.value }} <span class="stat-unit">{{ s.unit }}</span></div>
+        <div class="stat-label">{{ s.label }}</div>
+        <div class="stat-change" [class.up]="s.up" [class.down]="!s.up">{{ s.change }}</div>
       </div>
     </div>
   </div>
-  <div class="card" style="padding:0">
-    <div class="card-header"><h3>Recent Transactions</h3><span class="card-link">Export CSV →</span></div>
+
+  <div class="card" style="margin-top:24px;padding:0">
+    <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--border,#e2e8f0)">
+      <h3 style="margin:0;font-size:15px;font-weight:700">Recent Transactions</h3>
+    </div>
     <table class="data-table">
-      <thead><tr><th>ID</th><th>From</th><th>To</th><th>Amount</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+      <thead>
+        <tr>
+          <th>ID</th><th>From</th><th>To</th><th>Type</th>
+          <th>Amount</th><th>Status</th><th>Date</th>
+        </tr>
+      </thead>
       <tbody>
-        <tr *ngFor="let t of transactions">
-          <td><code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">{{t.id}}</code></td>
-          <td style="color:var(--text2)">{{t.from}}</td>
-          <td style="color:var(--text2)">{{t.to}}</td>
-          <td><strong style="color:var(--primary)">{{t.amount}} TND</strong></td>
-          <td><span class="badge badge-neutral">{{t.type}}</span></td>
-          <td><span class="badge" [ngClass]="t.status==='completed'?'badge-success':t.status==='locked'?'badge-warning':'badge-danger'">{{t.status}}</span></td>
-          <td style="font-size:12px;color:var(--text3)">{{t.date}}</td>
+        <tr *ngFor="let tx of transactions">
+          <td><code>{{ tx.id }}</code></td>
+          <td>{{ tx.from }}</td>
+          <td>{{ tx.to }}</td>
+          <td>{{ tx.type }}</td>
+          <td><strong>{{ tx.amount }} TND</strong></td>
+          <td>
+            <span class="badge" [class.badge-success]="tx.status==='completed'"
+                  [class.badge-warning]="tx.status==='locked'">{{ tx.status }}</span>
+          </td>
+          <td>{{ tx.date }}</td>
         </tr>
       </tbody>
     </table>
