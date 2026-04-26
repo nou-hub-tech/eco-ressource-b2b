@@ -13,6 +13,9 @@ export class Earnings implements OnInit {
   monthlyEarnings: any[] = [];
   totalEarnings: number = 0;
   totalDeliveries: number = 0;
+  selectedMonth: string = '';
+  filteredEarnings: any[] = [];
+  viewMode: string = 'monthly';
 
   constructor() {}
 
@@ -27,24 +30,35 @@ export class Earnings implements OnInit {
       this.earnings = JSON.parse(saved);
       this.totalDeliveries = this.earnings.length;
       this.totalEarnings = this.earnings.reduce((sum, e) => sum + e.amount, 0);
+      // Trier par date décroissante (les plus récentes d'abord)
+      this.earnings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      console.log('Earnings chargés:', this.earnings);
     }
   }
 
   calculateMonthlyEarnings(): void {
-    const monthlyMap = new Map<string, { deliveries: number; amount: number; month: string; year: number }>();
+    const monthlyMap = new Map<string, { deliveries: number; amount: number; month: string; year: number; earnings: any[] }>();
     
     this.earnings.forEach(earning => {
-      const key = `${earning.year}-${earning.monthIndex}`;
+      const date = new Date(earning.date);
+      const monthName = date.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+      const year = date.getFullYear();
+      const monthIndex = date.getMonth();
+      const key = `${year}-${monthIndex}`;
+      
       if (monthlyMap.has(key)) {
         const existing = monthlyMap.get(key)!;
         existing.deliveries++;
         existing.amount += earning.amount;
+        existing.earnings.push(earning);
       } else {
         monthlyMap.set(key, {
           deliveries: 1,
           amount: earning.amount,
-          month: earning.month,
-          year: earning.year
+          month: monthName,
+          year: year,
+          earnings: [earning]
         });
       }
     });
@@ -55,8 +69,35 @@ export class Earnings implements OnInit {
         periode: item.month,
         livraisons: item.deliveries,
         montant: item.amount,
-        statut: 'Payé'
+        statut: 'Payé',
+        earnings: item.earnings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       }));
+    
+    console.log('Monthly earnings:', this.monthlyEarnings);
+  }
+
+  showMonthDetails(month: any): void {
+    this.selectedMonth = month.periode;
+    this.filteredEarnings = month.earnings;
+    console.log('Détails du mois:', this.filteredEarnings);
+  }
+
+  showAllDeliveries(): void {
+    this.viewMode = 'all';
+    this.selectedMonth = 'Toutes les livraisons';
+    this.filteredEarnings = this.earnings;
+  }
+
+  showMonthlyView(): void {
+    this.viewMode = 'monthly';
+    this.selectedMonth = '';
+    this.filteredEarnings = [];
+  }
+
+  closeDetails(): void {
+    this.selectedMonth = '';
+    this.filteredEarnings = [];
+    this.viewMode = 'monthly';
   }
 
   getTotalEarnings(): number {
@@ -74,6 +115,29 @@ export class Earnings implements OnInit {
       this.monthlyEarnings = [];
       this.totalEarnings = 0;
       this.totalDeliveries = 0;
+      this.selectedMonth = '';
+      this.filteredEarnings = [];
+      this.viewMode = 'monthly';
     }
+  }
+
+  formatDate(dateStr: string): string {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  getDayName(dateStr: string): string {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('fr-FR', { weekday: 'long' });
+  }
+
+  getCommandNumber(index: number): number {
+    return this.filteredEarnings.length - index;
   }
 }
