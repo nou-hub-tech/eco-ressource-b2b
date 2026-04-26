@@ -5,7 +5,7 @@
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1>Events & Campaigns</h1>
+      <h1>Events &amp; Campaigns</h1>
       <p *ngIf="isAdmin">Manage platform events (admin API)</p>
       <p *ngIf="!isAdmin">Browse and participate in B2B events and circular economy campaigns</p>
     </div>
@@ -50,9 +50,8 @@
     🔍 Found {{totalElements}} events
   </div>
 
-  <!-- Search/Filter/Sort Panel -->
   <div class="card" *ngIf="showSearch" style="margin-bottom:20px;padding:20px">
-    <h3 style="margin:0 0 16px 0;font-size:16px">Search & Filter Events</h3>
+    <h3 style="margin:0 0 16px 0;font-size:16px">Search &amp; Filter Events</h3>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px">
       <div class="form-group">
         <label>Search Term</label>
@@ -102,7 +101,6 @@
     </div>
   </div>
 
-  <!-- Pagination -->
   <div *ngIf="showSearch && totalPages > 1" style="display:flex;justify-content:center;gap:8px;margin-bottom:20px">
     <button 
       class="btn btn-outline btn-sm" 
@@ -146,6 +144,7 @@
       <h3 style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px">
         {{e.title}}
       </h3>
+      <p *ngIf="e.description" class="card-description">{{e.description | slice:0:120}}{{e.description.length > 120 ? '…' : ''}}</p>
       <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text3);margin-bottom:14px">
         <span>&#128197; {{e.eventDate | date:'mediumDate'}}</span>
         <span>&#128205; {{e.location}}</span>
@@ -155,9 +154,19 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="isAdmin">
         <button class="btn btn-outline btn-sm" type="button" (click)="openEditModal(e)">Edit</button>
         <button class="btn btn-outline btn-sm" type="button" (click)="deleteEvent(e)">Delete</button>
+        <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(e)" title="Add to Google Calendar">📅 Google Cal</button>
+        <button 
+          class="btn btn-sm btn-facebook" 
+          type="button" 
+          (click)="publishToFacebook(e)" 
+          [disabled]="publishingFacebook"
+          title="Publish to Facebook">
+          {{ publishingFacebook ? '…' : '📘 Publish FB' }}
+        </button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="!isAdmin">
         <button class="btn btn-outline btn-sm" type="button" (click)="openDetailModal(e)">View Details</button>
+        <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(e)" title="Add to Google Calendar">📅 Google Cal</button>
         <button
           *ngIf="canShowJoin(e)"
           class="btn btn-primary btn-sm"
@@ -188,17 +197,71 @@
     <p *ngIf="saveError" style="color:#ef4444;font-size:12px;margin:0 0 12px">{{saveError}}</p>
     <div class="form-group">
       <label>Event Title</label>
-      <input type="text" name="title" [(ngModel)]="form.title" placeholder="Event name">
+      <div class="input-with-mic">
+        <input type="text" name="title" [(ngModel)]="form.title" placeholder="Event name">
+        <button
+          type="button"
+          class="mic-btn"
+          [class.mic-btn--active]="isListening && listenField === 'title'"
+          (click)="toggleSpeechToText('title')"
+          title="Speech to text">
+          <span class="mic-icon">🎙️</span>
+          <span class="mic-pulse" *ngIf="isListening && listenField === 'title'"></span>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="label-row">
+        <label>Description</label>
+        <button
+          type="button"
+          class="btn-ai-generate"
+          (click)="generateDescription()"
+          [disabled]="generatingDescription"
+          title="Generate with AI">
+          {{ generatingDescription ? '⏳ Generating…' : '✨ Generate with AI' }}
+        </button>
+      </div>
+      <div class="input-with-mic">
+        <textarea
+          name="description"
+          [(ngModel)]="form.description"
+          placeholder="Describe your event..."
+          rows="4"
+          style="width:100%;resize:vertical;"></textarea>
+        <button
+          type="button"
+          class="mic-btn mic-btn--textarea"
+          [class.mic-btn--active]="isListening && listenField === 'description'"
+          (click)="toggleSpeechToText('description')"
+          title="Speech to text">
+          <span class="mic-icon">🎙️</span>
+          <span class="mic-pulse" *ngIf="isListening && listenField === 'description'"></span>
+        </button>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label>Date</label>
         <input type="date" name="eventDate" [(ngModel)]="form.eventDate">
       </div>
-      <div class="form-group">
-        <label>Location</label>
-        <input type="text" name="location" [(ngModel)]="form.location" placeholder="City">
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>Location Search</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" name="searchQuery" [(ngModel)]="searchQuery" placeholder="Search City, Street...">
+          <button class="btn btn-primary" type="button" (click)="searchLocation()" style="padding: 10px 16px;">🔍</button>
+        </div>
       </div>
+      <div class="form-group" style="flex:1">
+        <label>Location Name</label>
+        <input type="text" name="location" [(ngModel)]="form.location" placeholder="Determined automatically">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Pick exactly on map</label>
+      <div id="edit-map" style="height: 250px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 10;"></div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -215,6 +278,25 @@
     <div class="form-group">
       <label>Type label</label>
       <input type="text" name="typeLabel" [(ngModel)]="form.typeLabel" placeholder="e.g. Conference">
+    </div>
+    <div class="form-group">
+      <label>Attachments (PDF, DOCX, XLSX, PNG, JPG)</label>
+      <div class="file-upload-container">
+        <input type="file" multiple accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg" (change)="onFileSelected($event)" style="font-size: 13px;">
+      </div>
+      <div *ngIf="selectedFiles.length > 0" class="file-list">
+        <div class="file-item" *ngFor="let file of selectedFiles; let i = index">
+          <span class="file-name">{{file.name}}</span>
+          <button class="btn btn-icon btn-sm" type="button" (click)="removeSelectedFile(i)" style="color: #ef4444;">&times;</button>
+        </div>
+      </div>
+      <div *ngIf="existingDocuments.length > 0" class="file-list" style="margin-top: 12px;">
+        <label style="font-size: 12px; margin-bottom: 4px; display: block; color: var(--text3);">Existing Documents</label>
+        <div class="file-item" *ngFor="let doc of existingDocuments">
+          <a class="file-name" [href]="getDownloadUrl(doc.id)" target="_blank">{{doc.fileName}}</a>
+          <button class="btn btn-icon btn-sm" type="button" (click)="deleteDocument(doc.id)" style="color: #ef4444;">&times;</button>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" type="button" (click)="closeModal()" [disabled]="saving">Cancel</button>
@@ -239,8 +321,24 @@
       <p *ngIf="d.distance != null"><strong>Distance</strong> {{formatDistance(d.distance)}}</p>
       <p><strong>Participants</strong> {{ d.participants }}</p>
       <p><strong>Created</strong> {{ d.createdAt | date:'medium' }}</p>
+      <div *ngIf="d.description" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <p><strong>Description</strong></p>
+        <p style="white-space:pre-wrap;color:var(--text);font-size:13px;line-height:1.6;">{{ d.description }}</p>
+      </div>
+      <div class="detail-documents" *ngIf="existingDocuments.length > 0" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <p style="margin-bottom: 8px;"><strong>Attachments</strong></p>
+        <ul style="padding-left: 20px; margin: 0; font-size: 14px;">
+          <li *ngFor="let doc of existingDocuments" style="margin-bottom: 4px;">
+            <a [href]="getDownloadUrl(doc.id)" target="_blank" style="color: var(--primary); text-decoration: none;">
+              &#128196; {{doc.fileName}} ({{(doc.fileSize / 1024 / 1024).toFixed(2)}} MB)
+            </a>
+          </li>
+        </ul>
+      </div>
+      <p *ngIf="documentsLoading" style="font-size:12px; color:var(--text3); margin-top:8px;">Loading documents...</p>
     </div>
     <div class="modal-footer">
+      <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(d)">📅 Add to Google Calendar</button>
       <button class="btn btn-primary" type="button" (click)="closeDetailModal()">Close</button>
     </div>
   </div>

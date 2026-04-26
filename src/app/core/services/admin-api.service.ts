@@ -48,8 +48,18 @@ export interface PlatformEventDto {
   participants: number;
   status: PlatformEventStatus;
   typeLabel: string;
+  description?: string;
   createdAt: string;
   distance?: number;
+}
+
+export interface EventDocumentDto {
+  id: number;
+  platformEventId: number;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
 }
 
 export interface PlatformEventRequestPayload {
@@ -61,6 +71,7 @@ export interface PlatformEventRequestPayload {
   participants: number;
   status: string;
   typeLabel: string;
+  description?: string;
 }
 
 export interface EventSearchRequest {
@@ -94,6 +105,13 @@ export interface SolidarityDto {
   donations: number;
   status: string;
   ai: string;
+}
+export interface GenerateDescriptionRequest {
+  title: string;
+  typeLabel: string;
+  location: string;
+  eventDate: string;
+  currentDescription: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -160,6 +178,27 @@ export class AdminApiService {
     return this.http.delete<void>(`${this.apiUrl}/platform-events/${id}`);
   }
 
+  uploadEventDocument(eventId: number, file: File): Observable<EventDocumentDto> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<EventDocumentDto>(
+      `${this.apiUrl}/platform-events/${eventId}/documents`,
+      formData
+    );
+  }
+
+  getEventDocuments(eventId: number): Observable<EventDocumentDto[]> {
+    return this.http.get<EventDocumentDto[]>(
+      `${this.apiUrl}/platform-events/${eventId}/documents`
+    );
+  }
+
+  deleteEventDocument(documentId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/platform-events/documents/${documentId}`
+    );
+  }
+
   getNearbyEvents(
     latitude: number,
     longitude: number,
@@ -203,4 +242,11 @@ export class AdminApiService {
   getStockItems(): Observable<StockItemDto[]> {
     return this.http.get<StockItemDto[]>(`${this.apiUrl}/admin/stock/items`);
   }
+
+  generateDescription(req: GenerateDescriptionRequest): Observable<{ description: string }> {
+  return this.http.post<{ description: string }>(
+    `${this.apiUrl}/ai/generate-description`,
+    req
+  );
+}
 }

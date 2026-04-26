@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { EventService } from '../../core/services/event';
-import { PlatformEventDto, PlatformEventRequestPayload } from '../../core/services/admin-api.service';
+import { EventAttachmentDto, PlatformEventDto, PlatformEventRequestPayload } from '../../core/services/admin-api.service';
 import { FullCalendarModule } from '@fullcalendar/angular';
 import { CalendarOptions, EventClickArg, EventInput } from '@fullcalendar/core';
 import { SharedModule } from '../../shared/shared-module';
@@ -19,7 +19,6 @@ type EventRow = PlatformEventDto & {
   participationId?: number;
 };
 
-
 @Component({
   selector: 'app-event-calendar',
   standalone: true, 
@@ -32,7 +31,6 @@ type EventRow = PlatformEventDto & {
   templateUrl: './event-calendar.component.html',
   styleUrls: ['./event-calendar.component.css']
 })
-
 
 export class EventCalendarComponent implements OnInit {
   platformEvents: EventRow[] = [];
@@ -48,7 +46,7 @@ export class EventCalendarComponent implements OnInit {
   saveError: string | null = null;
   saving = false;
   form: PlatformEventRequestPayload = {
-    title: '', eventDate: '', location: '', latitude: undefined, longitude: undefined, participants: 0, status: 'UPCOMING', typeLabel: '', description: ''
+    title: '', eventDate: '', location: '', latitude: undefined, longitude: undefined, participants: 0, status: 'UPCOMING', typeLabel: ''
   };
   readonly statusOptions = ['UPCOMING', 'ONGOING', 'DONE', 'CANCELLED'] as const;
 
@@ -57,8 +55,11 @@ export class EventCalendarComponent implements OnInit {
   viewMap: L.Map | null = null;
   searchQuery: string = '';
 
-    //calendarEvents: EventInput[] = [];
-
+  attachments: EventAttachmentDto[] = [];
+  attachmentLoading = false;
+  attachmentError: string | null = null;
+  uploadProgress = 0;
+  selectedFile: File | null = null;
 
   calendarOptions: CalendarOptions = {
     initialView: 'dayGridMonth',
@@ -144,8 +145,16 @@ export class EventCalendarComponent implements OnInit {
 
   handleEventClick(clickInfo: EventClickArg): void {
     const eventId = Number(clickInfo.event.id);
-    this.selectedEvent =
-      this.platformEvents.find((event) => event.id === eventId) || null;
+    const event = this.platformEvents.find((e) => e.id === eventId);
+    if (event) {
+      this.openDetailModal(event);
+    }
+  }
+
+  openDetailModal(e: EventRow): void {
+    this.selectedEvent = e;
+    this.attachments = [];
+    this.loadAttachments(e.id);
     this.cdr.detectChanges();
     setTimeout(() => this.initViewMap(), 50);
   }
@@ -156,10 +165,12 @@ export class EventCalendarComponent implements OnInit {
       this.viewMap = null;
     }
     this.selectedEvent = null;
+      this.viewMap = null;
+    }
+    this.selectedEvent = null;
+    this.attachments = [];
     this.cdr.detectChanges();
   }
-
-  initViewMap(): void {
     const mapContainer = document.getElementById('view-map');
     if (!mapContainer || !this.selectedEvent || !this.selectedEvent.latitude || !this.selectedEvent.longitude) return;
     if (this.viewMap) {
@@ -265,7 +276,7 @@ export class EventCalendarComponent implements OnInit {
   openCreateModal(): void {
     this.editingId = null;
     this.form = {
-      title: '', eventDate: '', location: '', latitude: undefined, longitude: undefined, participants: 0, status: 'UPCOMING', typeLabel: '', description: ''
+      title: '', eventDate: '', location: '', latitude: undefined, longitude: undefined, participants: 0, status: 'UPCOMING', typeLabel: ''
     };
     this.searchQuery = '';
     this.saveError = null;
@@ -285,8 +296,7 @@ export class EventCalendarComponent implements OnInit {
       longitude: e.longitude,
       participants: e.participants,
       status: this.statusOptions.includes(st as any) ? st : 'UPCOMING',
-      typeLabel: e.typeLabel,
-      description: e.description || ''
+      typeLabel: e.typeLabel
     };
     this.searchQuery = '';
     this.saveError = null;
