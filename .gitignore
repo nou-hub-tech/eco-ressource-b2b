@@ -49,3 +49,5 @@ Thumbs.db
 /docx/
 /guide code/
 /docs/
+*.log
+*.lnk
