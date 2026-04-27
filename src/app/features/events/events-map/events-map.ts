@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import {
   PlatformEventDto
@@ -9,6 +9,7 @@ import { AuthService } from '../../../core/services/auth';
 import { EventParticipationService } from '../../../core/services/event-participation.service';
 import { EventService } from '../../../core/services/event';
 import { GeolocationService } from '../../../core/services/geolocation.service';
+import { ThemeService } from '../../../core/services/theme';
 import * as L from 'leaflet';
 
 type EventRow = PlatformEventDto & {
@@ -20,7 +21,11 @@ type EventRow = PlatformEventDto & {
   selector: 'app-events-map',
   standalone: false,
   templateUrl: './events-map.html',
-  styleUrls: ['./events-map.css']
+  styleUrls: ['./events-map.css'],
+  host: {
+    '[class.map-light-mode]': '!isDark',
+    '[class.map-dark-mode]': 'isDark'
+  }
 })
 export class EventsMapComponent implements OnInit, OnDestroy {
   events: EventRow[] = [];
@@ -30,8 +35,11 @@ export class EventsMapComponent implements OnInit, OnDestroy {
 
   private map: L.Map | null = null;
   private markers = new Map<number, L.Marker>();
+  private tileLayer: L.TileLayer | null = null;
+  private themeSub: Subscription | null = null;
   private userLat = 36.8065;
   private userLng = 10.1815;
+  isDark = false;
 
   constructor(
     private readonly auth: AuthService,
@@ -39,7 +47,8 @@ export class EventsMapComponent implements OnInit, OnDestroy {
     private readonly participationService: EventParticipationService,
     private readonly geolocationService: GeolocationService,
     private readonly cdr: ChangeDetectorRef,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly themeService: ThemeService
   ) {}
 
   get isAdmin(): boolean {
@@ -67,10 +76,16 @@ export class EventsMapComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.isDark = this.themeService.isDark;
+    this.themeSub = this.themeService.isDark$.subscribe(dark => {
+      this.isDark = dark;
+      this.swapTileLayer();
+    });
     this.getUserLocationThenLoad();
   }
 
   ngOnDestroy(): void {
+    this.themeSub?.unsubscribe();
     if (this.map) {
       this.map.remove();
       this.map = null;
@@ -188,12 +203,9 @@ export class EventsMapComponent implements OnInit, OnDestroy {
     // Zoom control top-right
     L.control.zoom({ position: 'topright' }).addTo(this.map);
 
-    // CartoDB Dark Matter tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(this.map);
+    // Tile layer based on current theme
+    this.tileLayer = this.createTileLayer(this.isDark);
+    this.tileLayer.addTo(this.map);
 
     // User location marker
     const userIcon = L.divIcon({
@@ -213,6 +225,26 @@ export class EventsMapComponent implements OnInit, OnDestroy {
     }
 
     setTimeout(() => this.map?.invalidateSize(), 200);
+  }
+
+  private createTileLayer(dark: boolean): L.TileLayer {
+    const url = dark
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    return L.tileLayer(url, {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    });
+  }
+
+  private swapTileLayer(): void {
+    if (!this.map) return;
+    if (this.tileLayer) {
+      this.map.removeLayer(this.tileLayer);
+    }
+    this.tileLayer = this.createTileLayer(this.isDark);
+    this.tileLayer.addTo(this.map);
   }
 
   private addEventMarker(event: EventRow): void {
