@@ -16,11 +16,10 @@ export class JwtInterceptor implements HttpInterceptor {
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
     
-    // ✅ IGNORER tous les appels API de gestion livraison
-    if (req.url.includes('/api/delivery-orders') || 
-        req.url.includes('/api/shipments') ||
-        req.url.includes('/api/dashboard')) {
-      console.log('[JwtInterceptor] Ignoré - API Gestion Livraison');
+    // Ne pas forcer l’Authorization sur l’auth (login/register).
+    // Pour toutes les autres APIs (delivery-orders, shipments, dashboard, transport, etc.)
+    // on garde le Bearer token si disponible.
+    if (req.url.includes('/auth/login') || req.url.includes('/auth/register')) {
       return next.handle(req);
     }
     

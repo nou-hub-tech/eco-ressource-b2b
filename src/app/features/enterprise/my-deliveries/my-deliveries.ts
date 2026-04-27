@@ -29,6 +29,8 @@ export class MyDeliveries implements OnInit, OnDestroy {
     currentUser: User | null = null;
     currentUserName: string = '';
     private subscriptions: Subscription = new Subscription();
+    private refreshInterval: any;
+    private migratedShipmentIds: Set<number> = new Set();
 
     constructor(
         private shipmentService: ShipmentService,
@@ -41,9 +43,10 @@ export class MyDeliveries implements OnInit, OnDestroy {
     ) {}
 
     ngOnInit(): void {
+        console.log('🚚 INITIALISATION DE MYDELIVERIES');
         this.getCurrentUser();
         this.loadDeliveryOrders();
-        this.loadTransporters();
+        this.loadTransporters(); // Charge les transporteurs
         
         // ÉCOUTER LES MISES À JOUR EN TEMPS RÉEL
         this.subscriptions.add(
@@ -52,24 +55,69 @@ export class MyDeliveries implements OnInit, OnDestroy {
                 this.onShipmentUpdate(data);
             })
         );
+
+        // Rafraîchissement périodique (toutes les 3 secondes)
+        this.refreshInterval = setInterval(() => {
+            console.log('🔄 Refresh automatique des livraisons...');
+            this.loadShipments();
+            this.loadTransporters();
+        }, 3000);
     }
 
     ngOnDestroy(): void {
         this.subscriptions.unsubscribe();
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
     }
 
     onShipmentUpdate(data: any): void {
-        console.log('🔄 Mise à jour détectée, rechargement des données...');
+        console.log('🔄 Mise à jour détectée dans my-deliveries:', data);
         
-        // Recharger les expéditions
+        // Rechargement immédiat des expéditions
         this.loadShipments();
         
-        // Recharger les transporteurs
+        // Rechargement des transporteurs pour s'assurer d'avoir le bon nom
         this.loadTransporters();
+        
+        // Si on a reçu directement le nom du transporteur, on peut l'utiliser immédiatement
+        if (data.transporterName && data.deliveryOrderId) {
+            console.log(`📢 Mise à jour directe: Commande #${data.deliveryOrderId} assignée à ${data.transporterName}`);
+            
+            // Trouver l'expédition correspondante dans la liste actuelle et mettre à jour l'affichage
+            const shipmentToUpdate = this.allShipments.find(
+                s => s.deliveryOrder?.idDelivery === data.deliveryOrderId
+            );
+            
+            if (shipmentToUpdate && data.transporterId) {
+                // Mettre à jour en mémoire
+                shipmentToUpdate.idTransporter = data.transporterId;
+                
+                // S'assurer que le transporteur est dans la Map
+                if (!this.transporters.has(data.transporterId)) {
+                    // Créer une entrée temporaire
+                    this.transporters.set(data.transporterId, {
+                        id: data.transporterId,
+                        companyName: data.transporterName,
+                        userId: data.transporterId,
+                        listingsCount: 0,
+                        ordersCount: 0,
+                        createdAt: new Date().toISOString()
+                    } as Transporter);
+                }
+                
+                // Recharger complètement pour être sûr
+                setTimeout(() => {
+                    this.loadShipments();
+                }, 500);
+            }
+        }
         
         // Afficher un message de succès
         if (data.type === 'NEW_SHIPMENT' && data.transporterName) {
             this.successMessage = `✅ Nouvelle livraison assignée à ${data.transporterName}`;
+        } else if (data.type === 'SHIPMENT_UPDATED' && data.transporterName) {
+            this.successMessage = `✅ Livraison mise à jour - Transporteur: ${data.transporterName}`;
         } else {
             this.successMessage = '✅ Mise à jour des livraisons';
         }
@@ -110,7 +158,14 @@ export class MyDeliveries implements OnInit, OnDestroy {
         const sub = this.shipmentService.getAll().subscribe({
             next: (data: Shipment[]) => {
                 console.log('📦 Toutes les expéditions reçues:', data.length);
+                // Afficher les IDs transporteur pour debug
+                data.forEach(s => {
+                    if (s.idTransporter && s.idTransporter > 0) {
+                        console.log(`🚚 Expédition #${s.id} - Transporteur ID: ${s.idTransporter}`);
+                    }
+                });
                 this.allShipments = data || [];
+                this.migrateLegacyTransporterIds(this.allShipments);
                 this.filterShipmentsByClient();
                 this.isLoading = false;
                 this.cd.detectChanges();
@@ -123,6 +178,47 @@ export class MyDeliveries implements OnInit, OnDestroy {
             }
         });
         this.subscriptions.add(sub);
+    }
+
+    private migrateLegacyTransporterIds(shipments: Shipment[]): void {
+        if (!shipments || shipments.length === 0) return;
+        if (this.transporters.size === 0) return;
+
+        const transporterIdByUserId = new Map<number, number>();
+        this.transporters.forEach((t) => {
+            if (typeof t.userId === 'number' && t.userId > 0) {
+                transporterIdByUserId.set(t.userId, t.id);
+            }
+        });
+        if (transporterIdByUserId.size === 0) return;
+
+        const knownTransporterIds = new Set<number>(Array.from(this.transporters.keys()));
+
+        shipments.forEach((s) => {
+            const current = s?.idTransporter ?? 0;
+            if (!s?.id || !current || current <= 0) return;
+            if (this.migratedShipmentIds.has(s.id)) return;
+
+            if (!knownTransporterIds.has(current) && transporterIdByUserId.has(current)) {
+                const correctedTransporterId = transporterIdByUserId.get(current)!;
+                const updated: Shipment = {
+                    ...s,
+                    idTransporter: correctedTransporterId
+                };
+
+                this.migratedShipmentIds.add(s.id);
+                this.shipmentService.update(s.id, updated).subscribe({
+                    next: () => {
+                        s.idTransporter = correctedTransporterId;
+                        this.cd.detectChanges();
+                    },
+                    error: (err) => {
+                        console.error('❌ Migration idTransporter échouée pour shipment', s.id, err);
+                        this.migratedShipmentIds.delete(s.id);
+                    }
+                });
+            }
+        });
     }
 
     filterShipmentsByClient(): void {
@@ -179,49 +275,64 @@ export class MyDeliveries implements OnInit, OnDestroy {
     }
 
     loadTransporters(): void {
+        console.log('🚚 Chargement des transporteurs...');
         const sub = this.transportService.getAllTransporters().subscribe({
             next: (transportersList: Transporter[]) => {
                 console.log('🚚 Transporteurs reçus:', transportersList.length);
+                this.transporters.clear();
                 if (transportersList && transportersList.length > 0) {
                     transportersList.forEach(transporter => {
                         if (transporter && transporter.id) {
                             this.transporters.set(transporter.id, transporter);
+                            console.log(`📦 Transporteur enregistré: ID=${transporter.id}, Nom=${transporter.companyName}, userId=${transporter.userId}`);
                         }
                     });
+                } else {
+                    console.warn('⚠️ Aucun transporteur reçu de l\'API');
+                    // Données mock de secours
+                    this.transporters.set(1, { id: 1, userId: 3, companyName: 'Karim Logistics', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() });
+                    this.transporters.set(2, { id: 2, userId: 4, companyName: 'linda', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() });
+                    console.log('📦 Données mock ajoutées:', Array.from(this.transporters.entries()));
                 }
                 console.log('📋 Map des transporteurs:', Array.from(this.transporters.entries()));
+                if (this.allShipments.length > 0) {
+                    this.migrateLegacyTransporterIds(this.allShipments);
+                    this.filterShipmentsByClient();
+                }
                 this.cd.detectChanges();
             },
             error: (error: any) => {
                 console.error('❌ Erreur chargement transporteurs:', error);
-                // Données mockées
-                const mockTransporters: Transporter[] = [
-                    { id: 1, companyName: 'Transport Express', listingsCount: 0, ordersCount: 0, createdAt: new Date().toISOString() },
-                    { id: 2, companyName: 'Logistic Pro', listingsCount: 0, ordersCount: 0, createdAt: new Date().toISOString() },
-                    { id: 3, companyName: 'Fast Delivery', listingsCount: 0, ordersCount: 0, createdAt: new Date().toISOString() }
-                ];
-                mockTransporters.forEach(transporter => {
-                    this.transporters.set(transporter.id, transporter);
-                });
+                // Données mock de secours en cas d'erreur
+                this.transporters.clear();
+                this.transporters.set(1, { id: 1, userId: 3, companyName: 'Karim Logistics', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() });
+                this.transporters.set(2, { id: 2, userId: 4, companyName: 'linda', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() });
+                console.log('📦 Données mock ajoutées (erreur):', Array.from(this.transporters.entries()));
                 this.cd.detectChanges();
             }
         });
         this.subscriptions.add(sub);
     }
 
-    // ========== MÉTHODE CLÉ POUR AFFICHER LE TRANSPORTEUR ==========
     getTransporterName(idTransporter: number): string {
+        console.log(`🔍 getTransporterName appelé avec idTransporter = ${idTransporter}`);
+        
         // Si pas de transporteur assigné → afficher "-"
         if (!idTransporter || idTransporter === 0) {
+            console.log(`   → Pas de transporteur assigné, affichage "-"`);
             return '-';
         }
         
-        // Chercher le transporteur dans la Map
+        // Chercher dans la Map des transporteurs (clé = transporter.id)
         const transporter = this.transporters.get(idTransporter);
         if (transporter) {
+            console.log(`   ✅ Transporteur trouvé: ${transporter.companyName}`);
             return transporter.companyName;
         }
         
+        // Si non trouvé, afficher "Transporteur #ID"
+        console.log(`   ⚠️ Transporteur non trouvé pour ID ${idTransporter}`);
+        console.log(`   📋 Clés disponibles dans la Map:`, Array.from(this.transporters.keys()));
         return `Transporteur #${idTransporter}`;
     }
 
@@ -300,7 +411,6 @@ export class MyDeliveries implements OnInit, OnDestroy {
         return this.filteredShipments.filter(s => s.statut === StatutExpedition.EN_COURS).length;
     }
 
-    // ========== MÉTHODES PDF ==========
     onGeneratePDF(shipmentId: number): void {
         const shipment = this.filteredShipments.find(s => s.id === shipmentId);
         
@@ -371,5 +481,20 @@ export class MyDeliveries implements OnInit, OnDestroy {
             this.successMessage = '';
             this.cd.detectChanges();
         }, 3000);
+    }
+
+    // Méthode de diagnostic
+    diagnosticTransporteurs(): void {
+        console.log('=== DIAGNOSTIC MYDELIVERIES ===');
+        console.log('Transporters Map size:', this.transporters.size);
+        console.log('Transporters Map content:', Array.from(this.transporters.entries()));
+        console.log('All Shipments count:', this.allShipments.length);
+        console.log('Filtered Shipments count:', this.filteredShipments.length);
+        
+        this.filteredShipments.forEach(s => {
+            console.log(`Shipment #${s.id} - transporterId: ${s.idTransporter} -> Nom: ${this.getTransporterName(s.idTransporter)}`);
+        });
+        
+        alert(`Diagnostic:\nTransporteurs chargés: ${this.transporters.size}\nExpéditions filtrées: ${this.filteredShipments.length}`);
     }
 }

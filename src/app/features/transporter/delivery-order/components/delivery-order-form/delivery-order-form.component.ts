@@ -22,6 +22,7 @@ export class DeliveryOrderFormComponent implements OnInit {
     errorMessage = '';
     statuts = Object.values(StatutCommande);
     today: string;
+    private readonly isAdminContext: boolean;
 
     constructor(
         private fb: FormBuilder,
@@ -30,6 +31,7 @@ export class DeliveryOrderFormComponent implements OnInit {
         private router: Router,
         private cd: ChangeDetectorRef
     ) {
+        this.isAdminContext = this.router.url.startsWith('/admin/');
         //  la date minimale (aujourd'hui)
         const now = new Date();
         this.today = now.toISOString().slice(0, 16);
@@ -173,7 +175,9 @@ export class DeliveryOrderFormComponent implements OnInit {
                 console.log('Succès:', response);
                 this.isLoading = false;
                 this.cd.markForCheck();
-                this.router.navigate(['/transporter/delivery-orders']);
+                // Informer les autres écrans (Trips, Admin/Deliveries, listes...) qu’une commande a changé
+                window.dispatchEvent(new Event('orderChanged'));
+                this.navigateAfterAction();
             },
             error: (error: any) => {
                 console.error('Erreur détaillée:', error);
@@ -192,6 +196,14 @@ export class DeliveryOrderFormComponent implements OnInit {
     }
 
     onCancel(): void {
-        this.router.navigate(['/transporter/delivery-orders']);
+        this.navigateAfterAction();
+    }
+
+    private navigateAfterAction(): void {
+        if (this.isAdminContext) {
+            this.router.navigate(['/admin/deliveries'], { queryParams: { tab: 'orders' } });
+        } else {
+            this.router.navigate(['/transporter/delivery-orders']);
+        }
     }
 }

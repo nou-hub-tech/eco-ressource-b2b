@@ -19,6 +19,7 @@ export class DeliveryOrderDetailComponent implements OnInit {
     shipments: Shipment[] = [];
     isLoading = true;
     errorMessage = '';
+    private readonly isAdminContext: boolean;
 
     constructor(
         private route: ActivatedRoute,
@@ -26,7 +27,9 @@ export class DeliveryOrderDetailComponent implements OnInit {
         private deliveryOrderService: DeliveryOrderService,
         private shipmentService: ShipmentService,
         private cd: ChangeDetectorRef
-    ) {}
+    ) {
+        this.isAdminContext = this.router.url.startsWith('/admin/');
+    }
 
     ngOnInit(): void {
         const id = this.route.snapshot.paramMap.get('id');
@@ -65,7 +68,11 @@ export class DeliveryOrderDetailComponent implements OnInit {
     }
 
     goBack(): void {
-        this.router.navigate(['/transporter/delivery-orders']);
+        if (this.isAdminContext) {
+            this.router.navigate(['/admin/deliveries'], { queryParams: { tab: 'orders' } });
+        } else {
+            this.router.navigate(['/transporter/delivery-orders']);
+        }
     }
 
     getStatutClass(statut: StatutCommande): string {
@@ -88,13 +95,21 @@ export class DeliveryOrderDetailComponent implements OnInit {
 
     editOrder(): void {
         if (this.deliveryOrder) {
-            this.router.navigate(['/transporter/delivery-orders/edit', this.deliveryOrder.idDelivery]);
+            if (this.isAdminContext) {
+                this.router.navigate(['/admin/delivery-orders/edit', this.deliveryOrder.idDelivery]);
+            } else {
+                this.router.navigate(['/transporter/delivery-orders/edit', this.deliveryOrder.idDelivery]);
+            }
         }
     }
 
     addShipment(): void {
         if (this.deliveryOrder) {
-            this.router.navigate(['/transporter/shipments/new', this.deliveryOrder.idDelivery]);
+            if (this.isAdminContext) {
+                this.router.navigate(['/admin/shipments/new', this.deliveryOrder.idDelivery]);
+            } else {
+                this.router.navigate(['/transporter/shipments/new', this.deliveryOrder.idDelivery]);
+            }
         }
     }
 

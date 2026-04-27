@@ -19,6 +19,7 @@ export class ShipmentDetailComponent implements OnInit {
     deliveryOrder: DeliveryOrder | null = null;
     isLoading = true;
     errorMessage = '';
+    private readonly isAdminContext: boolean;
 
     constructor(
         private route: ActivatedRoute,
@@ -26,7 +27,9 @@ export class ShipmentDetailComponent implements OnInit {
         private shipmentService: ShipmentService,
         private deliveryOrderService: DeliveryOrderService,
         private cd: ChangeDetectorRef
-    ) {}
+    ) {
+        this.isAdminContext = this.router.url.startsWith('/admin/');
+    }
 
     ngOnInit(): void {
         const id = this.route.snapshot.paramMap.get('id');
@@ -62,12 +65,20 @@ export class ShipmentDetailComponent implements OnInit {
     }
 
     goBack(): void {
-        this.router.navigate(['/transporter/shipments']);
+        if (this.isAdminContext) {
+            this.router.navigate(['/admin/deliveries'], { queryParams: { tab: 'shipments' } });
+        } else {
+            this.router.navigate(['/transporter/shipments']);
+        }
     }
 
     editShipment(): void {
         if (this.shipment) {
-            this.router.navigate(['/transporter/shipments/edit', this.shipment.id]);
+            if (this.isAdminContext) {
+                this.router.navigate(['/admin/shipments/edit', this.shipment.id]);
+            } else {
+                this.router.navigate(['/transporter/shipments/edit', this.shipment.id]);
+            }
         }
     }
 

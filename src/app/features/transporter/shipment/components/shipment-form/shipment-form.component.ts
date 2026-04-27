@@ -24,6 +24,7 @@ export class ShipmentFormComponent implements OnInit {
     errorMessage = '';
     statuts = Object.values(StatutExpedition);
     today: string;
+    private readonly isAdminContext: boolean;
 
     constructor(
         private fb: FormBuilder,
@@ -33,6 +34,7 @@ export class ShipmentFormComponent implements OnInit {
         private router: Router,
         private cd: ChangeDetectorRef
     ) {
+        this.isAdminContext = this.router.url.startsWith('/admin/');
         const now = new Date();
         this.today = now.toISOString().slice(0, 16);
         this.shipmentForm = this.createForm();
@@ -188,7 +190,7 @@ export class ShipmentFormComponent implements OnInit {
                 console.log('Succès:', response);
                 this.isLoading = false;
                 this.cd.markForCheck();
-                this.router.navigate(['/transporter/shipments']);
+                this.navigateAfterAction();
             },
             error: (error: any) => {
                 console.error('Erreur détaillée:', error);
@@ -200,6 +202,14 @@ export class ShipmentFormComponent implements OnInit {
     }
 
     onCancel(): void {
-        this.router.navigate(['/transporter/shipments']);
+        this.navigateAfterAction();
+    }
+
+    private navigateAfterAction(): void {
+        if (this.isAdminContext) {
+            this.router.navigate(['/admin/deliveries'], { queryParams: { tab: 'shipments' } });
+        } else {
+            this.router.navigate(['/transporter/shipments']);
+        }
     }
 }
