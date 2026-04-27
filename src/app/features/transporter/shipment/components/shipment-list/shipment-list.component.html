@@ -12,9 +12,7 @@
               *ngIf="filteredShipments.length > 0" title="Exporter toutes les expéditions filtrées">
         <i class="bi bi-file-pdf"></i> Exporter tout
       </button>
-      <button type="button" class="btn btn-primary" (click)="onCreateNew()">
-        <i class="bi bi-plus-circle"></i> Nouvelle expédition
-      </button>
+      <!-- BOUTON "NOUVELLE EXPÉDITION" SUPPRIMÉ -->
     </div>
   </div>
 
@@ -124,66 +122,58 @@
   </div>
 
   <div *ngIf="!isLoading" class="card" style="padding:0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Commande</th>
-          <th>Client</th>
-          <th>Produit</th>
-          <th>Qté</th>
-          <th>Transp.</th>
-          <th>Départ</th>
-          <th>Statut</th>
-          <th style="width:150px">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let shipment of paginatedShipments">
-          <td><code style="font-size:11px;color:var(--text3)">{{ shipment.id }}</code></td>
-          <td>#{{ shipment.deliveryOrder.idDelivery }}</td>
-          <td style="font-size:12px;color:var(--text2)">{{ getClientName(shipment.deliveryOrder.idDelivery) }}</td>
-          <td>{{ shipment.produitId }}</td>
-          <td>{{ shipment.quantite }}</td>
-          <td>{{ shipment.idTransporter }}</td>
-          <td style="font-size:12px;color:var(--text3)">{{ shipment.dateDepart | date:'dd/MM/yyyy HH:mm' }}</td>
-          <td><span [class]="getStatutClass(shipment.statut)">{{ shipment.statut }}</span></td>
-          <td>
-            <div class="btn-group" role="group" style="display: flex; gap: 5px;">
-              <button type="button" class="btn btn-outline-primary btn-sm" 
-                      title="Voir détails" 
-                      (click)="onViewDetail(shipment.id)">
-                <i class="bi bi-eye"></i>
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" 
-                      title="Modifier" 
-                      (click)="onEdit(shipment.id)">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button type="button" class="btn btn-outline-danger btn-sm" 
-                      title="Générer PDF" 
-                      (click)="onGeneratePDF(shipment.id)">
-                <i class="bi bi-file-pdf"></i>
-              </button>
-              <button type="button" class="btn btn-outline-danger btn-sm" 
-                      title="Supprimer" 
-                      (click)="onDelete(shipment.id)">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-        <tr *ngIf="filteredShipments.length === 0">
-          <td colspan="9" class="text-center" style="padding:32px;color:var(--text3)">
-            <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
-            Aucune expédition
-            <button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;display:inline-flex" (click)="onCreateNew()">
-              <i class="bi bi-plus-circle"></i> Créer
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Commande</th>
+            <th>Client</th>
+            <th>Produit</th>
+            <th>Qté</th>
+            <th>Transp.</th>
+            <th>Départ</th>
+            <th>Statut</th>
+            <th style="width:80px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let shipment of paginatedShipments">
+            <td><code style="font-size:11px;color:var(--text3)">{{ shipment.id }}</code></td>
+            <td>#{{ shipment.deliveryOrder.idDelivery }}</td>
+            <td style="font-size:12px;color:var(--text2)">{{ getClientName(shipment.deliveryOrder.idDelivery) }}</td>
+            <td>{{ shipment.produitId }}</td>
+            <td>{{ shipment.quantite }}</td>
+            <td>{{ shipment.idTransporter }}</td>
+            <td style="font-size:12px;color:var(--text3)">{{ shipment.dateDepart | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><span [class]="getStatutClass(shipment.statut)">{{ shipment.statut }}</span></td>
+            <td>
+              <div class="btn-group" role="group" style="display: flex; gap: 5px;">
+                <button type="button" class="btn btn-outline-primary btn-sm" 
+                        title="Voir détails" 
+                        (click)="onViewDetail(shipment.id)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <!-- BOUTON MODIFIER (EDIT) SUPPRIMÉ -->
+                <!-- BOUTON SUPPRIMER (DELETE) SUPPRIMÉ -->
+                <button type="button" class="btn btn-outline-danger btn-sm" 
+                        title="Générer PDF" 
+                        (click)="onGeneratePDF(shipment.id)">
+                  <i class="bi bi-file-pdf"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredShipments.length === 0">
+            <td colspan="9" class="text-center" style="padding:32px;color:var(--text3)">
+              <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
+              Aucune expédition
+              <!-- BOUTON CRÉER SUPPRIMÉ -->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ========== PAGINATION ========== -->

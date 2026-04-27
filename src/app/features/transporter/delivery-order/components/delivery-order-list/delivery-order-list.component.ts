@@ -35,7 +35,7 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
     showStats = false;
     rechercheActive = false;
     
-    // ========== PROPRIÉTÉS DE PAGINATION ==========
+    // Propriétés de pagination
     currentPage: number = 1;
     itemsPerPage: number = 3;
     totalItems: number = 0;
@@ -474,38 +474,12 @@ export class DeliveryOrderListComponent implements OnInit, OnDestroy {
 
     // ========= ACTIONS ===============
     
-    onEdit(id: number): void {
-        this.router.navigate(['/transporter/delivery-orders/edit', id]);
-    }
+    // SUPPRIMÉ: onEdit()
+    // SUPPRIMÉ: onDelete()
+    // SUPPRIMÉ: onCreateNew()
 
     onViewDetail(id: number): void {
         this.router.navigate(['/transporter/delivery-orders/detail', id]);
-    }
-
-    onDelete(id: number): void {
-        if (confirm('Supprimer cette commande ?')) {
-            const sub = this.deliveryOrderService.delete(id).subscribe({
-                next: () => {
-                    this.loadDeliveryOrders();
-                    this.loadStatistiques();
-                    this.successMessage = 'Commande supprimée avec succès';
-                    setTimeout(() => {
-                        this.successMessage = '';
-                    }, 3000);
-                },
-                error: () => {
-                    this.errorMessage = 'Erreur lors de la suppression';
-                    setTimeout(() => {
-                        this.errorMessage = '';
-                    }, 3000);
-                }
-            });
-            this.subscriptions.add(sub);
-        }
-    }
-
-    onCreateNew(): void {
-        this.router.navigate(['/transporter/delivery-orders/new']);
     }
 
     getStatutClass(statut: StatutCommande): string {

@@ -33,9 +33,9 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
     showStats = false;
     rechercheActive = false;
     
-    // ========== PROPRIÉTÉS DE PAGINATION ==========
+    // Propriétés de pagination
     currentPage: number = 1;
-    itemsPerPage: number = 3;  // 3 éléments par page
+    itemsPerPage: number = 3;
     totalItems: number = 0;
     paginatedShipments: Shipment[] = [];
     
@@ -79,10 +79,7 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         this.cd.markForCheck();
     }
 
-    // ====== RECHERCHE DYNAMIQUE ======
-    
     setupDynamicSearch(): void {
-        // Recherche par produit
         const produitSub = this.searchForm.get('produitId')?.valueChanges
             .pipe(
                 debounceTime(500),
@@ -117,7 +114,6 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
             });
         this.subscriptions.add(produitSub);
         
-        // Recherche par quantité
         const quantiteSub = this.searchForm.get('quantite')?.valueChanges
             .pipe(
                 debounceTime(500),
@@ -152,7 +148,6 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
             });
         this.subscriptions.add(quantiteSub);
         
-        // Recherche par statut
         const statutSub = this.searchForm.get('statut')?.valueChanges
             .pipe(
                 distinctUntilChanged(),
@@ -186,7 +181,6 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
             });
         this.subscriptions.add(statutSub);
         
-        // Recherche par date
         const dateSub = this.searchForm.get('dateDepart')?.valueChanges
             .pipe(
                 debounceTime(500),
@@ -234,8 +228,6 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         this.loadShipments();
     }
 
-    // ========= CHARGEMENT ===========
-    
     loadShipments(): void {
         this.isLoading = true;
         const sub = this.shipmentService.getAll().subscribe({
@@ -300,11 +292,9 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         } else {
             this.filteredShipments = [...this.shipments];
         }
-        this.updatePagination(); // Mettre à jour la pagination
+        this.updatePagination();
     }
 
-    // ============ TRI ================
-    
     sortByField(field: string): void {
         if (this.sortBy === field) {
             this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
@@ -347,7 +337,6 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
     
     updatePagination(): void {
         this.totalItems = this.filteredShipments.length;
-        // Vérifier si la page actuelle est toujours valide
         const maxPage = this.getTotalPages();
         if (this.currentPage > maxPage && maxPage > 0) {
             this.currentPage = maxPage;
@@ -412,32 +401,12 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         return order ? order.nomClient : 'Inconnu';
     }
 
-    onEdit(id: number): void {
-        this.router.navigate(['/transporter/shipments/edit', id]);
-    }
+    // SUPPRIMÉ: onEdit()
+    // SUPPRIMÉ: onCreateNew()
+    // SUPPRIMÉ: onDelete()
 
     onViewDetail(id: number): void {
         this.router.navigate(['/shipments/detail', id]);
-    }
-
-    onDelete(id: number): void {
-        if (confirm('Supprimer cette expédition ?')) {
-            const sub = this.shipmentService.delete(id).subscribe({
-                next: () => {
-                    this.runZone(() => {
-                        this.loadShipments();
-                        this.loadStatistiques();
-                    });
-                },
-                error: (error: any) => {
-                    this.runZone(() => {
-                        this.errorMessage = 'Erreur lors de la suppression';
-                    });
-                    console.error(error);
-                }
-            });
-            this.subscriptions.add(sub);
-        }
     }
 
     onGeneratePDF(shipmentId: number): void {
@@ -458,6 +427,8 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
         
         try {
             this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder);
+            this.errorMessage = `PDF généré pour l'expédition #${shipmentId}`;
+            setTimeout(() => this.errorMessage = '', 3000);
         } catch (error) {
             console.error('Erreur lors de la génération du PDF:', error);
             this.errorMessage = 'Erreur lors de la génération du PDF';
@@ -467,6 +438,7 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
     generateAllPDFs(): void {
         if (this.filteredShipments.length === 0) {
             this.errorMessage = 'Aucune expédition à exporter';
+            setTimeout(() => this.errorMessage = '', 3000);
             return;
         }
 
@@ -504,10 +476,6 @@ export class ShipmentListComponent implements OnInit, OnDestroy {
                 }
             }, index * 300);
         });
-    }
-
-    onCreateNew(): void {
-        this.router.navigate(['/transporter/shipments/new']);
     }
 
     getStatutClass(statut: StatutExpedition): string {

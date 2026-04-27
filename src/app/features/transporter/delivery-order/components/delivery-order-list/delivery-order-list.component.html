@@ -12,9 +12,7 @@
               *ngIf="filteredOrders.length > 0" title="Exporter toutes les commandes filtrées">
         <i class="bi bi-file-pdf"></i> Exporter tout
       </button>
-      <button type="button" class="btn btn-primary" (click)="onCreateNew()">
-        <i class="bi bi-plus-circle"></i> Nouvelle commande
-      </button>
+      <!-- BOUTON "NOUVELLE COMMANDE" SUPPRIMÉ -->
     </div>
   </div>
 
@@ -114,6 +112,7 @@
   </div>
 
   <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
 
   <div *ngIf="isLoading && !rechercheActive" class="empty-state">
     <div class="spinner-border" role="status"></div>
@@ -121,52 +120,51 @@
   </div>
 
   <div *ngIf="!isLoading" class="card" style="padding:0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Client</th>
-          <th>Adresse</th>
-          <th>Date prévue</th>
-          <th>Statut</th>
-          <th style="width:180px">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let order of paginatedOrders">
-          <td><code style="font-size:11px;color:var(--text3)">{{ order.idDelivery }}</code></td>
-          <td><strong style="color:var(--text)">{{ order.nomClient }}</strong></td>
-          <td style="font-size:12px;color:var(--text2)">{{ order.adresseLivraison }}</td>
-          <td style="font-size:12px;color:var(--text3)">{{ order.datePrevue | date:'dd/MM/yyyy HH:mm' }}</td>
-          <td><span [class]="getStatutClass(order.statut)">{{ order.statut }}</span></td>
-          <td>
-            <div class="btn-group" role="group" style="display: flex; gap: 5px; flex-wrap: wrap;">
-              <button type="button" class="btn btn-primary btn-sm" (click)="openQrCode(order)" title="QR Code">
-                <i class="bi bi-qr-code"></i>
-              </button>
-              <button type="button" class="btn btn-outline-danger btn-sm" (click)="onGeneratePDF(order)" title="Générer PDF">
-                <i class="bi bi-file-pdf"></i>
-              </button>
-              <button type="button" class="btn btn-outline btn-sm" (click)="onViewDetail(order.idDelivery)" title="Détail">
-                <i class="bi bi-eye"></i>
-              </button>
-              <button type="button" class="btn btn-outline btn-sm" (click)="onEdit(order.idDelivery)" title="Modifier">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button type="button" class="btn btn-danger btn-sm" (click)="onDelete(order.idDelivery)" title="Supprimer">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-        <tr *ngIf="filteredOrders.length === 0">
-          <td colspan="6" class="text-center" style="padding:32px;color:var(--text3)">
-            <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
-            Aucune commande trouvée
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Adresse</th>
+            <th>Date prévue</th>
+            <th>Statut</th>
+            <th style="width:140px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of paginatedOrders">
+            <td><code style="font-size:11px;color:var(--text3)">{{ order.idDelivery }}</code></td>
+            <td><strong style="color:var(--text)">{{ order.nomClient }}</strong></td>
+            <td style="font-size:12px;color:var(--text2)">{{ order.adresseLivraison }}</td>
+            <td style="font-size:12px;color:var(--text3)">{{ order.datePrevue | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><span [class]="getStatutClass(order.statut)">{{ order.statut }}</span></td>
+            <td>
+              <div class="btn-group" role="group" style="display: flex; gap: 5px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary btn-sm" (click)="openQrCode(order)" title="QR Code">
+                  <i class="bi bi-qr-code"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="onGeneratePDF(order)" title="Générer PDF">
+                  <i class="bi bi-file-pdf"></i>
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" (click)="onViewDetail(order.idDelivery)" title="Détail">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <!-- BOUTON MODIFIER (EDIT) SUPPRIMÉ -->
+                <!-- BOUTON SUPPRIMER (DELETE) SUPPRIMÉ -->
+              </div>
+             </td>
+           </tr>
+          <tr *ngIf="filteredOrders.length === 0">
+            <td colspan="6" class="text-center" style="padding:32px;color:var(--text3)">
+              <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
+              Aucune commande trouvée
+              <!-- BOUTON CRÉER SUPPRIMÉ -->
+            </td>
+           </tr>
+        </tbody>
+       </table>
+    </div>
   </div>
 
   <!-- ========== PAGINATION ========== -->
@@ -178,7 +176,6 @@
     </div>
     
     <div class="pagination-controls">
-      <!-- Bouton Première page -->
       <button class="pagination-btn" 
               (click)="goToPage(1)" 
               [disabled]="currentPage === 1"
@@ -186,7 +183,6 @@
         <i class="bi bi-chevron-bar-left"></i>
       </button>
       
-      <!-- Bouton Page précédente -->
       <button class="pagination-btn" 
               (click)="previousPage()" 
               [disabled]="currentPage === 1"
@@ -194,7 +190,6 @@
         <i class="bi bi-chevron-left"></i>
       </button>
       
-      <!-- Numéros de pages -->
       <div class="page-numbers">
         <button *ngFor="let page of getPageNumbers()" 
                 class="page-number" 
@@ -204,7 +199,6 @@
         </button>
       </div>
       
-      <!-- Bouton Page suivante -->
       <button class="pagination-btn" 
               (click)="nextPage()" 
               [disabled]="currentPage === getTotalPages()"
@@ -212,7 +206,6 @@
         <i class="bi bi-chevron-right"></i>
       </button>
       
-      <!-- Bouton Dernière page -->
       <button class="pagination-btn" 
               (click)="goToPage(getTotalPages())" 
               [disabled]="currentPage === getTotalPages()"
