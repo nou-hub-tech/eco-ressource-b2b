@@ -145,3 +145,33 @@
         justify-content: center;
     }
 }
+/* Optimisations pour réduire le lag */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    /* Améliore les performances du rendu */
+    will-change: auto;
+}
+
+.data-table tbody tr {
+    /* Évite les reflows inutiles */
+    contain: layout style;
+}
+
+/* Réduit les animations sur les badges */
+.badge {
+    transition: none;
+    will-change: auto;
+}
+
+/* Évite les repaints inutiles */
+.stats-grid .stat-card {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Pour les grandes tables, active le défilement virtuel si besoin */
+.card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { ShipmentService } from '../../../core/services/shipment.service';
@@ -9,7 +9,7 @@ import { AuthService, User } from '../../../core/services/auth.service';
 import { ShipmentUpdateService } from '../../../core/services/shipment-update.service';
 import { Shipment } from '../../../core/models/shipment';
 import { DeliveryOrder } from '../../../core/models/delivery-order';
-import { StatutExpedition } from '../../../core/models/statut';
+import { StatutExpedition, StatutCommande } from '../../../core/models/statut';
 
 @Component({
     selector: 'app-my-deliveries',
@@ -31,6 +31,10 @@ export class MyDeliveries implements OnInit, OnDestroy {
     private subscriptions: Subscription = new Subscription();
     private refreshInterval: any;
     private migratedShipmentIds: Set<number> = new Set();
+    
+    // Cache pour éviter les recalculs fréquents
+    private productNamesCache: Map<number, string> = new Map();
+    private co2Cache: Map<string, string> = new Map();
 
     constructor(
         private shipmentService: ShipmentService,
@@ -39,29 +43,34 @@ export class MyDeliveries implements OnInit, OnDestroy {
         private pdfGenerator: PdfGeneratorService,
         private authService: AuthService,
         private shipmentUpdateService: ShipmentUpdateService,
-        private cd: ChangeDetectorRef
+        private cd: ChangeDetectorRef,
+        private ngZone: NgZone
     ) {}
 
     ngOnInit(): void {
         console.log('🚚 INITIALISATION DE MYDELIVERIES');
         this.getCurrentUser();
         this.loadDeliveryOrders();
-        this.loadTransporters(); // Charge les transporteurs
+        this.loadTransporters();
         
         // ÉCOUTER LES MISES À JOUR EN TEMPS RÉEL
         this.subscriptions.add(
             this.shipmentUpdateService.shipmentUpdated$.subscribe((data) => {
-                console.log('📢 Réception mise à jour dans my-deliveries:', data);
-                this.onShipmentUpdate(data);
+                this.ngZone.run(() => {
+                    console.log('📢 Réception mise à jour:', data);
+                    this.onShipmentUpdate(data);
+                });
             })
         );
 
-        // Rafraîchissement périodique (toutes les 3 secondes)
+        // Rafraîchissement moins fréquent (10 secondes)
         this.refreshInterval = setInterval(() => {
-            console.log('🔄 Refresh automatique des livraisons...');
-            this.loadShipments();
-            this.loadTransporters();
-        }, 3000);
+            this.ngZone.run(() => {
+                console.log('🔄 Refresh automatique...');
+                this.loadShipments();
+                this.loadTransporters();
+            });
+        }, 10000);
     }
 
     ngOnDestroy(): void {
@@ -72,60 +81,21 @@ export class MyDeliveries implements OnInit, OnDestroy {
     }
 
     onShipmentUpdate(data: any): void {
-        console.log('🔄 Mise à jour détectée dans my-deliveries:', data);
+        console.log('🔄 Mise à jour détectée:', data);
         
-        // Rechargement immédiat des expéditions
-        this.loadShipments();
+        // Rechargement uniquement si nécessaire
+        if (data.transporterId || data.deliveryOrderId) {
+            this.loadShipments();
+            this.loadTransporters();
+        }
         
-        // Rechargement des transporteurs pour s'assurer d'avoir le bon nom
-        this.loadTransporters();
-        
-        // Si on a reçu directement le nom du transporteur, on peut l'utiliser immédiatement
         if (data.transporterName && data.deliveryOrderId) {
-            console.log(`📢 Mise à jour directe: Commande #${data.deliveryOrderId} assignée à ${data.transporterName}`);
-            
-            // Trouver l'expédition correspondante dans la liste actuelle et mettre à jour l'affichage
-            const shipmentToUpdate = this.allShipments.find(
-                s => s.deliveryOrder?.idDelivery === data.deliveryOrderId
-            );
-            
-            if (shipmentToUpdate && data.transporterId) {
-                // Mettre à jour en mémoire
-                shipmentToUpdate.idTransporter = data.transporterId;
-                
-                // S'assurer que le transporteur est dans la Map
-                if (!this.transporters.has(data.transporterId)) {
-                    // Créer une entrée temporaire
-                    this.transporters.set(data.transporterId, {
-                        id: data.transporterId,
-                        companyName: data.transporterName,
-                        userId: data.transporterId,
-                        listingsCount: 0,
-                        ordersCount: 0,
-                        createdAt: new Date().toISOString()
-                    } as Transporter);
-                }
-                
-                // Recharger complètement pour être sûr
-                setTimeout(() => {
-                    this.loadShipments();
-                }, 500);
-            }
+            this.successMessage = `✅ ${data.transporterName} a accepté la livraison`;
+            setTimeout(() => {
+                this.successMessage = '';
+                this.cd.detectChanges();
+            }, 3000);
         }
-        
-        // Afficher un message de succès
-        if (data.type === 'NEW_SHIPMENT' && data.transporterName) {
-            this.successMessage = `✅ Nouvelle livraison assignée à ${data.transporterName}`;
-        } else if (data.type === 'SHIPMENT_UPDATED' && data.transporterName) {
-            this.successMessage = `✅ Livraison mise à jour - Transporteur: ${data.transporterName}`;
-        } else {
-            this.successMessage = '✅ Mise à jour des livraisons';
-        }
-        
-        setTimeout(() => {
-            this.successMessage = '';
-            this.cd.detectChanges();
-        }, 4000);
     }
 
     getCurrentUser(): void {
@@ -133,8 +103,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
             if (user) {
                 this.currentUser = user;
                 this.currentUserName = user.name.toLowerCase().trim();
-                console.log('✅ Utilisateur connecté:', this.currentUser);
-                console.log('📛 Nom pour filtrage:', this.currentUserName);
+                console.log('✅ Utilisateur:', this.currentUserName);
                 
                 if (this.allShipments.length > 0) {
                     this.filterShipmentsByClient();
@@ -154,83 +123,29 @@ export class MyDeliveries implements OnInit, OnDestroy {
     }
 
     loadShipments(): void {
+        if (this.isLoading) return;
+        
         this.isLoading = true;
         const sub = this.shipmentService.getAll().subscribe({
             next: (data: Shipment[]) => {
-                console.log('📦 Toutes les expéditions reçues:', data.length);
-                // Afficher les IDs transporteur pour debug
-                data.forEach(s => {
-                    if (s.idTransporter && s.idTransporter > 0) {
-                        console.log(`🚚 Expédition #${s.id} - Transporteur ID: ${s.idTransporter}`);
-                    }
-                });
                 this.allShipments = data || [];
-                this.migrateLegacyTransporterIds(this.allShipments);
                 this.filterShipmentsByClient();
                 this.isLoading = false;
                 this.cd.detectChanges();
             },
             error: (error: any) => {
-                console.error('❌ Erreur chargement shipments:', error);
-                this.errorMessage = 'Erreur lors du chargement des expéditions';
+                console.error('❌ Erreur:', error);
+                this.errorMessage = 'Erreur chargement';
                 this.isLoading = false;
+                setTimeout(() => this.errorMessage = '', 3000);
                 this.cd.detectChanges();
             }
         });
         this.subscriptions.add(sub);
     }
 
-    private migrateLegacyTransporterIds(shipments: Shipment[]): void {
-        if (!shipments || shipments.length === 0) return;
-        if (this.transporters.size === 0) return;
-
-        const transporterIdByUserId = new Map<number, number>();
-        this.transporters.forEach((t) => {
-            if (typeof t.userId === 'number' && t.userId > 0) {
-                transporterIdByUserId.set(t.userId, t.id);
-            }
-        });
-        if (transporterIdByUserId.size === 0) return;
-
-        const knownTransporterIds = new Set<number>(Array.from(this.transporters.keys()));
-
-        shipments.forEach((s) => {
-            const current = s?.idTransporter ?? 0;
-            if (!s?.id || !current || current <= 0) return;
-            if (this.migratedShipmentIds.has(s.id)) return;
-
-            if (!knownTransporterIds.has(current) && transporterIdByUserId.has(current)) {
-                const correctedTransporterId = transporterIdByUserId.get(current)!;
-                const updated: Shipment = {
-                    ...s,
-                    idTransporter: correctedTransporterId
-                };
-
-                this.migratedShipmentIds.add(s.id);
-                this.shipmentService.update(s.id, updated).subscribe({
-                    next: () => {
-                        s.idTransporter = correctedTransporterId;
-                        this.cd.detectChanges();
-                    },
-                    error: (err) => {
-                        console.error('❌ Migration idTransporter échouée pour shipment', s.id, err);
-                        this.migratedShipmentIds.delete(s.id);
-                    }
-                });
-            }
-        });
-    }
-
     filterShipmentsByClient(): void {
-        if (this.deliveryOrders.size === 0) {
-            console.log('⏳ En attente du chargement des commandes...');
-            return;
-        }
-
-        if (!this.currentUserName) {
-            console.warn('⚠️ Aucun nom d\'utilisateur connecté trouvé');
-            this.filteredShipments = [];
-            this.cd.detectChanges();
+        if (this.deliveryOrders.size === 0 || !this.currentUserName) {
             return;
         }
 
@@ -238,25 +153,15 @@ export class MyDeliveries implements OnInit, OnDestroy {
             const orderId = shipment.deliveryOrder?.idDelivery;
             const order = this.deliveryOrders.get(orderId);
             const clientName = order?.nomClient?.toLowerCase().trim() || '';
-            
-            const isMatch = clientName === this.currentUserName;
-            
-            if (isMatch) {
-                console.log(`✓ Match trouvé: ${clientName} === ${this.currentUserName} (expédition #${shipment.id}, transporteur ID: ${shipment.idTransporter})`);
-            }
-            
-            return isMatch;
+            return clientName === this.currentUserName;
         });
         
-        console.log(`📊 Expéditions filtrées: ${this.filteredShipments.length} sur ${this.allShipments.length}`);
-        console.log(`👤 Client cible: "${this.currentUserName}"`);
         this.cd.detectChanges();
     }
 
     loadDeliveryOrders(): void {
         const sub = this.deliveryOrderService.getAll().subscribe({
             next: (orders: DeliveryOrder[]) => {
-                console.log('📋 Commandes reçues:', orders.length);
                 if (orders && orders.length > 0) {
                     orders.forEach(order => {
                         if (order && order.idDelivery) {
@@ -268,71 +173,83 @@ export class MyDeliveries implements OnInit, OnDestroy {
                 this.cd.detectChanges();
             },
             error: (error: any) => {
-                console.error('❌ Erreur chargement commandes:', error);
+                console.error('❌ Erreur commandes:', error);
             }
         });
         this.subscriptions.add(sub);
     }
 
     loadTransporters(): void {
-        console.log('🚚 Chargement des transporteurs...');
         const sub = this.transportService.getAllTransporters().subscribe({
             next: (transportersList: Transporter[]) => {
-                console.log('🚚 Transporteurs reçus:', transportersList.length);
                 this.transporters.clear();
                 if (transportersList && transportersList.length > 0) {
                     transportersList.forEach(transporter => {
                         if (transporter && transporter.id) {
                             this.transporters.set(transporter.id, transporter);
-                            console.log(`📦 Transporteur enregistré: ID=${transporter.id}, Nom=${transporter.companyName}, userId=${transporter.userId}`);
+                            console.log(`📦 Transporteur: ID=${transporter.id}, Nom=${transporter.companyName}`);
                         }
                     });
                 } else {
-                    console.warn('⚠️ Aucun transporteur reçu de l\'API');
-                    // Données mock de secours
-                    this.transporters.set(1, { id: 1, userId: 3, companyName: 'Karim Logistics', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() });
-                    this.transporters.set(2, { id: 2, userId: 4, companyName: 'linda', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() });
-                    console.log('📦 Données mock ajoutées:', Array.from(this.transporters.entries()));
-                }
-                console.log('📋 Map des transporteurs:', Array.from(this.transporters.entries()));
-                if (this.allShipments.length > 0) {
-                    this.migrateLegacyTransporterIds(this.allShipments);
-                    this.filterShipmentsByClient();
+                    // Mock data uniquement si API échoue
+                    this.transporters.set(1, { id: 1, userId: 3, companyName: 'Karim Logistics', listingsCount: 0, ordersCount: 0, createdAt: '' } as Transporter);
+                    this.transporters.set(2, { id: 2, userId: 4, companyName: 'linda', listingsCount: 0, ordersCount: 0, createdAt: '' } as Transporter);
                 }
                 this.cd.detectChanges();
             },
             error: (error: any) => {
                 console.error('❌ Erreur chargement transporteurs:', error);
-                // Données mock de secours en cas d'erreur
-                this.transporters.clear();
-                this.transporters.set(1, { id: 1, userId: 3, companyName: 'Karim Logistics', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() });
-                this.transporters.set(2, { id: 2, userId: 4, companyName: 'linda', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() });
-                console.log('📦 Données mock ajoutées (erreur):', Array.from(this.transporters.entries()));
+                this.transporters.set(1, { id: 1, userId: 3, companyName: 'Karim Logistics', listingsCount: 0, ordersCount: 0, createdAt: '' } as Transporter);
+                this.transporters.set(2, { id: 2, userId: 4, companyName: 'linda', listingsCount: 0, ordersCount: 0, createdAt: '' } as Transporter);
                 this.cd.detectChanges();
             }
         });
         this.subscriptions.add(sub);
     }
 
-    getTransporterName(idTransporter: number): string {
-        console.log(`🔍 getTransporterName appelé avec idTransporter = ${idTransporter}`);
+    /**
+     * Méthode corrigée : Affiche le nom UNIQUEMENT si la commande a été acceptée
+     * @param idTransporter - L'ID du transporteur dans l'expédition
+     * @param shipmentStatut - Le statut de l'expédition (EN_ATTENTE, EN_COURS, LIVREE)
+     * @param deliveryOrderId - L'ID de la commande pour vérifier son statut
+     * @returns Le nom du transporteur ou "-" si non acceptée
+     */
+    getTransporterName(idTransporter: number, shipmentStatut: StatutExpedition, deliveryOrderId: number): string {
+        console.log(`🔍 getTransporterName - ID: ${idTransporter}, Statut Exp: ${shipmentStatut}, OrderId: ${deliveryOrderId}`);
         
-        // Si pas de transporteur assigné → afficher "-"
+        // Récupérer la commande associée
+        const order = this.deliveryOrders.get(deliveryOrderId);
+        const orderStatut = order?.statut;
+        
+        console.log(`   → Statut commande: ${orderStatut}`);
+        
+        // CRITIQUE: Si la commande est EN_ATTENTE (pas encore acceptée) → afficher "-"
+        if (orderStatut === StatutCommande.EN_ATTENTE) {
+            console.log(`   → Commande non acceptée, affichage "-"`);
+            return '-';
+        }
+        
+        // Si l'expédition est en attente → "-"
+        if (shipmentStatut === StatutExpedition.EN_ATTENTE) {
+            console.log(`   → Expédition en attente, affichage "-"`);
+            return '-';
+        }
+        
+        // Si pas de transporteur assigné → "-"
         if (!idTransporter || idTransporter === 0) {
             console.log(`   → Pas de transporteur assigné, affichage "-"`);
             return '-';
         }
         
-        // Chercher dans la Map des transporteurs (clé = transporter.id)
+        // Chercher le transporteur dans la Map
         const transporter = this.transporters.get(idTransporter);
         if (transporter) {
             console.log(`   ✅ Transporteur trouvé: ${transporter.companyName}`);
             return transporter.companyName;
         }
         
-        // Si non trouvé, afficher "Transporteur #ID"
+        // Fallback
         console.log(`   ⚠️ Transporteur non trouvé pour ID ${idTransporter}`);
-        console.log(`   📋 Clés disponibles dans la Map:`, Array.from(this.transporters.keys()));
         return `Transporteur #${idTransporter}`;
     }
 
@@ -347,37 +264,32 @@ export class MyDeliveries implements OnInit, OnDestroy {
     }
 
     getQuantity(quantite: number): string {
-        if (!quantite) return '0';
-        return `${quantite} unité(s)`;
+        return !quantite ? '0' : `${quantite} unité(s)`;
     }
 
     getStatutClass(statut: StatutExpedition): string {
         switch(statut) {
-            case StatutExpedition.EN_ATTENTE: 
-                return 'badge badge-warning';
-            case StatutExpedition.EN_COURS: 
-                return 'badge badge-info';
-            case StatutExpedition.LIVREE: 
-                return 'badge badge-success';
-            default: 
-                return 'badge badge-neutral';
+            case StatutExpedition.EN_ATTENTE: return 'badge badge-warning';
+            case StatutExpedition.EN_COURS: return 'badge badge-info';
+            case StatutExpedition.LIVREE: return 'badge badge-success';
+            default: return 'badge badge-neutral';
         }
     }
 
     getStatutText(statut: StatutExpedition): string {
         switch(statut) {
-            case StatutExpedition.EN_ATTENTE: 
-                return 'En attente';
-            case StatutExpedition.EN_COURS: 
-                return 'En cours';
-            case StatutExpedition.LIVREE: 
-                return 'Livrée';
-            default: 
-                return String(statut);
+            case StatutExpedition.EN_ATTENTE: return 'En attente';
+            case StatutExpedition.EN_COURS: return 'En cours';
+            case StatutExpedition.LIVREE: return 'Livrée';
+            default: return String(statut);
         }
     }
 
     getProductName(produitId: number): string {
+        if (this.productNamesCache.has(produitId)) {
+            return this.productNamesCache.get(produitId)!;
+        }
+        
         const produits: { [key: number]: string } = {
             1: 'Équipements électroniques',
             2: 'Pièces détachées',
@@ -386,13 +298,22 @@ export class MyDeliveries implements OnInit, OnDestroy {
             50: 'Métaux et acier',
             85: 'Plastique et polymères'
         };
-        return produits[produitId] || `Produit #${produitId}`;
+        const name = produits[produitId] || `Produit #${produitId}`;
+        this.productNamesCache.set(produitId, name);
+        return name;
     }
 
     getCO2Saved(quantite: number, distance?: number): string {
+        const key = `${quantite}_${distance}`;
+        if (this.co2Cache.has(key)) {
+            return this.co2Cache.get(key)!;
+        }
+        
         const estimatedDistance = distance || 50;
         const co2 = quantite * estimatedDistance * 0.2;
-        return co2 >= 1000 ? `${(co2 / 1000).toFixed(1)} t` : `${Math.round(co2)} kg`;
+        const result = co2 >= 1000 ? `${(co2 / 1000).toFixed(1)} t` : `${Math.round(co2)} kg`;
+        this.co2Cache.set(key, result);
+        return result;
     }
 
     getTotalDeliveries(): number {
@@ -413,11 +334,9 @@ export class MyDeliveries implements OnInit, OnDestroy {
 
     onGeneratePDF(shipmentId: number): void {
         const shipment = this.filteredShipments.find(s => s.id === shipmentId);
-        
         if (!shipment) {
-            console.error('❌ Expédition non trouvée');
-            this.errorMessage = 'Impossible de générer le PDF : expédition non trouvée';
-            this.clearMessagesAfterDelay();
+            this.errorMessage = 'Expédition non trouvée';
+            setTimeout(() => this.errorMessage = '', 3000);
             return;
         }
         
@@ -426,28 +345,26 @@ export class MyDeliveries implements OnInit, OnDestroy {
         
         try {
             this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder || null);
-            this.successMessage = `PDF généré pour l'expédition #${shipmentId}`;
-            this.clearMessagesAfterDelay();
+            this.successMessage = `PDF #${shipmentId} généré`;
+            setTimeout(() => this.successMessage = '', 3000);
         } catch (error) {
-            console.error('❌ Erreur lors de la génération du PDF:', error);
-            this.errorMessage = 'Erreur lors de la génération du PDF';
-            this.clearMessagesAfterDelay();
+            console.error('❌ Erreur PDF:', error);
+            this.errorMessage = 'Erreur génération PDF';
+            setTimeout(() => this.errorMessage = '', 3000);
         }
     }
 
     generateAllPDFs(): void {
         if (this.filteredShipments.length === 0) {
-            this.errorMessage = 'Aucune expédition à exporter';
-            this.clearMessagesAfterDelay();
+            this.errorMessage = 'Aucune expédition';
+            setTimeout(() => this.errorMessage = '', 3000);
             return;
         }
 
-        const confirmation = confirm(`Générer ${this.filteredShipments.length} PDF(s) ?`);
-        if (!confirmation) return;
+        if (!confirm(`Générer ${this.filteredShipments.length} PDF(s) ?`)) return;
 
         this.isLoading = true;
         let count = 0;
-        let errors = 0;
         
         this.filteredShipments.forEach((shipment, index) => {
             const deliveryOrder = this.deliveryOrders.get(shipment.deliveryOrder?.idDelivery) || null;
@@ -457,44 +374,28 @@ export class MyDeliveries implements OnInit, OnDestroy {
                     this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder);
                     count++;
                 } catch (error) {
-                    console.error(`❌ Erreur PDF pour expédition ${shipment.id}:`, error);
-                    errors++;
+                    console.error(`❌ Erreur PDF ${shipment.id}:`, error);
                 }
                 
                 if (index === this.filteredShipments.length - 1) {
                     this.isLoading = false;
-                    if (errors === 0) {
-                        this.successMessage = `${count} PDF(s) généré(s) avec succès !`;
-                    } else {
-                        this.errorMessage = `${count} PDF(s) généré(s), ${errors} erreur(s)`;
-                    }
-                    this.clearMessagesAfterDelay();
+                    this.successMessage = `${count} PDF(s) généré(s)`;
+                    setTimeout(() => this.successMessage = '', 3000);
                     this.cd.detectChanges();
                 }
-            }, index * 300);
+            }, index * 200);
         });
-    }
-
-    private clearMessagesAfterDelay(): void {
-        setTimeout(() => {
-            this.errorMessage = '';
-            this.successMessage = '';
-            this.cd.detectChanges();
-        }, 3000);
     }
 
     // Méthode de diagnostic
     diagnosticTransporteurs(): void {
         console.log('=== DIAGNOSTIC MYDELIVERIES ===');
-        console.log('Transporters Map size:', this.transporters.size);
-        console.log('Transporters Map content:', Array.from(this.transporters.entries()));
-        console.log('All Shipments count:', this.allShipments.length);
-        console.log('Filtered Shipments count:', this.filteredShipments.length);
-        
+        console.log('Transporters Map:', Array.from(this.transporters.entries()));
+        console.log('Filtered Shipments:', this.filteredShipments.length);
         this.filteredShipments.forEach(s => {
-            console.log(`Shipment #${s.id} - transporterId: ${s.idTransporter} -> Nom: ${this.getTransporterName(s.idTransporter)}`);
+            const order = this.deliveryOrders.get(s.deliveryOrder?.idDelivery);
+            console.log(`Shipment #${s.id} - OrderStatut: ${order?.statut} - TransporterID: ${s.idTransporter} - Nom: ${this.getTransporterName(s.idTransporter, s.statut, s.deliveryOrder?.idDelivery)}`);
         });
-        
-        alert(`Diagnostic:\nTransporteurs chargés: ${this.transporters.size}\nExpéditions filtrées: ${this.filteredShipments.length}`);
+        alert(`Diagnostic:\nTransporteurs: ${this.transporters.size}\nExpéditions: ${this.filteredShipments.length}`);
     }
 }
