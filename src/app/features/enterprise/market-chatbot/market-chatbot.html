@@ -1,0 +1,177 @@
+<div class="cb-wrapper">
+
+  <!-- ── HEADER ── -->
+  <div class="cb-header">
+    <button class="cb-back-btn" (click)="goBack()">← Product Finder</button>
+
+    <div class="cb-header-center">
+      <div class="cb-ai-avatar">🤖</div>
+      <div>
+        <div class="cb-header-title">Market AI Assistant</div>
+        <div class="cb-header-sub">
+          <span class="cb-dot"></span>
+          {{ marketLoaded ? (marketItems.length + ' products available') : 'Loading market…' }}
+        </div>
+      </div>
+    </div>
+
+    <div class="cb-header-actions">
+      <button class="cb-icon-btn" title="Clear conversation" (click)="clearChat()">🗑</button>
+    </div>
+  </div>
+
+  <!-- ── QUICK PROMPTS ── -->
+  <div class="cb-quick-prompts">
+    <button class="cb-quick" (click)="quickSend('I need recyclable metal materials')">♻️ Recyclable metals</button>
+    <button class="cb-quick" (click)="quickSend('Show me available plastic stock with good condition')">🟢 Good condition plastic</button>
+    <button class="cb-quick" (click)="quickSend('What textile materials are available and who sells them?')">🧵 Textile suppliers</button>
+    <button class="cb-quick" (click)="quickSend('I am looking for paper or cardboard with more than 100 units')">📦 Paper bulk</button>
+    <button class="cb-quick cb-quick-img" (click)="imageFileInput.click()">📷 Search by image</button>
+  </div>
+
+  <!-- Hidden file input -->
+  <input #imageFileInput type="file" accept="image/*" style="display:none" (change)="onImageSelected($event)">
+
+  <!-- ── MESSAGES ── -->
+  <div class="cb-messages" #scrollMe>
+
+    <!-- Empty state -->
+    <div *ngIf="messages.length===0" class="cb-empty">
+      <div style="font-size:56px;margin-bottom:12px">🔍</div>
+      <h3>What are you looking for?</h3>
+      <p>Describe a product in text, use voice 🎤, or <strong>upload a photo 📷</strong> and I'll identify it and search the market for you.</p>
+    </div>
+
+    <!-- Messages loop -->
+    <div *ngFor="let m of messages" class="cb-msg-wrap" [class.cb-msg-user-wrap]="m.role==='user'">
+
+      <!-- Bot avatar -->
+      <div class="cb-bot-avatar" *ngIf="m.role==='bot'">🤖</div>
+
+      <div class="cb-msg-col">
+        <!-- Bubble -->
+        <div class="cb-bubble" [class.cb-bubble-bot]="m.role==='bot'" [class.cb-bubble-user]="m.role==='user'">
+          <!-- User image preview inside message -->
+          <div *ngIf="m.imagePreview" class="cb-msg-image-wrap">
+            <img [src]="m.imagePreview" class="cb-msg-image" alt="Uploaded image" />
+          </div>
+          <div *ngIf="m.role==='bot'" [innerHTML]="formatText(m.text)"></div>
+          <div *ngIf="m.role==='user' && m.text">{{m.text}}</div>
+        </div>
+        <div class="cb-time">{{m.time}}</div>
+
+        <!-- Product cards -->
+        <div class="cb-cards" *ngIf="m.cards && m.cards.length > 0">
+          <div class="cb-card" *ngFor="let item of m.cards" (click)="viewInFinder(item)">
+
+            <div class="cb-card-color-bar" [style.background]="getCategoryColor(item.product.category)"></div>
+
+            <div class="cb-card-img" *ngIf="getImageUrl(item.product.image)">
+              <img [src]="getImageUrl(item.product.image)" [alt]="item.product.name">
+            </div>
+            <div class="cb-card-img cb-card-img-empty" *ngIf="!getImageUrl(item.product.image)"
+                 [style.background]="getCategoryColor(item.product.category)+'22'">
+              <span [style.color]="getCategoryColor(item.product.category)" style="font-size:22px;font-weight:700">
+                {{item.product.name.slice(0,2).toUpperCase()}}
+              </span>
+            </div>
+
+            <div class="cb-card-body">
+              <div class="cb-card-cat" [style.color]="getCategoryColor(item.product.category)">
+                {{item.product.category}}
+              </div>
+              <div class="cb-card-name">{{item.product.name}}</div>
+
+              <div class="cb-card-stats">
+                <div class="cb-stat">
+                  <span class="cb-stat-l">Available</span>
+                  <span class="cb-stat-v">{{item.totalQty}}</span>
+                </div>
+                <div class="cb-stat">
+                  <span class="cb-stat-l">From</span>
+                  <span class="cb-stat-v" style="color:#6366f1">{{item.minUnitPrice | number:'1.2-2'}} DT</span>
+                </div>
+              </div>
+
+              <div class="cb-card-seller">
+                🏭 {{item.seller?.companyName}}
+                <span *ngIf="item.seller?.city"> · 📍 {{item.seller?.city}}</span>
+              </div>
+
+              <div class="cb-card-cond" *ngIf="item.conditions?.length">
+                🔧 {{item.conditions.join(' / ')}}
+              </div>
+            </div>
+
+            <div class="cb-card-footer">
+              <span>{{item.product.materialType}}</span>
+              <span class="cb-card-recyclable" *ngIf="item.product.recyclable">♻ Recyclable</span>
+              <span class="cb-view-link">View →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User avatar -->
+      <div class="cb-user-avatar" *ngIf="m.role==='user'">👤</div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div *ngIf="loading" class="cb-msg-wrap">
+      <div class="cb-bot-avatar">🤖</div>
+      <div class="cb-bubble cb-bubble-bot">
+        <div class="cb-typing-wrap">
+          <div class="cb-typing"><span></span><span></span><span></span></div>
+          <span class="cb-typing-label">{{ analyzingImage ? '🔍 Recognizing product in image…' : 'Searching market…' }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── IMAGE PREVIEW STRIP (before sending) ── -->
+  <div class="cb-img-preview-bar" *ngIf="pendingImagePreview">
+    <div class="cb-img-preview-inner">
+      <img [src]="pendingImagePreview" class="cb-img-preview-thumb" alt="Selected image" />
+      <div class="cb-img-preview-info">
+        <span class="cb-img-preview-name">📷 {{ pendingImageFile?.name }}</span>
+        <span class="cb-img-preview-hint">AI will identify this product and search the market</span>
+      </div>
+      <button class="cb-img-preview-remove" (click)="clearPendingImage()" title="Remove image">✕</button>
+    </div>
+  </div>
+
+  <!-- ── INPUT ── -->
+  <div class="cb-input-area">
+    <div class="cb-input-box" [class.cb-input-box-img]="!!pendingImagePreview">
+      <textarea
+        [(ngModel)]="userInput"
+        (keydown)="onEnter($event)"
+        (input)="autoResize($event)"
+        [placeholder]="pendingImagePreview ? 'Add a note (optional) or just press send…' : 'Describe the product you\'re looking for… (e.g. recyclable aluminium scrap, min 500 kg)'"
+        rows="1"
+        class="cb-textarea">
+      </textarea>
+      <div class="cb-input-actions">
+        <!-- Image upload button -->
+        <button class="cb-img-btn" (click)="imageFileInput.click()"
+                [class.cb-img-btn-active]="!!pendingImagePreview"
+                title="Search by product image">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </button>
+        <button class="cb-voice-btn" (click)="toggleVoice()" [class.cb-voice-active]="isListening"
+                [title]="isListening ? 'Stop listening' : 'Speak your search'">
+          {{ isListening ? '🔴' : '🎤' }}
+        </button>
+        <button class="cb-send-btn" (click)="send()" [disabled]="loading || (!userInput.trim() && !pendingImageFile)">
+          {{ loading ? '⏳' : '➤' }}
+        </button>
+      </div>
+    </div>
+    <div class="cb-hint">Enter to send · Shift+Enter new line · 🎤 voice · 📷 image search</div>
+  </div>
+
+</div>

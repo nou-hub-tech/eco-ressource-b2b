@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { SharedModule } from '../../shared/shared-module';
@@ -16,6 +16,9 @@ import { Requests } from './requests/requests';
 import { Events } from './events/events';
 import { MyProducts } from './my-products/my-products';
 import { MyInventory } from './my-inventory/my-inventory';
+import { ProductFinder } from './product-finder/product-finder';
+import { MarketChatbot } from './market-chatbot/market-chatbot';
+import { MyReclamations } from './my-reclamations/my-reclamations';
 
 const routes: Routes = [
   {
@@ -26,7 +29,6 @@ const routes: Routes = [
       { path: 'dashboard',       component: Dashboard },
       { path: 'marketplace',     component: Marketplace },
       { path: 'my-products', component: MyProducts },
-      { path: 'my-inventory', component: MyInventory },
       { path: 'my-stock',    component: MyStock },      { path: 'my-deliveries',   component: MyDeliveries },
       { path: 'my-listings',     component: MyListings },
       { path: 'my-reservations', component: MyReservations },
@@ -34,12 +36,17 @@ const routes: Routes = [
       { path: 'reports',         component: Reports },
       { path: 'requests',        component: Requests },
       { path: 'events',          component: Events },
+      { path: 'my-inventory',    component: MyInventory },
+      { path: 'product-finder',  component: ProductFinder },
+      { path: 'market-chatbot',  component: MarketChatbot },
+      { path: 'my-reclamations', component: MyReclamations },
     ]
   }
 ];
 
 @NgModule({
-  declarations: [Dashboard, Marketplace, MyStock, MyProducts, MyInventory, MyDeliveries, MyListings, MyReservations, Transactions, Reports, Requests, Events],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
+  declarations: [Dashboard, Marketplace, MyStock, MyProducts, MyDeliveries, MyListings, MyReservations, Transactions, Reports, Requests, Events, MyInventory, ProductFinder, MarketChatbot, MyReclamations],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)],
+  providers: [DatePipe, DecimalPipe]
 })
 export class EnterpriseModule {}

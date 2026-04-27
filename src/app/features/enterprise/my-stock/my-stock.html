@@ -5,7 +5,14 @@
       <h1>My Stock</h1>
       <p>Manage stock items associated with your enterprise</p>
     </div>
-    <button class="btn btn-primary" (click)="openAdd()">+ Add Stock Item</button>
+    <div class="header-actions">
+      <button class="btn btn-danger" 
+              *ngIf="selectedItems.size > 0" 
+              (click)="openBulkReclamation()">
+        ⚠️ Report Issue ({{ selectedItems.size }} selected)
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">+ Add Stock Item</button>
+    </div>
   </div>
 
   <div class="toolbar">
@@ -21,6 +28,10 @@
       <option value="sold">Sold</option>
       <option value="expired">Expired</option>
     </select>
+    <div class="bulk-actions" *ngIf="selectedItems.size > 0">
+      <button class="btn-icon" (click)="clearSelection()" title="Clear selection">✕</button>
+      <span class="toolbar-count">{{ selectedItems.size }} selected</span>
+    </div>
     <span class="toolbar-count">{{ filtered.length }} items</span>
   </div>
 
@@ -30,9 +41,18 @@
     No stock items found. Click <strong>+ Add Stock Item</strong> to get started.
   </div>
 
-  <!-- Cards Grid -->
+  <!-- Cards Grid with Checkboxes -->
   <div class="stock-grid" *ngIf="!loading && filtered.length > 0">
-    <div class="stock-card" *ngFor="let i of filtered">
+    <div class="stock-card" *ngFor="let i of filtered" [class.selected]="isSelected(i.idStock!)">
+
+      <!-- Selection Checkbox -->
+      <div class="stock-card-checkbox">
+        <input type="checkbox" 
+               [id]="'stock_' + i.idStock" 
+               [checked]="isSelected(i.idStock!)"
+               (change)="toggleSelection(i.idStock!, $event)">
+        <label [attr.for]="'stock_' + i.idStock"></label>
+      </div>
 
       <div class="stock-card-bar"
         [style.background]="i.status === 'available' ? '#22c55e' :
@@ -88,6 +108,17 @@
       </div>
     </div>
   </div>
+
+  <!-- Select All Bar -->
+  <div class="select-all-bar" *ngIf="filtered.length > 0">
+    <label class="select-all-checkbox">
+      <input type="checkbox" 
+             [checked]="isAllSelected()" 
+             [indeterminate]="isSomeSelected()"
+             (change)="toggleSelectAll($event)">
+      <span>Select All ({{ filtered.length }} items)</span>
+    </label>
+  </div>
 </div>
 
 <!-- Add/Edit Modal -->
@@ -101,16 +132,16 @@
     <!-- PRODUCT + STATUS -->
     <div class="form-row">
       <div class="form-group" [class.has-error]="productError">
-        <label>PRODUCT <span class="required">*</span></label>
-        <select [(ngModel)]="selectedProductId" [class.input-error]="productError">
+        <label for="productSelect">PRODUCT <span class="required">*</span></label>
+        <select id="productSelect" name="productSelect" [(ngModel)]="selectedProductId" [class.input-error]="productError">
           <option [ngValue]="undefined">— Select product —</option>
           <option *ngFor="let p of myProducts" [ngValue]="p.id_product">{{ p.name }}</option>
         </select>
         <div class="error-msg" *ngIf="productError">⚠ {{ productError }}</div>
       </div>
       <div class="form-group">
-        <label>STATUS</label>
-        <select [(ngModel)]="form.status">
+        <label for="statusSelect">STATUS</label>
+        <select id="statusSelect" name="statusSelect" [(ngModel)]="form.status">
           <option value="available">Available</option>
           <option value="reserved">Reserved</option>
           <option value="sold">Sold</option>
@@ -122,16 +153,16 @@
     <!-- QUANTITY + UNIT -->
     <div class="form-row">
       <div class="form-group" [class.has-error]="quantityError">
-        <label>QUANTITY <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="form.quantity"
+        <label for="quantityInput">QUANTITY <span class="required">*</span></label>
+        <input id="quantityInput" name="quantityInput" type="number" [(ngModel)]="form.quantity"
                min="0" step="1"
                placeholder="e.g. 500"
                [class.input-error]="quantityError">
         <div class="error-msg" *ngIf="quantityError">⚠ {{ quantityError }}</div>
       </div>
       <div class="form-group">
-        <label>UNIT</label>
-        <select [(ngModel)]="form.unit">
+        <label for="unitSelect">UNIT</label>
+        <select id="unitSelect" name="unitSelect" [(ngModel)]="form.unit">
           <option value="kg">kg</option>
           <option value="ton">ton</option>
           <option value="unit">unit</option>
@@ -144,16 +175,16 @@
     <!-- UNIT PRICE + CONDITION -->
     <div class="form-row">
       <div class="form-group" [class.has-error]="unitPriceError">
-        <label>UNIT PRICE (DT) <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="form.unitPrice"
+        <label for="priceInput">UNIT PRICE (DT) <span class="required">*</span></label>
+        <input id="priceInput" name="priceInput" type="number" [(ngModel)]="form.unitPrice"
                min="0" step="0.01"
                placeholder="e.g. 1200.00"
                [class.input-error]="unitPriceError">
         <div class="error-msg" *ngIf="unitPriceError">⚠ {{ unitPriceError }}</div>
       </div>
       <div class="form-group">
-        <label>CONDITION</label>
-        <select [(ngModel)]="form.condition">
+        <label for="conditionSelect">CONDITION</label>
+        <select id="conditionSelect" name="conditionSelect" [(ngModel)]="form.condition">
           <option value="New">New</option>
           <option value="Good">Good</option>
           <option value="Fair">Fair</option>
@@ -165,8 +196,8 @@
     <!-- LOCATION + EXPIRATION DATE -->
     <div class="form-row">
       <div class="form-group" [class.has-error]="locationError">
-        <label>LOCATION <span class="required">*</span></label>
-        <input type="text"
+        <label for="locationInput">LOCATION <span class="required">*</span></label>
+        <input id="locationInput" name="locationInput" type="text"
                placeholder="e.g. Warehouse A"
                [(ngModel)]="form.location"
                maxlength="100"
@@ -174,8 +205,8 @@
         <div class="error-msg" *ngIf="locationError">⚠ {{ locationError }}</div>
       </div>
       <div class="form-group" [class.has-error]="expirationDateError">
-        <label>EXPIRATION DATE <span class="required">*</span></label>
-        <input type="text"
+        <label for="expirationDate">EXPIRATION DATE <span class="required">*</span></label>
+        <input id="expirationDate" name="expirationDate" type="text"
                appDatepicker
                [(ngModel)]="form.expirationDate"
                dateFormat="Y-m-d"
@@ -273,6 +304,111 @@
     <div class="modal-footer">
       <button class="btn btn-outline" (click)="cancelDelete()">Cancel</button>
       <button class="btn btn-danger" (click)="doDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reclamation Modal -->
+<div class="modal-overlay" *ngIf="showReclamationModal" (click)="closeReclamationModal()">
+  <div class="modal" (click)="$event.stopPropagation()" style="max-width: 600px">
+    <div class="modal-header">
+      <h2>⚠️ Report Product Issues ({{ selectedStockItemsForReclamation.length }} items)</h2>
+      <button class="btn btn-icon" (click)="closeReclamationModal()">✕</button>
+    </div>
+
+    <div style="padding: 20px">
+      <!-- Selected Products List -->
+      <div class="selected-products-list">
+        <div class="selected-header">Selected Products:</div>
+        <div class="selected-items">
+          <div class="selected-item" *ngFor="let item of selectedStockItemsForReclamation">
+            <span class="item-name">{{ item.product?.name }}</span>
+            <span class="item-location">📍 {{ item.location }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Analysis Result -->
+      <div *ngIf="aiAnalysisResult" class="ai-analysis-result">
+        <div class="ai-header">
+          <span>🤖 AI Defect Analysis</span>
+        </div>
+        <div class="ai-defect-type">
+          <strong>Detected Defect:</strong> {{ aiAnalysisResult.defectType }}
+          <span class="confidence-badge">{{ (aiAnalysisResult.confidence * 100).toFixed(1) }}% confidence</span>
+        </div>
+        <div class="ai-recommendation">
+          <strong>Recommendation:</strong> {{ aiAnalysisResult.recommendations }}
+        </div>
+        <div *ngIf="aiAnalysisResult.warning" class="ai-warning">
+          ⚠️ {{ aiAnalysisResult.warning }}
+        </div>
+      </div>
+
+      <!-- Selected Products Details -->
+      <div class="selected-products-details" *ngIf="selectedStockItemsForReclamation.length > 0">
+        <div class="selected-header" style="font-size:11px;font-weight:600;color:#6b7280;letter-spacing:.5px;margin-bottom:8px;">PRODUCT DETAILS</div>
+        <div class="selected-item-detail" *ngFor="let item of selectedStockItemsForReclamation"
+             style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px;margin-bottom:8px;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px;">{{ item.product?.name ?? '—' }}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div style="font-size:11px;color:#9ca3af;"><span style="color:#6b7280;">Qty:</span> {{ item.quantity }} {{ item.unit }}</div>
+            <div style="font-size:11px;color:#9ca3af;"><span style="color:#6b7280;">Condition:</span> {{ item.condition }}</div>
+            <div style="font-size:11px;color:#9ca3af;"><span style="color:#6b7280;">Location:</span> {{ item.location }}</div>
+            <div style="font-size:11px;color:#9ca3af;"><span style="color:#6b7280;">Unit Price:</span> {{ item.unitPrice | number:'1.2-2' }} DT</div>
+            <div style="font-size:11px;color:#9ca3af;"><span style="color:#6b7280;">Status:</span> {{ item.status }}</div>
+            <div style="font-size:11px;font-weight:600;color:#059669;"><span style="color:#6b7280;">Total:</span> {{ item.quantity * item.unitPrice | number:'1.2-2' }} DT</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image Upload -->
+      <div class="form-group">
+        <label>Upload Photo of Damaged Product</label>
+        <div class="upload-zone" (click)="reclamationFileInput.click()">
+          <input #reclamationFileInput type="file" accept="image/*" style="display:none" 
+                 (change)="onReclamationImageSelected($event)">
+          <div *ngIf="!reclamationImagePreview && !uploadingReclamationImage">
+            <div style="font-size: 28px">📷</div>
+            <div>Click to upload photo of the damage</div>
+            <div style="font-size: 11px; color: var(--text3)">JPG, PNG, WEBP accepted</div>
+          </div>
+          <div *ngIf="uploadingReclamationImage">
+            <div class="spinner"></div>
+            <div>Analyzing image...</div>
+          </div>
+          <div *ngIf="reclamationImagePreview && !uploadingReclamationImage">
+            <img [src]="reclamationImagePreview" style="max-height: 150px; border-radius: 8px">
+            <button type="button" class="upload-remove" 
+                    (click)="$event.stopPropagation(); removeReclamationImage()">✕ Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label for="issueDescription">Description of the Issue <span class="required">*</span></label>
+        <textarea id="issueDescription" name="issueDescription" [(ngModel)]="reclamationDescription" rows="4"
+                  placeholder="Describe what's wrong with the product(s)... (e.g., 'Screen is cracked', 'Packaging is torn', 'Missing parts')"
+                  class="form-control"></textarea>
+      </div>
+
+      <!-- Quick issue templates -->
+      <div class="quick-issues">
+        <span class="quick-issue-tag" (click)="setQuickIssue('Screen is cracked / broken')">📱 Screen cracked</span>
+        <span class="quick-issue-tag" (click)="setQuickIssue('Packaging is damaged / torn')">📦 Packaging damaged</span>
+        <span class="quick-issue-tag" (click)="setQuickIssue('Product has scratches / cosmetic damage')">✨ Scratches</span>
+        <span class="quick-issue-tag" (click)="setQuickIssue('Missing parts / components')">🔧 Missing parts</span>
+        <span class="quick-issue-tag" (click)="setQuickIssue('Water damage detected')">💧 Water damage</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="closeReclamationModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="submitBulkReclamation()" 
+              [disabled]="!reclamationDescription || submittingReclamation">
+        {{ submittingReclamation ? 'Submitting...' : 'Submit Reclamation for ' + selectedStockItemsForReclamation.length + ' item(s)' }}
+      </button>
     </div>
   </div>
 </div>

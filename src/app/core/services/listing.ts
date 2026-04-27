@@ -132,6 +132,10 @@ export class ListingService {
     );
   }
 
+
+  getMarketStock(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/enterprise/market-stock`);
+  }
   getMyStock(): Observable<StockItemDto[]> {
     return this.http.get<StockItemDto[]>(`${this.apiUrl}/listings/stock/my`);
   }

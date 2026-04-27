@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { ProductService } from '../../core/services/product';
 import { Product } from '../../core/models/product.model';
 import { FileUploadService } from '../../core/services/file-upload.service';
+import { BrokenProductService } from '../../core/services/broken-product'; // ADD THIS IMPORT
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -31,7 +32,8 @@ export class Chatbot implements OnInit {
     private productService: ProductService,
     private cdr: ChangeDetectorRef,
     private router: Router,
-    private fileUploadService: FileUploadService
+    private fileUploadService: FileUploadService,
+    private brokenProductService: BrokenProductService  // ADD THIS
   ) {
     this.initSpeechRecognition();
   }
@@ -63,7 +65,6 @@ export class Chatbot implements OnInit {
         this.userInput = transcript;
         this.cdr.detectChanges();
         this.isListening = false;
-        // Auto-send after voice input
         setTimeout(() => this.send(), 100);
       };
 
@@ -121,7 +122,7 @@ export class Chatbot implements OnInit {
     return languages[lang] || lang;
   }
 
-  // ========== IMAGE UPLOAD & ANALYSIS ==========
+  // ========== IMAGE UPLOAD & ANALYSIS - REPLACED VERSION ==========
   async onImageSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files || !input.files[0]) return;
@@ -143,34 +144,52 @@ export class Chatbot implements OnInit {
       this.cdr.detectChanges();
       this.scrollToBottom();
 
-      // Analyze image for product recognition
+      // Analyze image using your WORKING detection system
       this.loading = true;
       this.cdr.detectChanges();
 
       try {
-        // First upload the image
-        const uploadResult = await firstValueFrom(this.fileUploadService.upload(file));
+        // Use your existing broken product detection (which already handles iPhone/iPod matching!)
+        const result = await firstValueFrom(this.brokenProductService.detect(file));
         
-        // Check if uploadResult exists and has filename
-        const filename = uploadResult?.filename;
+        let replyText = '';
         
-        if (!filename) {
-          throw new Error('Upload failed - no filename returned');
+        if (result.matchFound && result.matchedProduct) {
+          // SUCCESS: Product found in database
+          replyText = `🔍 **I see what you're looking for!**\n\n` +
+                      `The image shows a **${result.detectedLabel}** (${result.detectedConfidence} confidence).\n\n` +
+                      `✅ **Match found in our catalog:** **${result.matchedProduct.name}**\n\n` +
+                      `📋 **Product Information:**\n` +
+                      `• **ID:** ${result.matchedProduct.id_product}\n` +
+                      `• **Category:** ${result.matchedProduct.category || 'N/A'}\n` +
+                      `• **Material:** ${result.matchedProduct.materialType || 'N/A'}\n` +
+                      `• **Recyclable:** ${result.matchedProduct.recyclable ? 'Yes ♻️' : 'No'}\n` +
+                      `• **Description:** ${result.matchedProduct.description || 'No description available'}\n\n` +
+                      `Would you like to see similar products or need more information about this item?`;
+        } else {
+          // NO MATCH: Show what was detected
+          const topPredictions = result.allPredictions?.slice(0, 3).map((p: any) => 
+            `• ${p.label} (${(p.score * 100).toFixed(1)}%)`
+          ).join('\n');
+          
+          replyText = `🔍 **Image Analysis Complete**\n\n` +
+                      `I detected: **${result.detectedLabel}** (${result.detectedConfidence})\n\n` +
+                      `⚠️ **Not in catalog:** This product isn't available in our database yet.\n\n` +
+                      `**Other possibilities detected:**\n${topPredictions}\n\n` +
+                      `Could you describe what type of product you're looking for? I can help find similar items!`;
         }
-        
-        // Then send to AI for analysis
-        const analysisResult = await this.analyzeImageForProducts(filename);
         
         this.messages.push({
           role: 'bot',
-          text: analysisResult,
-          cards: this.extractProductsFromText(analysisResult)
+          text: replyText,
+          cards: this.extractProductsFromText(replyText)
         });
+        
       } catch (error) {
         console.error('Image analysis error:', error);
         this.messages.push({
           role: 'bot',
-          text: '⚠️ Sorry, I couldn\'t analyze the image. Please describe the product you\'re looking for in text.',
+          text: '⚠️ Sorry, I couldn\'t analyze the image. Please describe the product you\'re looking for in text, or try uploading a clearer image.',
           cards: []
         });
       } finally {
@@ -183,32 +202,7 @@ export class Chatbot implements OnInit {
     input.value = '';
   }
 
-  async analyzeImageForProducts(imageFilename: string): Promise<string> {
-    // Create a prompt that asks AI to identify products from image
-    const prompt = `A user has uploaded an image of a product (filename: ${imageFilename}). Based on the image filename and context, what kind of product might this be? Please suggest similar products from our catalog and ask clarifying questions if needed. Be helpful and conversational.`;
-
-    try {
-      const response = await fetch('http://localhost:8080/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: 200,
-            temperature: 0.3
-          }
-        })
-      });
-
-      if (!response.ok) throw new Error('Analysis failed');
-      
-      const data = await response.json();
-      return data?.choices?.[0]?.message?.content || 'I see you uploaded an image. Could you describe what product you\'re looking for in more detail?';
-    } catch (error) {
-      console.error('Analysis error:', error);
-      return 'I see you uploaded an image. Could you please describe what product you\'re looking for?';
-    }
-  }
+  // REMOVE the old analyzeImageForProducts method completely - no longer needed!
 
   // ========== HELPER METHODS ==========
   addBotMessage(text: string): void {
@@ -231,12 +225,10 @@ export class Chatbot implements OnInit {
     return cards;
   }
 
-  // Navigation method
   goToProducts(): void {
     this.router.navigate(['/admin/products']);
   }
 
-  // Clear chat method
   clearChat(): void {
     if (confirm('Clear the entire conversation?')) {
       this.messages = [{
@@ -250,25 +242,21 @@ export class Chatbot implements OnInit {
     }
   }
 
-  // Refresh suggestions method
   refreshSuggestions(): void {
     this.cdr.detectChanges();
   }
 
-  // Quick send method
   quickSend(message: string): void {
     this.userInput = message;
     this.send();
   }
 
-  // View product method
   viewProduct(productId: number | undefined): void {
     if (productId) {
       this.router.navigate(['/admin/products/detail', productId]);
     }
   }
 
-  // Format message with markdown
   formatMessage(text: string): string {
     let formatted = text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -279,31 +267,24 @@ export class Chatbot implements OnInit {
     return formatted;
   }
 
-  // Truncate text method
   truncateText(text: string, maxLength: number): string {
     if (!text) return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   }
 
-  // Get current time method
   getCurrentTime(): string {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  // Auto resize textarea method
   autoResize(event: any): void {
     const textarea = event.target;
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
   }
 
-  // Scroll handler
-  onScroll(): void {
-    // Handle scroll events if needed
-  }
+  onScroll(): void {}
 
-  // Scroll to bottom method
   scrollToBottom(): void {
     setTimeout(() => {
       if (this.scrollContainer) {

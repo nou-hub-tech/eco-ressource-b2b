@@ -186,19 +186,19 @@
 
       <div class="found-stats">
         <div class="found-stat"><span>Platform Qty</span><strong>{{scanResult.totalQty}}</strong></div>
-        <div class="found-stat"><span>Stock Lines</span><strong>{{scanResult.stockItems.length}}</strong></div>
+        <div class="found-stat"><span>Stock Lines</span><strong>{{scanResult.stockItems?.length}}</strong></div>
         <div class="found-stat"><span>Total Value</span><strong>{{scanResult.totalValue | number:'1.2-2'}} DT</strong></div>
-        <div class="found-stat" *ngIf="scanResult.expiringCount>0"><span>Expiring Soon</span><strong style="color:#f59e0b">{{scanResult.expiringCount}}</strong></div>
-        <div class="found-stat" *ngIf="scanResult.expiredCount>0"><span>Expired</span><strong style="color:#ef4444">{{scanResult.expiredCount}}</strong></div>
+        <div class="found-stat" *ngIf="(scanResult.expiringCount ?? 0)>0"><span>Expiring Soon</span><strong style="color:#f59e0b">{{scanResult.expiringCount ?? 0}}</strong></div>
+        <div class="found-stat" *ngIf="(scanResult.expiredCount ?? 0)>0"><span>Expired</span><strong style="color:#ef4444">{{scanResult.expiredCount ?? 0}}</strong></div>
       </div>
 
-      <div *ngIf="scanResult.stockItems.length===0" class="scan-error" style="margin-top:12px">
+      <div *ngIf="scanResult.stockItems?.length===0" class="scan-error" style="margin-top:12px">
         This product has no stock items linked yet — nothing to audit.
       </div>
 
       <div class="scan-footer">
         <button class="inv-btn inv-btn-outline" (click)="backToInput()">← Back</button>
-        <button class="inv-btn inv-btn-primary" (click)="startAudit()" [disabled]="scanResult.stockItems.length===0">
+        <button class="inv-btn inv-btn-primary" (click)="startAudit()" [disabled]="scanResult.stockItems?.length===0">
           Start Physical Audit →
         </button>
       </div>

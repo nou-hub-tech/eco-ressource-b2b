@@ -147,6 +147,87 @@
     </div>
   </div>
 
+
+  <!-- ══ MARKET STOCK — Other enterprises' available stock ══ -->
+  <div class="ed-market-stock-section">
+    <div class="ed-sec-hd" style="padding: 0 0 16px;">
+      <div class="ed-sec-hd-l">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="ed-sec-title">AI MATCHED FOR YOU</span>
+        <span class="ed-sec-sub">· products from other enterprises — sorted by sector compatibility</span>
+      </div>
+      <a class="ed-see-all" routerLink="/enterprise/marketplace">View all →</a>
+    </div>
+
+    <!-- Loading -->
+    <div class="ed-ms-loading" *ngIf="marketStockLoading">
+      <div class="ed-ms-spinner"></div>
+      <span>Analysing market products...</span>
+    </div>
+
+    <!-- Empty -->
+    <div class="ed-ms-empty" *ngIf="!marketStockLoading && marketStock.length === 0">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      <p>No market products available right now</p>
+    </div>
+
+    <!-- AI matched product cards -->
+    <div class="ed-ms-scroll" *ngIf="!marketStockLoading && marketStock.length > 0">
+      <div class="ed-ms-card" *ngFor="let s of marketStock; let i = index" [class.ed-ms-priority]="s.priorityMatch">
+
+        <!-- AI match score badge -->
+        <div class="ed-ms-match-badge" *ngIf="s.priorityMatch" style="background:linear-gradient(135deg,#00e676,#00b248);color:#000;font-weight:700;display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-size:9px;letter-spacing:.5px;">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          AI MATCH
+        </div>
+        <div class="ed-ms-match-badge" *ngIf="!s.priorityMatch" style="background:rgba(255,255,255,0.06);color:#6b7280;display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-size:9px;letter-spacing:.5px;">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+          #{{ i + 1 }} ON MARKET
+        </div>
+
+        <!-- Product image or placeholder -->
+        <div class="ed-ms-img">
+          <img *ngIf="s.productImage && s.productImage !== 'http://localhost:8080/files/undefined'" [src]="s.productImage" [alt]="s.productName" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" />
+          <div *ngIf="!s.productImage || s.productImage === 'http://localhost:8080/files/undefined'" class="ed-ms-img-placeholder">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="ed-ms-info">
+          <div class="ed-ms-name">{{ s.productName }}</div>
+          <div class="ed-ms-meta">
+            <span class="ed-ms-cat" *ngIf="s.category">{{ s.category }}</span>
+            <span class="ed-ms-mat" *ngIf="s.materialType">{{ s.materialType }}</span>
+          </div>
+          <div class="ed-ms-owner">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            {{ s.ownerName || 'Platform' }}
+          </div>
+          <div class="ed-ms-qty" *ngIf="s.description" style="font-size:10px;color:#6b7280;margin-top:4px;line-height:1.4;">
+            {{ s.description.length > 55 ? (s.description | slice:0:55) + '...' : s.description }}
+          </div>
+          <div class="ed-ms-cond-row" style="margin-top:4px;">
+            <span class="ed-ms-recycle" *ngIf="s.recyclable" style="color:#00e676;font-size:10px;">♻ Recyclable</span>
+            <span *ngIf="!s.recyclable" style="color:#6b7280;font-size:10px;">Non-recyclable</span>
+          </div>
+        </div>
+
+        <!-- Action -->
+        <div class="ed-ms-foot">
+          <div class="ed-ms-price" *ngIf="s.priorityMatch" style="font-size:10px;color:#00e676;font-weight:600;letter-spacing:.3px;">
+            ★ BEST MATCH
+          </div>
+          <div class="ed-ms-price" *ngIf="!s.priorityMatch" style="font-size:10px;color:#4b5563;">
+            OTHER SECTOR
+          </div>
+          <button class="ed-ms-btn" (click)="openProductDetail(s)">View Info →</button>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /ed-market-stock-section -->
+
   <!-- ══ LISTINGS BODY ══ -->
   <div class="ed-body">
 
@@ -291,6 +372,10 @@
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
           View My Stock
         </button>
+        <button class="ed-add-btn" routerLink="/enterprise/my-reclamations" style="margin-top:6px; background: rgba(245,158,11,0.1); color: #d97706; border-color: rgba(245,158,11,0.3);">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          ⚠ Reclamations
+        </button>
       </div>
 
       <!-- WALLET -->
@@ -352,3 +437,89 @@
   </div><!-- /ed-body -->
 
 </div><!-- /ed -->
+
+<!-- ══ PRODUCT DETAIL MODAL ══ -->
+<div class="ed-modal-overlay" *ngIf="selectedMarketProduct" (click)="closeProductDetail()">
+  <div class="ed-modal-box" (click)="$event.stopPropagation()">
+    <div class="ed-modal-hd">
+      <div class="ed-modal-hd-left">
+        <span class="ed-modal-badge" *ngIf="selectedMarketProduct.priorityMatch"
+          style="background:linear-gradient(135deg,#00e676,#00b248);color:#000;font-weight:700;padding:3px 9px;border-radius:4px;font-size:9px;letter-spacing:.5px;">
+          ★ AI MATCH
+        </span>
+        <span class="ed-modal-badge" *ngIf="!selectedMarketProduct.priorityMatch"
+          style="background:rgba(255,255,255,0.06);color:#6b7280;padding:3px 9px;border-radius:4px;font-size:9px;">
+          MARKET PRODUCT
+        </span>
+      </div>
+      <button class="ed-modal-close" (click)="closeProductDetail()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Product Image -->
+    <div class="ed-modal-img">
+      <img *ngIf="selectedMarketProduct.productImage && selectedMarketProduct.productImage !== 'http://localhost:8080/files/undefined'"
+           [src]="selectedMarketProduct.productImage" [alt]="selectedMarketProduct.productName"
+           style="width:100%;height:100%;object-fit:cover;" />
+      <div *ngIf="!selectedMarketProduct.productImage || selectedMarketProduct.productImage === 'http://localhost:8080/files/undefined'"
+           class="ed-modal-img-ph">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </div>
+    </div>
+
+    <!-- Product Title -->
+    <div class="ed-modal-title">{{ selectedMarketProduct.productName }}</div>
+
+    <!-- Info Grid -->
+    <div class="ed-modal-grid">
+      <div class="ed-modal-spec" *ngIf="selectedMarketProduct.category">
+        <span class="ed-modal-spec-k">CATEGORY</span>
+        <span class="ed-modal-spec-v">{{ selectedMarketProduct.category }}</span>
+      </div>
+      <div class="ed-modal-spec" *ngIf="selectedMarketProduct.materialType">
+        <span class="ed-modal-spec-k">MATERIAL</span>
+        <span class="ed-modal-spec-v">{{ selectedMarketProduct.materialType }}</span>
+      </div>
+      <div class="ed-modal-spec" *ngIf="selectedMarketProduct.stockQty != null">
+        <span class="ed-modal-spec-k">STOCK QTY</span>
+        <span class="ed-modal-spec-v">{{ selectedMarketProduct.stockQty }} {{ selectedMarketProduct.stockUnit }}</span>
+      </div>
+      <div class="ed-modal-spec" *ngIf="selectedMarketProduct.unitPrice != null">
+        <span class="ed-modal-spec-k">UNIT PRICE</span>
+        <span class="ed-modal-spec-v" style="color:#00e676;font-weight:700;">{{ selectedMarketProduct.unitPrice | number:'1.2-2' }} TND / {{ selectedMarketProduct.stockUnit }}</span>
+      </div>
+      <div class="ed-modal-spec" *ngIf="selectedMarketProduct.totalValue != null">
+        <span class="ed-modal-spec-k">TOTAL VALUE</span>
+        <span class="ed-modal-spec-v">{{ selectedMarketProduct.totalValue | number:'1.2-2' }} TND</span>
+      </div>
+      <div class="ed-modal-spec">
+        <span class="ed-modal-spec-k">RECYCLABLE</span>
+        <span class="ed-modal-spec-v" [style.color]="selectedMarketProduct.recyclable ? '#00e676' : '#6b7280'">
+          {{ selectedMarketProduct.recyclable ? '♻ Yes' : '✗ No' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Owner -->
+    <div class="ed-modal-owner" *ngIf="selectedMarketProduct.ownerName">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      Offered by <strong>{{ selectedMarketProduct.ownerName }}</strong>
+    </div>
+
+    <!-- Description -->
+    <div class="ed-modal-desc" *ngIf="selectedMarketProduct.description">
+      {{ selectedMarketProduct.description }}
+    </div>
+
+    <!-- Footer Buttons -->
+    <div class="ed-modal-foot">
+      <button class="ed-btn-ghost" (click)="closeProductDetail()">Close</button>
+      <button class="ed-btn-primary" [style.background]="selectedMarketProduct.priorityMatch ? '#00e676' : '#3b82f6'"
+              [style.color]="selectedMarketProduct.priorityMatch ? '#000' : '#fff'"
+              routerLink="/enterprise/marketplace" (click)="closeProductDetail()">
+        Go to Marketplace →
+      </button>
+    </div>
+  </div>
+</div>

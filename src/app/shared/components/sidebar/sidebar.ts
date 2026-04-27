@@ -93,7 +93,9 @@ export class Sidebar implements OnInit {
   { label: 'My Stock',      icon: 'stock',         route: '/enterprise/my-stock' },
   { label: 'My Deliveries', icon: 'deliveries',    route: '/enterprise/my-deliveries' },
   { label: 'Reservations',  icon: 'reservations',  route: '/enterprise/my-reservations' },
-  { label: 'My Products',   icon: 'listings',      route: '/enterprise/my-products' },  // ✅ ADD THIS LINE
+  { label: 'My Products',   icon: 'listings',      route: '/enterprise/my-products' },
+  { section: 'Support' },
+  { label: 'My Reclamations', icon: 'requests',    route: '/enterprise/my-reclamations' },
   { section: 'Finance' },
   { label: 'Transactions',  icon: 'transactions',  route: '/enterprise/transactions' },
   { label: 'Reports',       icon: 'reports',       route: '/enterprise/reports' },
