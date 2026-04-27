@@ -72,4 +72,8 @@ export class EventService {
   generateDescription(req: GenerateDescriptionRequest): Observable<{ description: string }> {
   return this.adminApi.generateDescription(req);
 }
+
+  publishToFacebook(eventId: number): Observable<string> {
+    return this.adminApi.publishToFacebook(eventId);
+  }
 }

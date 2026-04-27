@@ -249,4 +249,9 @@ export class AdminApiService {
     req
   );
 }
+
+  publishToFacebook(eventId: number): Observable<string> {
+    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, null, 
+      { responseType: 'text' });
+  }
 }

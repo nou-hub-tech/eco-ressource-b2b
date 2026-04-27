@@ -749,29 +749,18 @@ export class Events implements OnInit, OnDestroy {
     this.publishingFacebook = true;
     this.requestRender();
 
-    const postContent = this.buildFacebookPost(e);
-
-    setTimeout(() => {
-      this.publishingFacebook = false;
-      this.showToast('Facebook publishing requires Meta App setup. See the integration guide.', 'error');
-      this.requestRender();
-      console.log('Facebook post template:\n', postContent);
-    }, 1500);
-  }
-
-  private buildFacebookPost(e: PlatformEventDto): string {
-    const date = new Date(e.eventDate).toLocaleDateString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    this.eventService.publishToFacebook(e.id).subscribe({
+      next: () => {
+        this.publishingFacebook = false;
+        this.showToast('Event published to Facebook! 🎉', 'success');
+        this.requestRender();
+      },
+      error: (err) => {
+        this.publishingFacebook = false;
+        this.showToast('Facebook publish failed: ' + (err.error || 'Unknown error'), 'error');
+        this.requestRender();
+      }
     });
-    return `🎉 Exciting Event Alert! 🎉\n\n` +
-      `📌 ${e.title}\n\n` +
-      (e.description ? `📝 ${e.description}\n\n` : '') +
-      `📅 Date: ${date}\n` +
-      `📍 Location: ${e.location}\n` +
-      `👥 Participants: ${e.participants}\n` +
-      `🏷️ Type: ${e.typeLabel}\n\n` +
-      `♻️ Join us in building a sustainable circular economy! 🌍\n` +
-      `#CircularEconomy #B2B #Sustainability #EcoRessource`;
   }
 
   // ───────────────────────────────────────────────
