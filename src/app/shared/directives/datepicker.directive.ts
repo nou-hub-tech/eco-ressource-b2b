@@ -38,7 +38,7 @@ export class DatepickerDirective implements AfterViewInit, OnDestroy, ControlVal
       locale: 'fr',
       allowInput: true,
       disableMobile: true,
-      onChange: (selectedDates, dateStr) => {
+      onChange: (selectedDates: Date[], dateStr: string) => {
         this.value = dateStr;
         this.onChange(dateStr);
         this.onTouched();

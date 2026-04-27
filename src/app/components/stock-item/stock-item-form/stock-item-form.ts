@@ -59,10 +59,10 @@ export class StockItemFormComponent implements OnInit {
           // Extract filename if it's a full URL
           if (this.stockItem.image.includes('files/')) {
             const filename = this.stockItem.image.split('files/')[1];
-            this.imagePreviewUrl = `http://localhost:8080/files/${filename}`;
+            this.imagePreviewUrl = `/files/${filename}`;
             this.stockItem.image = filename; // Store only filename
           } else {
-            this.imagePreviewUrl = `http://localhost:8080/files/${this.stockItem.image}`;
+            this.imagePreviewUrl = `/files/${this.stockItem.image}`;
           }
         }
         this.cdr.detectChanges();

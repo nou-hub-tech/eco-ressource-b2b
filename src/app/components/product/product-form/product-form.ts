@@ -45,10 +45,10 @@ export class ProductFormComponent implements OnInit {
           // Extract filename if it's a full URL
           if (this.product.image.includes('files/')) {
             const filename = this.product.image.split('files/')[1];
-            this.imagePreviewUrl = `http://localhost:8080/files/${filename}`;
+            this.imagePreviewUrl = `/files/${filename}`;
             this.product.image = filename; // Store only filename
           } else {
-            this.imagePreviewUrl = `http://localhost:8080/files/${this.product.image}`;
+            this.imagePreviewUrl = `/files/${this.product.image}`;
           }
         }
         this.cdr.detectChanges();

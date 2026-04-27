@@ -188,7 +188,7 @@ export class Chatbot implements OnInit {
     const prompt = `A user has uploaded an image of a product (filename: ${imageFilename}). Based on the image filename and context, what kind of product might this be? Please suggest similar products from our catalog and ask clarifying questions if needed. Be helpful and conversational.`;
 
     try {
-      const response = await fetch('http://localhost:8080/ai/chat', {
+      const response = await fetch('/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -330,7 +330,7 @@ export class Chatbot implements OnInit {
     const prompt = `You are a friendly and helpful product finder assistant. Here is the product catalog:\n${productList}\n\nUser request: ${this.clean(text)}\n\nFind the best matching product(s). You MUST include the product ID in your response like this: "ID:X". Give a helpful, conversational explanation. If multiple products match, list them with their IDs. If no product matches, suggest alternatives or ask for more details.`;
 
     try {
-      const response = await fetch('http://localhost:8080/ai/chat', {
+      const response = await fetch('/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

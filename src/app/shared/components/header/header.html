@@ -3,13 +3,9 @@
     <button class="hdr-toggle" (click)="toggleSidebar.emit()">☰</button>
     <h2 class="hdr-title">{{pageTitle}}</h2>
   </div>
-<<<<<<< HEAD
-  <div class="hdr-right">
-=======
 
   <div class="hdr-right">
     <app-language-switcher></app-language-switcher>
->>>>>>> origin/integration/gestion-annonce-et-product-v2
 
     <!-- DARK MODE TOGGLE -->
     <button class="theme-toggle" (click)="toggleTheme()" [title]="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
@@ -19,11 +15,7 @@
           <span *ngIf="isDark">🌙</span>
         </span>
       </span>
-<<<<<<< HEAD
-<span class="theme-toggle-label">{{isDark ? 'Light Mode' : 'Dark Mode'}}</span>
-=======
       <span class="theme-toggle-label">{{isDark ? 'Light Mode' : 'Dark Mode'}}</span>
->>>>>>> origin/integration/gestion-annonce-et-product-v2
     </button>
 
     <!-- NOTIFICATIONS -->
@@ -50,8 +42,4 @@
     <button class="hdr-btn">⚙</button>
     <div class="hdr-avatar" *ngIf="user">{{user.avatar}}</div>
   </div>
-<<<<<<< HEAD
 </header>
-=======
-</header>
->>>>>>> origin/integration/gestion-annonce-et-product-v2

@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-/* All header styles are in src/styles.css via theme classes */
-=======
 ﻿/* All header styles are in src/styles.css via theme classes */
 /* Language Switcher styling for header */
 :host ::ng-deep .lang-switcher-container {
@@ -139,4 +136,4 @@
     transform: translateY(0);
   }
 }
->>>>>>> origin/integration/gestion-annonce-et-product-v2
+

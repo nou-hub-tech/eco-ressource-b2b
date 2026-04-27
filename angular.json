@@ -36,12 +36,8 @@
               }
             ],
             "styles": [
-<<<<<<< HEAD
-              "src/styles.css"
-=======
               "src/styles.css",
               "node_modules/flatpickr/dist/flatpickr.css"
->>>>>>> origin/integration/gestion-annonce-et-product-v2
             ]
           },
           "configurations": {
@@ -49,15 +45,6 @@
               "budgets": [
                 {
                   "type": "initial",
-<<<<<<< HEAD
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
-=======
                   "maximumWarning": "2MB",
                   "maximumError": "3MB"
                 },
@@ -65,7 +52,6 @@
                   "type": "anyComponentStyle",
                   "maximumWarning": "20kB",
                   "maximumError": "40kB"
->>>>>>> origin/integration/gestion-annonce-et-product-v2
                 }
               ],
               "outputHashing": "all"
@@ -81,11 +67,7 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-<<<<<<< HEAD
             "proxyConfig": "proxy.conf.json"
-=======
-            "proxyConfig": "proxy.conf.js"
->>>>>>> origin/integration/gestion-annonce-et-product-v2
           },
           "configurations": {
             "production": {

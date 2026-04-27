@@ -20,12 +20,9 @@ export class Users implements OnInit {
   selectedUser: User | null = null;
   deletingUser: User | null = null;
 
-<<<<<<< HEAD
   /** Non-null accessor for template — used inside *ngIf="selectedUser" */
   get su(): User { return this.selectedUser!; }
 
-=======
->>>>>>> origin/integration/gestion-annonce-et-product-v2
   successMsg = '';
 
   users: User[] = [];

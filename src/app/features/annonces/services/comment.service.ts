@@ -12,14 +12,14 @@ export class CommentService {
 
   create(listingId: number, req: CreateCommentRequest): Observable<CommentResponse> {
     return this.http.post<CommentResponse>(
-      `${this.apiUrl}/resource-listings/${listingId}/comments`,
+      `${this.apiUrl}/listings/${listingId}/comments`,
       req
     );
   }
 
   findByListing(listingId: number): Observable<CommentResponse[]> {
     return this.http.get<CommentResponse[]>(
-      `${this.apiUrl}/resource-listings/${listingId}/comments`
+      `${this.apiUrl}/listings/${listingId}/comments`
     );
   }
 

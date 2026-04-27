@@ -30,9 +30,9 @@ export interface StockItem {
 @Injectable({ providedIn: 'root' })
 export class EnterpriseService {
 
-  private base = 'http://localhost:8080/api/enterprise';
+  private base = '/api/enterprise';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // ── Products ──
   getMyProducts(): Observable<Product[]> {
@@ -67,9 +67,10 @@ export class EnterpriseService {
   deleteStockItem(id: number): Observable<any> {
     return this.http.delete(`${this.base}/stock/${id}`);
   }
+
   uploadImage(file: File): Observable<{ url: string }> {
-  const formData = new FormData();
-  formData.append('file', file);
-  return this.http.post<{ url: string }>('http://localhost:8080/files/upload', formData);
-}
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ url: string }>('/files/upload', formData);
+  }
 }

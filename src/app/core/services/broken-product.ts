@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class BrokenProductService {
-  private api = 'http://localhost:8080/broken-product';
+  private api = '/broken-product';
 
   constructor(private http: HttpClient) {}
 

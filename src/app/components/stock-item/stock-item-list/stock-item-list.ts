@@ -421,11 +421,11 @@ export class StockItemListComponent implements OnInit, OnDestroy {
   // If it contains 'files/', extract the filename
   if (str.includes('files/')) {
     const filename = str.split('files/')[1];
-    return `http://localhost:8080/files/${filename}`;
+    return `/files/${filename}`;
   }
   
   // Otherwise, treat as filename and build the URL
-  return `http://localhost:8080/files/${str}`;
+  return `/files/${str}`;
 }
 
 handleImageError(item: StockItem): void {
