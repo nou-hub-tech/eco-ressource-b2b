@@ -16,6 +16,7 @@ import {
   resolveListingAttachmentUrls
 } from '../constants/listing-images';
 import { ListingImageUploadService } from '../services/listing-image-upload.service';
+import { GeocodingService } from '../services/geocoding.service';
 import { concatMap, finalize, toArray } from 'rxjs/operators';
 import { from } from 'rxjs';
 
@@ -40,6 +41,8 @@ export class ListingCreate implements OnInit {
   imageError: string | null = null;
   /** Upload multipart vers {@code POST /api/listing-images} en cours. */
   uploadingImage = false;
+  geocodingLocation = false;
+  locationStatus: string | null = null;
   /** Index de la grande vignette à l’étape photos. */
   previewMainIndex = 0;
   readonly maxListingPhotos = MAX_LISTING_PHOTOS;
@@ -61,6 +64,7 @@ export class ListingCreate implements OnInit {
     private readonly catalogProductService: ProductService,
     private readonly authService: AuthService,
     private readonly listingImageUpload: ListingImageUploadService,
+    private readonly geocodingService: GeocodingService,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone
   ) {}
@@ -284,6 +288,32 @@ export class ListingCreate implements OnInit {
     this.refreshView();
   }
 
+  geocodeLocation(): void {
+    const location = String(this.form.get('location')?.value || '').trim();
+    if (!location || this.geocodingLocation) return;
+    this.geocodingLocation = true;
+    this.locationStatus = 'Recherche des coordonnees...';
+    this.refreshView();
+
+    this.geocodingService.geocode(location).subscribe({
+      next: (geo) => {
+        this.form.patchValue({
+          location: geo.label || location,
+          latitude: geo.latitude,
+          longitude: geo.longitude
+        });
+        this.locationStatus = `Coordonnees trouvees via ${geo.provider}.`;
+        this.geocodingLocation = false;
+        this.refreshView();
+      },
+      error: (err: unknown) => {
+        this.locationStatus = httpErrorMessage(err);
+        this.geocodingLocation = false;
+        this.refreshView();
+      }
+    });
+  }
+
   get canGoNext(): boolean {
     if (this.uploadingImage) return false;
     switch (this.step) {
@@ -329,6 +359,33 @@ export class ListingCreate implements OnInit {
     this.submitting = true;
     this.error = '';
 
+    const hasLocation = !!String(this.form.value.location || '').trim();
+    const missingCoordinates = this.form.value.latitude == null || this.form.value.longitude == null;
+    if (hasLocation && missingCoordinates) {
+      this.geocodingLocation = true;
+      this.locationStatus = 'Recherche des coordonnees avant publication...';
+      this.geocodingService.geocode(this.form.value.location).subscribe({
+        next: (geo) => {
+          this.form.patchValue({
+            location: geo.label || this.form.value.location,
+            latitude: geo.latitude,
+            longitude: geo.longitude
+          });
+          this.geocodingLocation = false;
+          this.createListing();
+        },
+        error: () => {
+          this.geocodingLocation = false;
+          this.createListing();
+        }
+      });
+      return;
+    }
+
+    this.createListing();
+  }
+
+  private createListing(): void {
     const val = this.form.value;
     const body = {
       ...val,

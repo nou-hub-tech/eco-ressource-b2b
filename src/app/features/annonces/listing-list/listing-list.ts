@@ -1,8 +1,12 @@
-import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, NgZone, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ResourceListingService } from '../services/resource-listing.service';
 import { FavoriteService } from '../services/favorite.service';
 import { httpErrorMessage } from '../services/api-normalize';
 import { ListingResponse, FavoriteResponse } from '../../../core/models/annonces.interfaces';
+import { AuthService } from '../../../core/services/auth.service';
+import { RealtimeService } from '../services/realtime.service';
 
 @Component({
   selector: 'app-listing-list',
@@ -29,10 +33,19 @@ export class ListingList implements OnInit {
   pageSize = 12;
 
   categories: string[] = [];
+  mode: 'all' | 'mine' = 'all';
+  deletingId: number | null = null;
+  actionError: string | null = null;
+  realtimeNotices: string[] = [];
 
   constructor(
     private readonly listingService: ResourceListingService,
     private readonly favoriteService: FavoriteService,
+    private readonly authService: AuthService,
+    private readonly realtimeService: RealtimeService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
+    private readonly destroyRef: DestroyRef,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone
   ) {}
@@ -43,13 +56,34 @@ export class ListingList implements OnInit {
   }
 
   ngOnInit(): void {
+    this.mode = this.route.snapshot.data['mode'] === 'mine' ? 'mine' : 'all';
     this.loadData();
+    this.realtimeService.listingEvents()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event) => {
+        if (!event.type) return;
+        this.pushNotice(this.messageForEvent(event.type));
+        this.loadData();
+      });
+
+    this.authService.user$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        const id = user?.id ? Number(user.id) : null;
+        if (!id || !Number.isFinite(id)) return;
+        this.realtimeService.userNotifications(id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe((event) => this.pushNotice(event.message || 'Nouvelle notification'));
+      });
   }
 
   loadData(): void {
     this.loading = true;
     this.loadError = null;
-    this.listingService.findAll().subscribe({
+    const source$ = this.mode === 'mine'
+      ? this.listingService.findMine()
+      : this.listingService.findAll();
+    source$.subscribe({
       next: (data) => {
         this.listings = data;
         this.categories = [...new Set(data.map(l => l.productCategory).filter(Boolean))];
@@ -149,5 +183,89 @@ export class ListingList implements OnInit {
 
   get hasActiveFilters(): boolean {
     return !!(this.filterType || this.filterCategory || this.filterLocation || this.filterMaxPrice);
+  }
+
+  get pageTitle(): string {
+    return this.mode === 'mine' ? 'Mes annonces' : 'Annonces';
+  }
+
+  get pageSubtitle(): string {
+    return this.mode === 'mine'
+      ? 'Gerez vos publications, modifiez les informations et supprimez les annonces qui ne sont plus utiles'
+      : 'Decouvrez les surplus, demandes et achats groupes';
+  }
+
+  get currentCompanyId(): number | null {
+    return this.authService.getCompanyProfileId();
+  }
+
+  get mappedCount(): number {
+    return this.filtered.filter(
+      (listing) => typeof listing.latitude === 'number' && typeof listing.longitude === 'number'
+    ).length;
+  }
+
+  openListing(id: number): void {
+    if (!id) return;
+    this.router.navigate(['/enterprise/annonces', id]);
+  }
+
+  canManage(listing: ListingResponse): boolean {
+    const companyId = this.currentCompanyId;
+    return companyId !== null && listing.companyId === companyId;
+  }
+
+  editListing(listing: ListingResponse): void {
+    this.router.navigate(['/enterprise/annonces', listing.id, 'edit']);
+  }
+
+  deleteListing(listing: ListingResponse): void {
+    const ok = window.confirm(`Supprimer l'annonce "${listing.title}" ?`);
+    if (!ok) return;
+    this.deletingId = listing.id;
+    this.actionError = null;
+    this.listingService.delete(listing.id).subscribe({
+      next: () => {
+        this.listings = this.listings.filter((item) => item.id !== listing.id);
+        this.applyFilters();
+        this.deletingId = null;
+        this.refreshView();
+      },
+      error: (err: unknown) => {
+        this.actionError = httpErrorMessage(err);
+        this.deletingId = null;
+        this.refreshView();
+      }
+    });
+  }
+
+  dismissNotice(index: number): void {
+    this.realtimeNotices.splice(index, 1);
+    this.refreshView();
+  }
+
+  private pushNotice(message: string): void {
+    if (!message) return;
+    this.realtimeNotices = [message, ...this.realtimeNotices].slice(0, 3);
+    this.refreshView();
+    setTimeout(() => {
+      this.realtimeNotices = this.realtimeNotices.filter((m) => m !== message);
+      this.refreshView();
+    }, 5500);
+  }
+
+  private messageForEvent(type: string): string {
+    switch (type) {
+      case 'LISTING_CREATED': return 'Nouvelle annonce publiee.';
+      case 'LISTING_UPDATED': return 'Une annonce a ete mise a jour.';
+      case 'LISTING_DELETED': return 'Une annonce a ete supprimee.';
+      case 'LISTING_CANCELLED': return 'Une annonce a ete annulee.';
+      case 'COMMENT_CREATED': return 'Nouveau commentaire sur une annonce.';
+      case 'COMMENT_UPDATED': return 'Un commentaire a ete modifie.';
+      case 'COMMENT_DELETED': return 'Un commentaire a ete supprime.';
+      case 'FAVORITE_CHANGED': return 'Les favoris ont ete mis a jour.';
+      case 'GROUP_CHANGED': return 'Un achat groupe a ete mis a jour.';
+      default: return 'Mise a jour temps reel recue.';
+    }
   }
 }

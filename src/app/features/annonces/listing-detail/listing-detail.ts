@@ -13,10 +13,12 @@ import { FavoriteService } from '../services/favorite.service';
 import {
   ListingResponse,
   FavoriteResponse,
-  GroupPurchaseResponse
+  GroupPurchaseResponse,
+  ListingMatchResponse
 } from '../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../core/services/auth.service';
 import { DEFAULT_LISTING_IMAGE_URL, MAX_LISTING_PHOTOS } from '../constants/listing-images';
+import { RealtimeService } from '../services/realtime.service';
 
 @Component({
   selector: 'app-listing-detail',
@@ -36,8 +38,12 @@ export class ListingDetail implements OnInit {
   currentImageIndex = 0;
   showCancelConfirm = false;
   cancelLoading = false;
+  realtimeNotices: string[] = [];
+  matches: ListingMatchResponse[] = [];
+  matchesLoading = false;
   /** Incrémenté après un toggle favori ; ignore les réponses HTTP myFavorites arrivées trop tard. */
   private favoriteSyncGen = 0;
+  private readonly subscribedListings = new Set<number>();
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -45,6 +51,7 @@ export class ListingDetail implements OnInit {
     private readonly listingService: ResourceListingService,
     private readonly favoriteService: FavoriteService,
     private readonly authService: AuthService,
+    private readonly realtimeService: RealtimeService,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone,
     private readonly destroyRef: DestroyRef,
@@ -130,7 +137,9 @@ export class ListingDetail implements OnInit {
         }
         this.loading = false;
         this.refreshView();
+        this.loadMatches(id);
         this.loadFavoriteStatus(id);
+        this.subscribeRealtime(id, data.groupPurchase?.id ?? null);
       },
       error: (err) => {
         this.error = err.error?.message || 'Annonce introuvable';
@@ -305,6 +314,109 @@ export class ListingDetail implements OnInit {
     this.listing = { ...listing, favoriteCount: next };
     this.pulseCounters();
     this.refreshListingCountersFromApi(listing.id);
+  }
+
+  get hasCoordinates(): boolean {
+    return typeof this.listing?.latitude === 'number' && typeof this.listing?.longitude === 'number';
+  }
+
+  get mapListings(): ListingResponse[] {
+    return this.listing ? [this.listing] : [];
+  }
+
+  openMatch(match: ListingMatchResponse): void {
+    this.router.navigate(['/enterprise/annonces', match.listing.id]);
+  }
+
+  openListing(id: number): void {
+    if (!id || this.listing?.id === id) return;
+    this.router.navigate(['/enterprise/annonces', id]);
+  }
+
+  dismissNotice(index: number): void {
+    this.realtimeNotices.splice(index, 1);
+    this.refreshView();
+  }
+
+  private subscribeRealtime(listingId: number, groupId: number | null): void {
+    if (!this.subscribedListings.has(listingId)) {
+      this.subscribedListings.add(listingId);
+      this.realtimeService.listingDetailEvents(listingId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => {
+          if (event.type === 'LISTING_DELETED') {
+            this.pushNotice('Cette annonce vient d etre supprimee.');
+            this.router.navigate(['/enterprise/annonces']);
+            return;
+          }
+          this.refreshListingCountersFromApi(listingId);
+          this.pushNotice(this.messageForEvent(event.type));
+        });
+
+      this.realtimeService.favoriteEvents(listingId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.refreshListingCountersFromApi(listingId));
+
+      this.authService.user$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((user) => {
+          const id = user?.id ? Number(user.id) : null;
+          if (!id || !Number.isFinite(id)) return;
+          this.realtimeService.userNotifications(id)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((event) => this.pushNotice(event.message || 'Nouvelle notification'));
+        });
+    }
+
+    if (groupId) {
+      this.realtimeService.groupEvents<GroupPurchaseResponse>(groupId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => {
+          if (event.payload) {
+            this.onGroupPurchaseUpdated(event.payload);
+          }
+          this.pushNotice('Achat groupe mis a jour en temps reel.');
+        });
+    }
+  }
+
+  private loadMatches(listingId: number): void {
+    this.matchesLoading = true;
+    this.listingService.matches(listingId, 4).subscribe({
+      next: (rows) => {
+        this.matches = rows.filter((row) => row.listing?.id && row.listing.id !== listingId);
+        this.matchesLoading = false;
+        this.refreshView();
+      },
+      error: () => {
+        this.matches = [];
+        this.matchesLoading = false;
+        this.refreshView();
+      }
+    });
+  }
+
+  private pushNotice(message: string): void {
+    if (!message) return;
+    this.realtimeNotices = [message, ...this.realtimeNotices].slice(0, 3);
+    this.refreshView();
+    setTimeout(() => {
+      this.realtimeNotices = this.realtimeNotices.filter((m) => m !== message);
+      this.refreshView();
+    }, 5500);
+  }
+
+  private messageForEvent(type: string): string {
+    switch (type) {
+      case 'LISTING_UPDATED': return 'Annonce mise a jour.';
+      case 'LISTING_CANCELLED': return 'Annonce annulee.';
+      case 'COMMENT_CREATED': return 'Nouveau commentaire.';
+      case 'COMMENT_UPDATED': return 'Commentaire modifie.';
+      case 'COMMENT_DELETED': return 'Commentaire supprime.';
+      case 'FAVORITE_CHANGED': return 'Favoris mis a jour.';
+      case 'GROUP_CHANGED': return 'Achat groupe mis a jour.';
+      default: return 'Mise a jour temps reel recue.';
+    }
   }
 
   timeAgo(dateStr: string): string {

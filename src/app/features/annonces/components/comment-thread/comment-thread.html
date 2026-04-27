@@ -51,14 +51,28 @@
 
 <!-- Recursive comment template -->
 <ng-template #commentTpl let-c let-depth="depth">
-  <div class="ct-item" [style.marginLeft.px]="depth * 24" [class.ct-reply]="depth > 0">
+  <div class="ct-item"
+       [style.marginLeft.px]="depth * 24"
+       [class.ct-reply]="depth > 0"
+       [class.ct-masked]="c.moderationStatus === 'MASKED'"
+       [class.ct-blocked]="c.moderationStatus === 'BLOCKED'">
     <div class="ct-avatar">{{c.userFullName?.charAt(0) || '?'}}</div>
     <div class="ct-content">
       <div class="ct-header">
         <span class="ct-author">{{c.userFullName}}</span>
         <span class="ct-date">{{timeAgo(c.createdAt)}}</span>
+        <span class="ct-mod-badge ct-mod-masked" *ngIf="c.moderationStatus === 'MASKED'">
+          Masque
+        </span>
+        <span class="ct-mod-badge ct-mod-blocked" *ngIf="c.moderationStatus === 'BLOCKED'">
+          Modere
+        </span>
       </div>
       <p class="ct-text">{{c.content}}</p>
+      <div class="ct-mod-meta" *ngIf="c.moderationStatus && c.moderationStatus !== 'VISIBLE'">
+        <span *ngIf="c.toxicityScore !== undefined">Score {{ c.toxicityScore | number:'1.2-2' }}</span>
+        <span *ngIf="c.moderationReason">{{ c.moderationReason }}</span>
+      </div>
       <div class="ct-actions">
         <button class="btn btn-ghost btn-sm" (click)="startReply(c)">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>

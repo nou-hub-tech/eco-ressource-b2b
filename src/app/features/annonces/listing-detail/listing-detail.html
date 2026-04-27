@@ -18,6 +18,12 @@
       Retour
     </a>
 
+    <div class="rt-notices" *ngIf="realtimeNotices.length">
+      <button type="button" *ngFor="let notice of realtimeNotices; let i = index" (click)="dismissNotice(i)">
+        {{ notice }}
+      </button>
+    </div>
+
     <div class="ld-grid">
       <!-- Left column: main content -->
       <div class="ld-main">
@@ -76,6 +82,18 @@
           <p class="ld-desc">{{listing.description}}</p>
         </div>
 
+        <div class="ld-section ld-map-section" *ngIf="hasCoordinates">
+          <div class="ld-section-head">
+            <h3>Localisation</h3>
+            <span>{{ listing.location || 'Coordonnees annonce' }}</span>
+          </div>
+          <app-listing-map
+            [listings]="mapListings"
+            [height]="280"
+            (listingSelected)="openListing($event)">
+          </app-listing-map>
+        </div>
+
         <!-- Info cards -->
         <div class="ld-info-grid">
           <div class="ld-info-card">
@@ -111,6 +129,29 @@
           [listingCompanyId]="listing.companyId"
           (commentCountUpdated)="onCommentCountUpdated($event)">
         </app-comment-thread>
+
+        <div class="ld-section ld-match-section">
+          <div class="ld-section-head">
+            <h3>Recommandations IA</h3>
+            <span *ngIf="matches.length">{{ matches.length }} suggestion{{ matches.length > 1 ? 's' : '' }}</span>
+          </div>
+          <div class="ld-match-loading" *ngIf="matchesLoading">Recherche des annonces pertinentes...</div>
+          <div class="ld-match-empty" *ngIf="!matchesLoading && !matches.length">
+            Aucune recommandation pertinente pour le moment.
+          </div>
+          <button
+            type="button"
+            class="ld-match-card"
+            *ngFor="let match of matches"
+            (click)="openMatch(match)">
+            <div>
+              <strong>{{ match.listing.title }}</strong>
+              <span>{{ match.listing.productCategory }} - {{ match.listing.location || 'Localisation non precisee' }}</span>
+              <small>{{ match.reason }}</small>
+            </div>
+            <b>{{ match.score | number:'1.0-0' }}%</b>
+          </button>
+        </div>
       </div>
 
       <!-- Right sidebar -->

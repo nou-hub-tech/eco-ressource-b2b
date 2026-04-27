@@ -17,6 +17,8 @@ import { FormControl, Validators } from '@angular/forms';
 import { CommentService } from '../../services/comment.service';
 import { CommentResponse } from '../../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../../core/services/auth.service';
+import { RealtimeService } from '../../services/realtime.service';
+import { EmailJsBrowserService } from '../../services/email-js-browser.service';
 
 @Component({
   selector: 'app-comment-thread',
@@ -41,11 +43,14 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   currentUserId: number | null = null;
   currentUserRole: string | null = null;
   currentCompanyId: number | null = null;
+  currentUserEmail: string | null = null;
   private spamTimer: any;
 
   constructor(
     private readonly commentService: CommentService,
     private readonly authService: AuthService,
+    private readonly realtimeService: RealtimeService,
+    private readonly emailJsBrowserService: EmailJsBrowserService,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone
   ) {}
@@ -158,6 +163,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
       this.currentUserId = user ? parseInt(user.id, 10) : null;
       this.currentUserRole = user?.role ?? null;
       this.currentCompanyId = this.authService.getCompanyProfileId();
+      this.currentUserEmail = user?.email ?? null;
       this.refreshView();
     });
     if (this.authService.isLoggedIn() && this.authService.getCompanyProfileId() == null) {
@@ -167,6 +173,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
       });
     }
     this.loadComments();
+    this.subscribeRealtimeComments();
   }
 
   ngOnDestroy(): void {
@@ -199,6 +206,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
         content: this.commentCtrl.value!.trim()
       }).subscribe({
         next: (updated) => {
+          this.emailJsBrowserService.sendModerationNotice(updated, this.currentUserEmail);
           this.syncLocalComments(this.updateCommentInTree(this.comments, updated));
           this.reset();
           this.loadComments();
@@ -211,6 +219,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
         parentId: this.replyTo?.id ?? null
       }).subscribe({
         next: (created) => {
+          this.emailJsBrowserService.sendModerationNotice(created, this.currentUserEmail);
           this.syncLocalComments(this.addCommentToTree(this.comments, created));
           this.reset();
           this.startAntiSpam();
@@ -289,5 +298,39 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   private startAntiSpam(): void {
     this.antiSpam = true;
     this.spamTimer = setTimeout(() => { this.antiSpam = false; }, 3000);
+  }
+
+  private subscribeRealtimeComments(): void {
+    this.realtimeService.commentEvents<CommentResponse>(this.listingId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event) => {
+        const comment = event.payload;
+        if (!comment) {
+          this.loadComments();
+          return;
+        }
+        if (event.type === 'COMMENT_CREATED') {
+          if (this.containsComment(this.comments, comment.id)) return;
+          this.syncLocalComments(this.addCommentToTree(this.comments, comment));
+          return;
+        }
+        if (event.type === 'COMMENT_UPDATED') {
+          this.syncLocalComments(this.updateCommentInTree(this.comments, comment));
+          return;
+        }
+        if (event.type === 'COMMENT_DELETED') {
+          this.syncLocalComments(this.removeCommentFromTree(this.comments, comment.id));
+          return;
+        }
+        this.loadComments();
+      });
+  }
+
+  private containsComment(nodes: CommentResponse[], id: number): boolean {
+    for (const node of nodes) {
+      if (node.id === id) return true;
+      if (node.replies?.length && this.containsComment(node.replies, id)) return true;
+    }
+    return false;
   }
 }

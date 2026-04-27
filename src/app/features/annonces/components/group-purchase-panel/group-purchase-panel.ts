@@ -10,6 +10,7 @@ import {
   ParticipantInfo
 } from '../../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../../core/services/auth.service';
+import { RealtimeService } from '../../services/realtime.service';
 
 @Component({
   selector: 'app-group-purchase-panel',
@@ -36,6 +37,7 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
   constructor(
     private readonly groupService: GroupPurchaseService,
     private readonly authService: AuthService,
+    private readonly realtimeService: RealtimeService,
     private readonly destroyRef: DestroyRef
   ) {}
 
@@ -53,6 +55,13 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
     }
 
     this.startCountdown();
+    this.realtimeService.groupEvents<GroupPurchaseResponse>(this.group.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event) => {
+        if (!event.payload) return;
+        this.group = event.payload;
+        this.groupUpdated.emit(event.payload);
+      });
   }
 
   private syncCompanyId(): void {
