@@ -7,6 +7,7 @@ import { Layout } from '../../shared/components/layout/layout';
 import { Dashboard } from './dashboard/dashboard';
 import { Users } from './users/users';
 import { Events } from '../events/events';
+import { EventsMapComponent } from '../events/events-map/events-map';
 import { FeaturesEventsModule } from '../events/events-module';
 import { Stock } from './stock/stock';
 import { Deliveries } from './deliveries/deliveries';
@@ -24,6 +25,7 @@ const routes: Routes = [
       { path: 'dashboard',    component: Dashboard },
       { path: 'users',        component: Users },
       { path: 'events',       component: Events },
+      { path: 'events/events-map', component: EventsMapComponent },
       { path: 'stock',        component: Stock },
       { path: 'deliveries',   component: Deliveries },
       { path: 'listings',     component: Listings },

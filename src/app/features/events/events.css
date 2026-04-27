@@ -224,3 +224,18 @@
   cursor: not-allowed;
   transform: none;
 }
+
+/* Dynamic Map link */
+.btn-map-link {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.1), rgba(52, 211, 153, 0.1));
+  border: 1px solid rgba(96, 165, 250, 0.25) !important;
+  color: var(--text2);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.btn-map-link:hover {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.18), rgba(52, 211, 153, 0.18));
+  border-color: rgba(96, 165, 250, 0.4) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(96, 165, 250, 0.15);
+}

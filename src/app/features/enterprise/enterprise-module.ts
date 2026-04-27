@@ -14,6 +14,7 @@ import { Transactions } from './transactions/transactions';
 import { Reports } from './reports/reports';
 import { Requests } from './requests/requests';
 import { Events } from '../events/events';
+import { EventsMapComponent } from '../events/events-map/events-map';
 import { FeaturesEventsModule } from '../events/events-module';
 
 const routes: Routes = [
@@ -32,6 +33,7 @@ const routes: Routes = [
       { path: 'reports',         component: Reports },
       { path: 'requests',        component: Requests },
       { path: 'events',          component: Events },
+      { path: 'events/events-map', component: EventsMapComponent },
     ]
   }
 ];
