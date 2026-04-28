@@ -176,35 +176,114 @@ export class MyInventory implements OnInit, AfterViewChecked {
       this.scanImageReading = true;
       this.scanError = '';
       this.cdr.detectChanges();
+
+      // Global timeout of 5s – Quagga can hang indefinitely
+      const globalTimeout = setTimeout(() => {
+        if (this.scanImageReading) {
+          this.scanImageReading = false;
+          this.scanError = '⚠ Lecture automatique impossible. Saisissez le numéro sous le code-barres dans le champ ci-dessous.';
+          this.cdr.detectChanges();
+        }
+      }, 5000);
+
       this.decodeWithQuagga(this.scanImagePreview).then(code => {
+        clearTimeout(globalTimeout);
         this.scanImageReading = false;
         if (code) {
           this.scanInput = code;
           this.scanError = '';
           this.doScan();
         } else {
-          this.scanError = 'Could not read the barcode from this image. Try a clearer photo or enter the code manually below.';
+          this.scanError = '⚠ Lecture automatique impossible. Saisissez le numéro sous le code-barres dans le champ ci-dessous.';
           this.cdr.detectChanges();
         }
+      }).catch(() => {
+        clearTimeout(globalTimeout);
+        this.scanImageReading = false;
+        this.scanError = '⚠ Erreur de lecture. Saisissez le numéro manuellement.';
+        this.cdr.detectChanges();
       });
     };
     reader.readAsDataURL(input.files[0]);
   }
 
   private decodeWithQuagga(imageSrc: string): Promise<string | null> {
-    return new Promise((resolve) => {
-      (Quagga as any).decodeSingle(
-        {
-          src: imageSrc,
-          numOfWorkers: 0,
-          inputStream: { size: 800 },
-          decoder: { readers: ['code_128_reader','ean_reader','ean_8_reader','code_39_reader','upc_reader','upc_e_reader'] },
-          locate: true
-        },
-        (result: any) => resolve(result?.codeResult?.code ?? null)
-      );
-    });
+
+    // Timeout helper – Quagga sometimes never calls back on failure
+    const withTimeout = <T>(ms: number, p: Promise<T>): Promise<T | null> =>
+      Promise.race([p, new Promise<null>(res => setTimeout(() => res(null), ms))]);
+
+    // One Quagga attempt
+    const tryQuagga = (size: number, locate = true): Promise<string | null> =>
+      withTimeout(4000, new Promise<string | null>((resolve) => {
+        try {
+          (Quagga as any).decodeSingle(
+            {
+              src: imageSrc,
+              numOfWorkers: 0,
+              inputStream: { size },
+              decoder: {
+                readers: [
+                  'code_128_reader', 'ean_reader', 'ean_8_reader',
+                  'code_39_reader',  'upc_reader', 'upc_e_reader',
+                  'itf_reader',      'codabar_reader'
+                ]
+              },
+              locate
+            },
+            (result: any) => resolve(result?.codeResult?.code ?? null)
+          );
+        } catch { resolve(null); }
+      }));
+
+    // Canvas preprocessing: binarise + crop bottom strip, then re-try Quagga
+    const tryCanvasOcr = (): Promise<string | null> =>
+      withTimeout(4000, new Promise<string | null>((resolve) => {
+        try {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const cropH  = Math.floor(img.height * 0.85); // keep 85% height
+              const canvas = document.createElement('canvas');
+              canvas.width  = img.width;
+              canvas.height = cropH;
+              const ctx = canvas.getContext('2d')!;
+              ctx.drawImage(img, 0, 0, img.width, cropH, 0, 0, img.width, cropH);
+
+              // Binarise
+              const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              for (let i = 0; i < id.data.length; i += 4) {
+                const g = 0.299 * id.data[i] + 0.587 * id.data[i+1] + 0.114 * id.data[i+2];
+                id.data[i] = id.data[i+1] = id.data[i+2] = g < 140 ? 0 : 255;
+              }
+              ctx.putImageData(id, 0, 0);
+
+              (Quagga as any).decodeSingle(
+                {
+                  src: canvas.toDataURL('image/png'),
+                  numOfWorkers: 0,
+                  inputStream: { size: 1200 },
+                  decoder: {
+                    readers: ['code_128_reader', 'ean_reader', 'upc_reader', 'ean_8_reader']
+                  },
+                  locate: true
+                },
+                (result: any) => resolve(result?.codeResult?.code ?? null)
+              );
+            } catch { resolve(null); }
+          };
+          img.onerror = () => resolve(null);
+          img.src = imageSrc;
+        } catch { resolve(null); }
+      }));
+
+    // Chain: size 800 → size 1600 → canvas pre-process → give up
+    return tryQuagga(800)
+      .then(c => c ?? tryQuagga(1600))
+      .then(c => c ?? tryCanvasOcr())
+      .catch(() => null);
   }
+
 
   doScan(): void {
     const q = this.scanInput.trim();

@@ -21,7 +21,14 @@ export class FinanceService {
 
   // ================= ENTERPRISES =================
   getEnterprises(): Observable<EnterpriseDto[]> {
-    return this.http.get<EnterpriseDto[]>(`${this.API}/enterprises`);
+    return this.http.get<any[]>(`${this.API}/enterprise`).pipe(
+      map(list => list.map(e => ({
+        id:          e.id          ?? e.idEnterprise ?? e.identerprise ?? 0,
+        companyName: e.companyName ?? e.company_name ?? e.name         ?? '',
+        taxId:       e.taxId       ?? e.tax_id       ?? e.fiscalId     ?? '',
+        sector:      e.sector      ?? '',
+      })))
+    );
   }
 
   // ================= TRANSACTIONS =================

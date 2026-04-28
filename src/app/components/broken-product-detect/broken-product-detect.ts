@@ -39,7 +39,7 @@ export class BrokenProductDetectComponent {
       next: (data) => {
         this.result = data;
         this.loading = false;
-        this.cdr.detectChanges(); // ← forces Angular to re-render
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.error = 'Detection failed. Check console for details.';
@@ -49,4 +49,5 @@ export class BrokenProductDetectComponent {
       }
     });
   }
+  
 }

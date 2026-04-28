@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { SharedModule } from '../../shared/shared-module';
@@ -19,6 +19,9 @@ import { Invoices } from './invoices/invoices';
 import { InvoiceChatComponent } from './invoices/invoice-chat.component';
 import { MyProducts } from './my-products/my-products';
 import { MyInventory } from './my-inventory/my-inventory';
+import { ProductFinder } from './product-finder/product-finder';
+import { MarketChatbot } from './market-chatbot/market-chatbot';
+import { MyReclamations } from './my-reclamations/my-reclamations';
 
 const routes: Routes = [
   {
@@ -40,6 +43,9 @@ const routes: Routes = [
       { path: 'events',          component: Events },
       { path: 'treasury',        component: Treasury },
       { path: 'invoices',        component: Invoices },
+      { path: 'product-finder',  component: ProductFinder },
+      { path: 'market-chatbot',  component: MarketChatbot },
+      { path: 'my-reclamations', component: MyReclamations },
       {
         path: 'annonces',
         loadChildren: () =>
@@ -54,8 +60,9 @@ const routes: Routes = [
     Dashboard, Marketplace, MyStock, MyProducts, MyInventory,
     MyDeliveries, MyListings, MyReservations,
     Transactions, Reports, Requests, Events, Treasury, Invoices,
-    InvoiceChatComponent
+    InvoiceChatComponent, ProductFinder, MarketChatbot, MyReclamations
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)],
+  providers: [DatePipe, DecimalPipe]
 })
 export class EnterpriseModule {}

@@ -1,0 +1,291 @@
+<div class="pf-wrapper">
+
+  <!-- ══ HEADER ══ -->
+  <div class="pf-header">
+    <button class="pf-back-btn" (click)="goBack()">← Back to My Stock</button>
+    <div class="pf-header-center">
+      <h1>🔍 Product Finder</h1>
+      <p>Browse available products &amp; stock from other enterprises on the platform</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="pf-scan-btn" style="background:linear-gradient(135deg,#10b981,#059669)" routerLink="/enterprise/market-chatbot">
+        🤖 AI Assistant
+      </button>
+      <button class="pf-scan-btn" (click)="openBarcodeModal()">📷 Scan Barcode</button>
+    </div>
+  </div>
+
+  <!-- ══ FILTERS ══ -->
+  <div class="pf-filters">
+    <div class="pf-search-wrap">
+      <span>🔍</span>
+      <input type="text" placeholder="Search by product name, category, description…"
+             [(ngModel)]="search" (keyup.enter)="applyFilters()">
+    </div>
+
+    <select [(ngModel)]="category" class="pf-select">
+      <option value="">All Categories</option>
+      <option *ngFor="let c of categories" [value]="c">{{c}}</option>
+    </select>
+
+    <div class="pf-price-range">
+      <input type="number" placeholder="Min price" [(ngModel)]="minPrice" class="pf-price-input">
+      <span>—</span>
+      <input type="number" placeholder="Max price" [(ngModel)]="maxPrice" class="pf-price-input">
+      <span style="font-size:11px;color:var(--text3)">DT/unit</span>
+    </div>
+
+    <button class="pf-btn-primary" (click)="applyFilters()">Search</button>
+    <button class="pf-btn-outline" (click)="clearFilters()" *ngIf="search||category||minPrice||maxPrice">✕ Clear</button>
+  </div>
+
+  <!-- ══ RESULTS COUNT ══ -->
+  <div class="pf-results-bar" *ngIf="!loading">
+    <span>{{ items.length }} product(s) available across the platform</span>
+  </div>
+
+  <!-- ══ LOADING ══ -->
+  <div class="pf-empty" *ngIf="loading">
+    <div class="pf-spinner"></div>
+    <p>Loading market products…</p>
+  </div>
+
+  <!-- ══ EMPTY ══ -->
+  <div class="pf-empty" *ngIf="!loading && items.length===0">
+    <span style="font-size:48px">📭</span>
+    <h3>No products found</h3>
+    <p>Try adjusting your filters or check back later.</p>
+  </div>
+
+  <!-- ══ PRODUCTS GRID ══ -->
+  <div class="pf-grid" *ngIf="!loading && items.length>0">
+    <div class="pf-card" *ngFor="let item of items" (click)="openDetail(item)">
+
+      <!-- Colored top bar by category -->
+      <div class="pf-card-bar" [style.background]="getCategoryColor(item.product.category)"></div>
+
+      <!-- Product image or initials -->
+      <div class="pf-card-img" *ngIf="getImageUrl(item.product.image)">
+        <img [src]="getImageUrl(item.product.image)" [alt]="item.product.name">
+      </div>
+      <div class="pf-card-img pf-card-img-empty" *ngIf="!getImageUrl(item.product.image)"
+           [style.background]="getCategoryColor(item.product.category)+'22'">
+        <span [style.color]="getCategoryColor(item.product.category)" style="font-size:32px;font-weight:700">
+          {{getInitials(item.product.name)}}
+        </span>
+      </div>
+
+      <div class="pf-card-body">
+        <!-- Title + category -->
+        <div class="pf-card-top">
+          <span class="pf-cat-badge" [style.background]="getCategoryColor(item.product.category)+'18'" [style.color]="getCategoryColor(item.product.category)">
+            {{item.product.category}}
+          </span>
+          <span class="pf-recyclable" *ngIf="item.product.recyclable">♻</span>
+        </div>
+        <h3 class="pf-card-title">{{item.product.name}}</h3>
+        <p class="pf-card-desc">{{item.product.description ? (item.product.description.length > 70 ? (item.product.description.slice(0,70)+'…') : item.product.description) : ''}}</p>
+
+        <!-- Stats row -->
+        <div class="pf-card-stats">
+          <div class="pf-stat">
+            <span class="pf-stat-lbl">Available Qty</span>
+            <span class="pf-stat-val">{{item.totalQty}}</span>
+          </div>
+          <div class="pf-stat">
+            <span class="pf-stat-lbl">From</span>
+            <span class="pf-stat-val pf-price">{{item.minUnitPrice | number:'1.2-2'}} DT</span>
+          </div>
+          <div class="pf-stat">
+            <span class="pf-stat-lbl">Stock Lines</span>
+            <span class="pf-stat-val">{{item.stockLines}}</span>
+          </div>
+        </div>
+
+        <!-- Expiry warning -->
+        <div class="pf-expiry" *ngIf="item.earliestExpiry" [class]="'pf-expiry-'+getExpiryClass(item.earliestExpiry)">
+          📅 {{getExpiryLabel(item.earliestExpiry)}}
+        </div>
+
+        <!-- Seller -->
+        <div class="pf-seller">
+          <div class="pf-seller-avatar">{{getInitials(item.seller.companyName)}}</div>
+          <div>
+            <div class="pf-seller-name">{{item.seller.companyName}}</div>
+            <div class="pf-seller-meta" *ngIf="item.seller.city">📍 {{item.seller.city}}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pf-card-footer">
+        <span class="pf-material-tag">{{item.product.materialType}}</span>
+        <button class="pf-details-btn">View Details →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ DETAIL MODAL ══ -->
+<div class="pf-modal-overlay" *ngIf="selectedItem" (click)="closeDetail()">
+  <div class="pf-modal" (click)="$event.stopPropagation()">
+
+    <div class="pf-modal-header">
+      <div class="pf-modal-title-row">
+        <span class="pf-cat-badge" [style.background]="getCategoryColor(selectedItem.product.category)+'18'" [style.color]="getCategoryColor(selectedItem.product.category)">
+          {{selectedItem.product.category}}
+        </span>
+        <h2>{{selectedItem.product.name}}</h2>
+      </div>
+      <button class="pf-close-btn" (click)="closeDetail()">✕</button>
+    </div>
+
+    <div class="pf-modal-body">
+
+      <!-- Image -->
+      <div class="pf-modal-img-wrap">
+        <img *ngIf="getImageUrl(selectedItem.product.image)" [src]="getImageUrl(selectedItem.product.image)" [alt]="selectedItem.product.name">
+        <div *ngIf="!getImageUrl(selectedItem.product.image)" class="pf-modal-img-empty"
+             [style.background]="getCategoryColor(selectedItem.product.category)+'22'">
+          <span style="font-size:56px;font-weight:700" [style.color]="getCategoryColor(selectedItem.product.category)">
+            {{getInitials(selectedItem.product.name)}}
+          </span>
+        </div>
+      </div>
+
+      <!-- Details grid -->
+      <div class="pf-detail-grid">
+
+        <!-- Product info -->
+        <div class="pf-detail-section">
+          <div class="pf-section-title">📦 Product Details</div>
+          <div class="pf-detail-row"><span>Name</span><strong>{{selectedItem.product.name}}</strong></div>
+          <div class="pf-detail-row"><span>Category</span><strong>{{selectedItem.product.category}}</strong></div>
+          <div class="pf-detail-row"><span>Material</span><strong>{{selectedItem.product.materialType}}</strong></div>
+          <div class="pf-detail-row"><span>Recyclable</span><strong [style.color]="selectedItem.product.recyclable?'#16a34a':'#dc2626'">{{selectedItem.product.recyclable ? '♻ Yes' : 'No'}}</strong></div>
+          <div class="pf-detail-row" *ngIf="selectedItem.product.barcode"><span>Barcode</span><strong style="font-family:monospace">{{selectedItem.product.barcode}}</strong></div>
+          <div class="pf-detail-row" *ngIf="selectedItem.product.description"><span>Description</span><strong>{{selectedItem.product.description}}</strong></div>
+        </div>
+
+        <!-- Stock info -->
+        <div class="pf-detail-section">
+          <div class="pf-section-title">🗃️ Available Stock</div>
+          <div class="pf-detail-row"><span>Total Quantity</span><strong style="font-size:20px;color:#6366f1">{{selectedItem.totalQty}}</strong></div>
+          <div class="pf-detail-row"><span>Price From</span><strong style="font-size:18px;color:#16a34a">{{selectedItem.minUnitPrice | number:'1.2-2'}} DT/unit</strong></div>
+          <div class="pf-detail-row"><span>Stock Lines</span><strong>{{selectedItem.stockLines}}</strong></div>
+          <div class="pf-detail-row" *ngIf="selectedItem.conditions?.length">
+            <span>Conditions</span>
+            <div class="pf-tags">
+              <span class="pf-tag" *ngFor="let c of selectedItem.conditions">{{c}}</span>
+            </div>
+          </div>
+          <div class="pf-detail-row" *ngIf="selectedItem.locations?.length">
+            <span>Locations</span>
+            <div class="pf-tags">
+              <span class="pf-tag" *ngFor="let l of selectedItem.locations">📍 {{l}}</span>
+            </div>
+          </div>
+          <div class="pf-detail-row" *ngIf="selectedItem.earliestExpiry">
+            <span>Expiry</span>
+            <span class="pf-expiry-inline" [class]="'pf-expiry-'+getExpiryClass(selectedItem.earliestExpiry)">
+              {{getExpiryLabel(selectedItem.earliestExpiry)}}
+            </span>
+          </div>
+        </div>
+
+        <!-- Seller info -->
+        <div class="pf-detail-section pf-seller-section">
+          <div class="pf-section-title">🏭 Seller</div>
+          <div class="pf-seller-card">
+            <div class="pf-seller-big-avatar">{{getInitials(selectedItem.seller.companyName)}}</div>
+            <div>
+              <div class="pf-seller-big-name">{{selectedItem.seller.companyName}}</div>
+              <div class="pf-seller-big-meta" *ngIf="selectedItem.seller.sector">🏭 {{selectedItem.seller.sector}}</div>
+              <div class="pf-seller-big-meta" *ngIf="selectedItem.seller.city">📍 {{selectedItem.seller.city}}</div>
+            </div>
+          </div>
+          <div class="pf-contact-note">
+            To purchase or enquire, contact the seller through the <strong>Marketplace</strong> or the <strong>Exchange Requests</strong> section.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="pf-modal-footer">
+      <button class="pf-btn-outline" (click)="closeDetail()">Close</button>
+      <button class="pf-btn-primary" routerLink="/enterprise/marketplace">Go to Marketplace →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BARCODE SCAN MODAL ══ -->
+<div class="pf-modal-overlay" *ngIf="showBarcodeModal" (click)="closeBarcodeModal()">
+  <div class="pf-modal pf-modal-sm" (click)="$event.stopPropagation()">
+
+    <div class="pf-modal-header">
+      <h2>📷 Find by Barcode</h2>
+      <button class="pf-close-btn" (click)="closeBarcodeModal()">✕</button>
+    </div>
+
+    <div class="pf-modal-body" style="padding:24px">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
+        Upload a barcode photo or enter the code manually to find the matching product across all enterprises.
+      </p>
+
+      <!-- Image upload -->
+      <div class="pf-upload-zone" (click)="bcImgInput.click()">
+        <input #bcImgInput type="file" accept="image/*" hidden (change)="onBarcodeImageSelected($event)">
+        <div *ngIf="!scanImagePreview && !imageScanning">
+          <div style="font-size:36px;margin-bottom:8px">📷</div>
+          <div style="font-weight:600;margin-bottom:4px">Upload barcode photo</div>
+          <div style="font-size:11px;color:var(--text3)">JPG, PNG, WEBP</div>
+        </div>
+        <div *ngIf="imageScanning" style="text-align:center">
+          <div class="pf-spinner"></div>
+          <div style="margin-top:8px;font-size:13px">Reading barcode…</div>
+        </div>
+        <div *ngIf="scanImagePreview && !imageScanning">
+          <img [src]="scanImagePreview" style="max-height:120px;max-width:100%;border-radius:8px;object-fit:contain">
+          <div class="pf-detect-ok" *ngIf="barcodeInput && !imageError">✅ Detected: {{barcodeInput}}</div>
+          <div class="pf-detect-err" *ngIf="imageError">⚠️ {{imageError}}</div>
+        </div>
+      </div>
+
+      <div class="pf-or-divider">— OR —</div>
+
+      <div class="pf-manual-row">
+        <input type="text" class="pf-input" [(ngModel)]="barcodeInput"
+               placeholder="Enter barcode number…" (keyup.enter)="searchByBarcode()">
+        <button class="pf-btn-primary" (click)="searchByBarcode()">Search</button>
+      </div>
+
+      <!-- Error -->
+      <div class="pf-scan-error" *ngIf="barcodeError">⚠ {{barcodeError}}</div>
+
+      <!-- Result -->
+      <div class="pf-scan-result" *ngIf="barcodeResult">
+        <div class="pf-scan-result-header">
+          <div class="pf-seller-avatar">{{getInitials(barcodeResult.product.name)}}</div>
+          <div>
+            <strong>{{barcodeResult.product.name}}</strong>
+            <div style="font-size:12px;color:var(--text2)">{{barcodeResult.product.category}} · {{barcodeResult.product.materialType}}</div>
+          </div>
+        </div>
+        <div class="pf-scan-stats">
+          <div class="pf-scan-stat"><span>Barcode</span><strong style="font-family:monospace">{{barcodeResult.product.barcode}}</strong></div>
+          <div class="pf-scan-stat"><span>Seller</span><strong>{{barcodeResult.seller.companyName}}</strong></div>
+          <div class="pf-scan-stat"><span>City</span><strong>{{barcodeResult.seller.city || '—'}}</strong></div>
+          <div class="pf-scan-stat"><span>Stock Lines</span><strong>{{barcodeResult.stocks?.length}}</strong></div>
+        </div>
+        <button class="pf-btn-primary" style="width:100%;margin-top:10px" (click)="closeBarcodeModal(); openDetail({product: barcodeResult.product, seller: barcodeResult.seller, stockLines: barcodeResult.stocks?.length, totalQty: 0, minUnitPrice: 0, conditions:[], locations:[], earliestExpiry:null})">
+          View Full Details →
+        </button>
+      </div>
+    </div>
+
+    <div class="pf-modal-footer">
+      <button class="pf-btn-outline" (click)="closeBarcodeModal()">Close</button>
+    </div>
+  </div>
+</div>

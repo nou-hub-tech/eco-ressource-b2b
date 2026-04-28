@@ -1,0 +1,249 @@
+<div class="rec-page">
+
+  <!-- ══ Header ══ -->
+  <div class="rec-header">
+    <div class="rec-header-left">
+      <div class="rec-title-row">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <h1>Reclamations</h1>
+      </div>
+      <p class="rec-sub">File damage claims against market products · Review claims on your own stock</p>
+    </div>
+    <button class="rec-new-btn" (click)="openCreate()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Reclamation
+    </button>
+  </div>
+
+  <!-- ══ Tabs ══ -->
+  <div class="rec-tabs">
+    <button class="rec-tab" [class.active]="activeTab==='sent'" (click)="activeTab='sent'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Sent
+      <span class="rec-tab-count">{{ sent.length }}</span>
+    </button>
+    <button class="rec-tab" [class.active]="activeTab==='received'" (click)="activeTab='received'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+      Received
+      <span class="rec-tab-count received">{{ received.length }}</span>
+    </button>
+  </div>
+
+  <!-- ══ SENT TAB ══ -->
+  <div *ngIf="activeTab==='sent'">
+    <div class="rec-loading" *ngIf="sentLoading"><div class="rec-spinner"></div><span>Loading...</span></div>
+
+    <div class="rec-empty" *ngIf="!sentLoading && sent.length===0">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      <p>No reclamations filed yet</p>
+      <button class="rec-new-btn" (click)="openCreate()">File your first reclamation</button>
+    </div>
+
+    <div class="rec-list" *ngIf="!sentLoading && sent.length>0">
+      <div class="rec-card" *ngFor="let r of sent" (click)="openDetail(r)">
+        <div class="rec-card-left">
+          <div class="rec-card-icon">⚠️</div>
+        </div>
+        <div class="rec-card-body">
+          <div class="rec-card-top">
+            <span class="rec-card-product">{{ r.productName }}</span>
+            <span class="rec-badge" [class]="statusClass(r.status)">{{ statusIcon(r.status) }} {{ r.status }}</span>
+          </div>
+          <div class="rec-card-desc">{{ r.description }}</div>
+          <div class="rec-card-meta">
+            <span *ngIf="r.defectType">🔧 {{ r.defectType }}</span>
+            <span *ngIf="r.damagedQuantity">📦 {{ r.damagedQuantity }} {{ r.damagedUnit || '' }}</span>
+            <span *ngIf="r.productCategory">🏷 {{ r.productCategory }}</span>
+            <span *ngIf="r.stockLocation">📍 {{ r.stockLocation }}</span>
+            <span>🕐 {{ fmt(r.createdAt) }}</span>
+          </div>
+        </div>
+        <div class="rec-card-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RECEIVED TAB ══ -->
+  <div *ngIf="activeTab==='received'">
+    <div class="rec-loading" *ngIf="receivedLoading"><div class="rec-spinner"></div><span>Loading...</span></div>
+
+    <div class="rec-empty" *ngIf="!receivedLoading && received.length===0">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+      <p>No reclamations received on your stock</p>
+    </div>
+
+    <div class="rec-list" *ngIf="!receivedLoading && received.length>0">
+      <div class="rec-card received-card" *ngFor="let r of received">
+        <div class="rec-card-left">
+          <div class="rec-card-icon">📥</div>
+        </div>
+        <div class="rec-card-body">
+          <div class="rec-card-top">
+            <span class="rec-card-product">{{ r.productName }}</span>
+            <span class="rec-badge" [class]="statusClass(r.status)">{{ statusIcon(r.status) }} {{ r.status }}</span>
+          </div>
+          <div class="rec-card-claimant">Claimed by: <strong>{{ r.claimantName }}</strong></div>
+          <div class="rec-card-desc">{{ r.description }}</div>
+          <div class="rec-card-meta">
+            <span *ngIf="r.defectType">🔧 {{ r.defectType }}</span>
+            <span *ngIf="r.damagedQuantity">📦 Qty claimed: <strong>{{ r.damagedQuantity }} {{ r.damagedUnit || r.stockUnit || '' }}</strong></span>
+            <span *ngIf="r.stockQty != null">Stock remaining: <strong>{{ r.stockQty }} {{ r.stockUnit || '' }}</strong></span>
+            <span *ngIf="r.stockUnitPrice && r.stockQty != null" style="color:#059669;">New total: <strong>{{ r.stockQty * r.stockUnitPrice | number:'1.2-2' }} DT</strong></span>
+            <span>🕐 {{ fmt(r.createdAt) }}</span>
+          </div>
+        </div>
+        <!-- Treat button -->
+        <div class="rec-card-actions" *ngIf="r.status!=='TREATED' && r.status!=='RESOLVED'">
+          <button class="rec-treat-btn" (click)="treatReclamation(r)" [disabled]="treatingId===r.id">
+            <span *ngIf="treatingId!==r.id">✅ Verify &amp; Treat</span>
+            <span *ngIf="treatingId===r.id">Processing...</span>
+          </button>
+        </div>
+        <div class="rec-treated-label" *ngIf="r.status==='TREATED' || r.status==='RESOLVED'">
+          ✅ Treated
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!--  CREATE RECLAMATION MODAL                        -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="rec-modal-overlay" *ngIf="showCreateModal" (click)="closeCreate()">
+  <div class="rec-modal" (click)="$event.stopPropagation()">
+
+    <!-- STEP 1: Select product -->
+    <div *ngIf="step===1">
+      <div class="rec-modal-hd">
+        <h2>Select a Product to Claim</h2>
+        <button class="rec-modal-close" (click)="closeCreate()">✕</button>
+      </div>
+      <p class="rec-modal-sub">Choose a product from the market that was damaged or defective</p>
+
+      <div class="rec-loading" *ngIf="marketLoading"><div class="rec-spinner"></div><span>Loading market products...</span></div>
+
+      <div class="rec-product-grid" *ngIf="!marketLoading">
+        <div class="rec-product-card" *ngFor="let p of marketProducts" (click)="selectProduct(p)">
+          <div class="rec-prod-img">
+            <img *ngIf="getImage(p)" [src]="getImage(p)" [alt]="p.productName" />
+            <div *ngIf="!getImage(p)" class="rec-prod-img-ph">📦</div>
+          </div>
+          <div class="rec-prod-info">
+            <div class="rec-prod-name">{{ p.productName }}</div>
+            <div class="rec-prod-cat">{{ p.category }} · {{ p.materialType }}</div>
+            <div class="rec-prod-owner">By {{ p.ownerName }}</div>
+          </div>
+          <div class="rec-prod-select">Select →</div>
+        </div>
+      </div>
+
+      <div class="rec-empty" *ngIf="!marketLoading && marketProducts.length===0">
+        <p>No market products available to claim against</p>
+      </div>
+    </div>
+
+    <!-- STEP 2: Fill reclamation form -->
+    <div *ngIf="step===2 && !createResult">
+      <div class="rec-modal-hd">
+        <button class="rec-modal-back" (click)="backToSelect()">← Back</button>
+        <h2>File Reclamation</h2>
+        <button class="rec-modal-close" (click)="closeCreate()">✕</button>
+      </div>
+
+      <!-- Selected product summary -->
+      <div class="rec-selected-product">
+        <div class="rec-sel-img">
+          <img *ngIf="getImage(selectedProduct)" [src]="getImage(selectedProduct)" [alt]="selectedProduct.productName" />
+          <div *ngIf="!getImage(selectedProduct)" class="rec-prod-img-ph">📦</div>
+        </div>
+        <div>
+          <div class="rec-sel-name">{{ selectedProduct?.productName }}</div>
+          <div class="rec-sel-meta">{{ selectedProduct?.category }} · by {{ selectedProduct?.ownerName }}</div>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div class="rec-form">
+        <label class="rec-label">Damaged Quantity &amp; Unit *</label>
+        <div class="rec-qty-row">
+          <input class="rec-input rec-qty-input" type="number" min="1" [(ngModel)]="form.damagedQuantity" placeholder="Qty" />
+          <select class="rec-input rec-unit-select" [(ngModel)]="form.damagedUnit">
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="T">Tonne (T)</option>
+            <option value="unit">Unit(s)</option>
+            <option value="L">Litre (L)</option>
+            <option value="m">Metre (m)</option>
+            <option value="m2">m²</option>
+            <option value="m3">m³</option>
+            <option value="piece">Piece</option>
+            <option value="box">Box</option>
+            <option value="pallet">Pallet</option>
+          </select>
+        </div>
+        <div class="rec-qty-preview" *ngIf="form.damagedQuantity > 0">
+          Claiming: <strong>{{ form.damagedQuantity }} {{ form.damagedUnit }}</strong>
+          <span *ngIf="selectedProduct?.stockQty"> out of {{ selectedProduct.stockQty }} {{ form.damagedUnit }} in stock</span>
+        </div>
+
+        <label class="rec-label">Describe the Damage *</label>
+        <textarea class="rec-textarea" [(ngModel)]="form.description" placeholder="Describe what is wrong — scratches, cracks, missing parts, wrong product..."></textarea>
+
+        <label class="rec-label">Photo of Damage (optional — AI will analyse it)</label>
+        <div class="rec-upload-area" (click)="fileInput.click()">
+          <img *ngIf="previewUrl" [src]="previewUrl" class="rec-preview-img" />
+          <div *ngIf="!previewUrl" class="rec-upload-placeholder">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Click to upload photo</span>
+          </div>
+          <input #fileInput type="file" accept="image/*" style="display:none" (change)="onFileSelected($event)" />
+        </div>
+
+        <div class="rec-error" *ngIf="createError">{{ createError }}</div>
+
+        <button class="rec-submit-btn" (click)="submitReclamation()" [disabled]="creating">
+          <span *ngIf="!creating">🚀 Submit Reclamation</span>
+          <span *ngIf="creating">Analysing &amp; Submitting...</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Result -->
+    <div *ngIf="createResult" class="rec-result">
+      <div class="rec-result-icon">✅</div>
+      <h3>Reclamation Submitted!</h3>
+      <p>Your claim has been sent to <strong>{{ selectedProduct?.ownerName }}</strong>.</p>
+      <div class="rec-result-detail" *ngIf="createResult?.reclamation">
+        <div><strong>Defect:</strong> {{ createResult.reclamation.defectType }}</div>
+        <div *ngIf="createResult.reclamation.aiAnalysis"><strong>AI Analysis:</strong> {{ createResult.reclamation.aiAnalysis }}</div>
+      </div>
+      <button class="rec-submit-btn" (click)="closeCreate()">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ DETAIL MODAL ══ -->
+<div class="rec-modal-overlay" *ngIf="showDetail" (click)="closeDetail()">
+  <div class="rec-modal rec-detail-modal" (click)="$event.stopPropagation()">
+    <div class="rec-modal-hd">
+      <h2>Reclamation Detail</h2>
+      <button class="rec-modal-close" (click)="closeDetail()">✕</button>
+    </div>
+    <div *ngIf="detailRec" class="rec-detail-body">
+      <div class="rec-detail-row"><span>Product</span><strong>{{ detailRec.productName }}</strong></div>
+      <div class="rec-detail-row"><span>Status</span><span class="rec-badge" [class]="statusClass(detailRec.status)">{{ statusIcon(detailRec.status) }} {{ detailRec.status }}</span></div>
+      <div class="rec-detail-row"><span>Defect</span><strong>{{ detailRec.defectType || '—' }}</strong></div>
+      <div class="rec-detail-row"><span>Description</span><span>{{ detailRec.description }}</span></div>
+      <div class="rec-detail-row" *ngIf="detailRec.damagedQuantity"><span>Damaged Qty</span><strong>{{ detailRec.damagedQuantity }}</strong></div>
+      <div class="rec-detail-row"><span>Filed on</span><span>{{ fmt(detailRec.createdAt) }}</span></div>
+      <div class="rec-detail-ai" *ngIf="detailRec.aiAnalysis">
+        <div class="rec-ai-label">🤖 AI Analysis</div>
+        <p style="white-space: pre-line;">{{ detailRec.aiAnalysis }}</p>
+      </div>
+      <img *ngIf="detailRec.imageUrl" [src]="detailRec.imageUrl" class="rec-detail-img" />
+    </div>
+  </div>
+</div>

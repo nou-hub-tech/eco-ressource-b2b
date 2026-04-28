@@ -37,9 +37,9 @@ export class Login implements OnInit, AfterViewInit, OnDestroy {
   private animPaused = false;
 
   demoAccounts = [
-    { label: 'Admin',       email: 'admin@eco.tn'         },
-    { label: 'Enterprise',  email: 'slim@entreprise.tn'   },
-    { label: 'Transporter', email: 'karim@transport.tn'   },
+    { label: 'Admin',       email: 'admin@eco.tn',       password: 'admin123' },
+    { label: 'Enterprise',  email: 'slim@entreprise.tn',  password: 'demo123'  },
+    { label: 'Transporter', email: 'karim@transport.tn',  password: 'demo123'  },
   ];
 
   constructor(
@@ -202,8 +202,8 @@ export class Login implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /* ── FORM ── */
-  fillDemo(email: string): void {
-    this.form.patchValue({ email, password: 'demo123' });
+  fillDemo(email: string, password: string): void {
+    this.form.patchValue({ email, password });
     this.errorMessage = '';
   }
 

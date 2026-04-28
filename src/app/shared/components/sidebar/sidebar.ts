@@ -104,6 +104,8 @@ export class Sidebar implements OnInit {
     { label: 'Reports', icon: 'reports', route: '/enterprise/reports' },
     { label: 'Trésorerie', icon: 'earnings', route: '/enterprise/treasury' },
     { label: 'Factures', icon: 'invoice', route: '/enterprise/invoices' },
+    { label: 'My Reclamations', icon: 'requests', route: '/enterprise/my-reclamations' },
+
   ];
 
   transporterNav: NavItem[] = [

@@ -49,3 +49,65 @@
 
 .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--muted); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.match-badge {
+  padding: 10px;
+  border-radius: 8px;
+  margin: 15px 0;
+  text-align: center;
+  font-weight: bold;
+}
+
+.match-badge.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.match-info {
+  background-color: #e7f3ff;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-size: 14px;
+}
+
+.match-indicator {
+  background-color: #28a745;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  margin-left: 10px;
+}
+
+.suggestion-text {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #666;
+  font-style: italic;
+}
+.match-explanation {
+  font-size: 12px;
+  color: #0066cc;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+.suggestion-title {
+  font-weight: bold;
+  margin-top: 15px;
+  margin-bottom: 5px;
+}
+
+.suggestion-list {
+  list-style: none;
+  padding: 0;
+}
+
+.suggestion-list li {
+  padding: 8px;
+  background-color: #f8f9fa;
+  margin: 5px 0;
+  border-radius: 5px;
+  font-size: 14px;
+}
