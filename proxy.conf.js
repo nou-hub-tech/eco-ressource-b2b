@@ -23,8 +23,26 @@ function devProxyContext() {
   };
 }
 
+function devWsProxyContext() {
+  return {
+    target: TARGET,
+    secure: false,
+    changeOrigin: true,
+    ws: true,
+    onProxyReq(proxyReq) {
+      proxyReq.setHeader('Origin', PROXY_ORIGIN);
+      proxyReq.setHeader('Referer', `${PROXY_ORIGIN}/`);
+    },
+    onProxyReqWs(proxyReq) {
+      proxyReq.setHeader('Origin', PROXY_ORIGIN);
+    }
+  };
+}
+
 module.exports = {
   '/api': devProxyContext(),
+  '/ws': devWsProxyContext(),
+  '/ws-sockjs': devWsProxyContext(),
   '/product': devProxyContext(),
   '/files': devProxyContext(),
   '/ai': devProxyContext(),

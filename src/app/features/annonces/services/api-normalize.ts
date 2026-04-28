@@ -57,6 +57,7 @@ export function normalizeListing(raw: Record<string, unknown>): ListingResponse 
     productCategory: String(raw['productCategory'] ?? raw['product_category'] ?? ''),
     companyId: Number(raw['companyId'] ?? raw['company_id']),
     companyName: (raw['companyName'] ?? raw['company_name'] ?? null) as string | null,
+    ownerFullName: (raw['ownerFullName'] ?? raw['owner_full_name'] ?? null) as string | null,
     createdAt: String(raw['createdAt'] ?? raw['created_at'] ?? ''),
     attachmentUrls: Array.isArray(raw['attachmentUrls'])
       ? (raw['attachmentUrls'] as string[])

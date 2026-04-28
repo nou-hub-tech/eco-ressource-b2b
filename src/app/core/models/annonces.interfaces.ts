@@ -37,6 +37,7 @@ export interface ListingResponse {
   productCategory: string;
   companyId: number;
   companyName?: string | null;
+  ownerFullName?: string | null;
   createdAt: string;
   attachmentUrls: string[];
   groupPurchase: GroupPurchaseResponse | null;

@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, Validators } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { CommentService } from '../../services/comment.service';
 import { CommentResponse } from '../../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -45,6 +46,8 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   currentCompanyId: number | null = null;
   currentUserEmail: string | null = null;
   private spamTimer: any;
+  private realtimeSub?: Subscription;
+  private realtimeListingId: number | null = null;
 
   constructor(
     private readonly commentService: CommentService,
@@ -153,7 +156,11 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
     if (changes['listingId'] && !changes['listingId'].firstChange) {
       const id = this.listingId;
       if (Number.isFinite(id) && id > 0) {
+        this.comments = [];
+        this.realtimeListingId = null;
+        this.realtimeSub?.unsubscribe();
         this.loadComments();
+        this.subscribeRealtimeComments();
       }
     }
   }
@@ -178,6 +185,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
 
   ngOnDestroy(): void {
     if (this.spamTimer) clearTimeout(this.spamTimer);
+    this.realtimeSub?.unsubscribe();
   }
 
   loadComments(): void {
@@ -301,7 +309,12 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   }
 
   private subscribeRealtimeComments(): void {
-    this.realtimeService.commentEvents<CommentResponse>(this.listingId)
+    const id = Number(this.listingId);
+    if (!Number.isFinite(id) || id <= 0 || this.realtimeListingId === id) return;
+
+    this.realtimeSub?.unsubscribe();
+    this.realtimeListingId = id;
+    this.realtimeSub = this.realtimeService.commentEvents<CommentResponse>(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((event) => {
         const comment = event.payload;

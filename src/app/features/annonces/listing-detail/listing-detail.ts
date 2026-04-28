@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ResourceListingService } from '../services/resource-listing.service';
 import { FavoriteService } from '../services/favorite.service';
 import {
@@ -43,7 +44,13 @@ export class ListingDetail implements OnInit {
   matchesLoading = false;
   /** Incrémenté après un toggle favori ; ignore les réponses HTTP myFavorites arrivées trop tard. */
   private favoriteSyncGen = 0;
-  private readonly subscribedListings = new Set<number>();
+  private activeRealtimeListingId: number | null = null;
+  private activeRealtimeGroupId: number | null = null;
+  private listingRealtimeSub?: Subscription;
+  private favoriteRealtimeSub?: Subscription;
+  private groupRealtimeSub?: Subscription;
+  private readonly notificationUserIds = new Set<number>();
+  private adminNotificationsSubscribed = false;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -104,8 +111,9 @@ export class ListingDetail implements OnInit {
     this.currentCompanyId = this.authService.getCompanyProfileId();
     this.authService.user$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
+      .subscribe((user) => {
         this.currentCompanyId = this.authService.getCompanyProfileId();
+        this.subscribeNotifications(user);
       });
 
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((pm) => {
@@ -197,12 +205,19 @@ export class ListingDetail implements OnInit {
   }
 
   get ownerDisplayName(): string {
-    const n = this.listing?.companyName?.trim();
-    return n || 'Entreprise';
+    const fullName = this.listing?.ownerFullName?.trim();
+    if (fullName) return fullName;
+    const companyName = this.listing?.companyName?.trim();
+    return companyName || 'Auteur';
   }
 
   get ownerInitial(): string {
     return this.ownerDisplayName.charAt(0).toUpperCase();
+  }
+
+  get ownerSubtitle(): string {
+    const companyName = this.listing?.companyName?.trim();
+    return companyName || "Auteur de l'annonce";
   }
 
   get typeLabel(): string {
@@ -339,39 +354,46 @@ export class ListingDetail implements OnInit {
   }
 
   private subscribeRealtime(listingId: number, groupId: number | null): void {
-    if (!this.subscribedListings.has(listingId)) {
-      this.subscribedListings.add(listingId);
-      this.realtimeService.listingDetailEvents(listingId)
+    if (this.activeRealtimeListingId !== listingId) {
+      this.listingRealtimeSub?.unsubscribe();
+      this.favoriteRealtimeSub?.unsubscribe();
+      this.activeRealtimeListingId = listingId;
+
+      this.listingRealtimeSub = this.realtimeService.listingDetailEvents(listingId)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((event) => {
+          if (this.listing?.id !== listingId) return;
           if (event.type === 'LISTING_DELETED') {
             this.pushNotice('Cette annonce vient d etre supprimee.');
             this.router.navigate(['/enterprise/annonces']);
             return;
           }
           this.refreshListingCountersFromApi(listingId);
+          if (event.type === 'LISTING_UPDATED') {
+            return;
+          }
           this.pushNotice(this.messageForEvent(event.type));
         });
 
-      this.realtimeService.favoriteEvents(listingId)
+      this.favoriteRealtimeSub = this.realtimeService.favoriteEvents(listingId)
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.refreshListingCountersFromApi(listingId));
-
-      this.authService.user$
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((user) => {
-          const id = user?.id ? Number(user.id) : null;
-          if (!id || !Number.isFinite(id)) return;
-          this.realtimeService.userNotifications(id)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe((event) => this.pushNotice(event.message || 'Nouvelle notification'));
+        .subscribe(() => {
+          if (this.listing?.id !== listingId) return;
+          this.refreshListingCountersFromApi(listingId);
         });
+
     }
 
-    if (groupId) {
-      this.realtimeService.groupEvents<GroupPurchaseResponse>(groupId)
+    if (this.activeRealtimeGroupId !== groupId) {
+      this.groupRealtimeSub?.unsubscribe();
+      this.activeRealtimeGroupId = groupId;
+    }
+
+    if (groupId && !this.groupRealtimeSub) {
+      this.groupRealtimeSub = this.realtimeService.groupEvents<GroupPurchaseResponse>(groupId)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((event) => {
+          if (this.listing?.id !== listingId) return;
           if (event.payload) {
             this.onGroupPurchaseUpdated(event.payload);
           }
@@ -398,12 +420,30 @@ export class ListingDetail implements OnInit {
 
   private pushNotice(message: string): void {
     if (!message) return;
+    if (this.realtimeNotices.includes(message)) return;
     this.realtimeNotices = [message, ...this.realtimeNotices].slice(0, 3);
     this.refreshView();
     setTimeout(() => {
       this.realtimeNotices = this.realtimeNotices.filter((m) => m !== message);
       this.refreshView();
     }, 5500);
+  }
+
+  private subscribeNotifications(user: { id?: string; role?: string } | null): void {
+    const id = user?.id ? Number(user.id) : null;
+    if (id && Number.isFinite(id) && !this.notificationUserIds.has(id)) {
+      this.notificationUserIds.add(id);
+      this.realtimeService.userNotifications(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => this.pushNotice(event.message || 'Nouvelle notification'));
+    }
+
+    if (user?.role === 'admin' && !this.adminNotificationsSubscribed) {
+      this.adminNotificationsSubscribed = true;
+      this.realtimeService.adminNotifications()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => this.pushNotice(event.message || 'Alerte moderation admin'));
+    }
   }
 
   private messageForEvent(type: string): string {

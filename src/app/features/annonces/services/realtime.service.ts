@@ -16,9 +16,8 @@ export class RealtimeService {
   connect(): void {
     if (this.client) return;
 
-    const wsUrl = `${environment.apiUrl.replace(/\/api\/?$/, '').replace(/^http/, 'ws')}/ws`;
     this.client = new Client({
-      brokerURL: wsUrl,
+      brokerURL: this.buildWsUrl(),
       reconnectDelay: 3000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
@@ -32,6 +31,9 @@ export class RealtimeService {
       this.connected = false;
     };
     this.client.onStompError = () => {
+      this.connected = false;
+    };
+    this.client.onWebSocketClose = () => {
       this.connected = false;
     };
 
@@ -99,5 +101,19 @@ export class RealtimeService {
     } catch {
       return null;
     }
+  }
+
+  private buildWsUrl(): string {
+    const apiUrl = environment.apiUrl || '/api';
+    if (/^https?:\/\//i.test(apiUrl)) {
+      return `${apiUrl.replace(/\/api\/?$/, '').replace(/^http/i, 'ws')}/ws`;
+    }
+
+    if (typeof window === 'undefined') {
+      return '/ws';
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws`;
   }
 }
