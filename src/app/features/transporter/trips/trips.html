@@ -6,7 +6,50 @@
     </div>
   </div>
 
-  <!-- Carte OpenStreetMap -->
+  <!-- PANEL IA -->
+  <div class="ia-panel" *ngIf="iaPrediction && currentAcceptedTrip">
+    <div class="ia-header">
+      <div class="ia-title">🤖 IA Livraison Intelligente</div>
+      <div class="ia-confidence">
+        Fiabilité: {{ iaPrediction.confiance }}%
+        <div class="confidence-bar-small">
+          <div class="confidence-fill-small" [style.width]="iaPrediction.confiance + '%'"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="ia-body">
+      <div class="ia-stats">
+        <div class="ia-stat">
+          <span class="stat-icon">📏</span>
+          <span class="stat-label">Distance</span>
+          <span class="stat-value">{{ iaPrediction.distanceKm }} km</span>
+        </div>
+        <div class="ia-stat">
+          <span class="stat-icon">⏱️</span>
+          <span class="stat-label">Temps estimé</span>
+          <span class="stat-value">{{ iaPrediction.tempsEnHeures }}</span>
+        </div>
+        <div class="ia-stat">
+          <span class="stat-icon">🕐</span>
+          <span class="stat-label">Arrivée</span>
+          <span class="stat-value">{{ iaPrediction.tempsArrivee | date:'HH:mm' }}</span>
+        </div>
+      </div>
+      
+      <div class="ia-conditions">
+        <div class="condition"><span class="condition-icon">🚦</span>{{ iaPrediction.trafic }}</div>
+        <div class="condition"><span class="condition-icon">🌤️</span>{{ iaPrediction.meteo }}</div>
+        <div class="condition conseil"><span class="condition-icon">💡</span>{{ iaPrediction.conseil }}</div>
+      </div>
+    </div>
+    
+    <div class="ia-probleme-btn">
+      <button class="btn-probleme" (click)="openProblemeModal()">🚨 Signaler un problème</button>
+    </div>
+  </div>
+
+  <!-- Carte -->
   <div class="map-card">
     <div class="map-header">
       <i class="bi bi-map"></i>
@@ -15,60 +58,34 @@
     <div id="mainMap" class="map-container"></div>
     
     <div class="button-group">
-      <button class="btn-locate btn-gps" (click)="getUserLocation()" [disabled]="isLoadingLocation">
-        <i class="bi bi-crosshair"></i>
-        {{ isLoadingLocation ? 'Localisation...' : '📍 GPS' }}
-      </button>
-      
-      <button class="btn-locate btn-manual" (click)="enableManualLocationSelection()" [disabled]="isSelectingLocation">
-        <i class="bi bi-geo-alt"></i>
-        {{ isSelectingLocation ? 'Cliquez sur la carte...' : '✏️ Manuel' }}
-      </button>
-      
-      <button class="btn-locate btn-track" (click)="startRealTimeTracking()" [disabled]="isTracking">
-        <i class="bi bi-play-fill"></i>
-        {{ isTracking ? 'Suivi...' : '▶️ Temps réel' }}
-      </button>
-      
-      <button class="btn-locate btn-stop" (click)="stopRealTimeTracking()" [disabled]="!isTracking">
-        <i class="bi bi-stop-fill"></i>
-        ⏹️ Arrêter
-      </button>
+      <button class="btn-locate btn-gps" (click)="getUserLocation()" [disabled]="isLoadingLocation">📍 GPS</button>
+      <button class="btn-locate btn-manual" (click)="enableManualLocationSelection()" [disabled]="isSelectingLocation">✏️ Manuel</button>
+      <button class="btn-locate btn-track" (click)="startRealTimeTracking()" [disabled]="isTracking">▶️ Temps réel</button>
+      <button class="btn-locate btn-stop" (click)="stopRealTimeTracking()" [disabled]="!isTracking">⏹️ Arrêter</button>
     </div>
     
     <div class="map-footer">
-      <small>📍 Votre position: Lat: {{userLat.toFixed(4)}}, Lng: {{userLng.toFixed(4)}}</small>
+      <small>📍 Position: Lat: {{userLat.toFixed(4)}}, Lng: {{userLng.toFixed(4)}}</small>
     </div>
   </div>
 
   <!-- Messages -->
-  <div *ngIf="locationError" class="alert-warning">
-    <i class="bi bi-exclamation-triangle-fill"></i> {{ locationError }}
-  </div>
-
-  <div *ngIf="locationSuccess" class="alert-success">
-    <i class="bi bi-check-circle-fill"></i> {{ locationSuccess }}
-  </div>
-
-  <div *ngIf="isTracking" class="tracking-indicator">
-    <i class="bi bi-record-circle"></i> 📍 Suivi GPS activé
-  </div>
+  <div *ngIf="locationError" class="alert-warning">{{ locationError }}</div>
+  <div *ngIf="locationSuccess" class="alert-success">{{ locationSuccess }}</div>
+  <div *ngIf="locationWarning" class="alert-ia">{{ locationWarning }}</div>
+  <div *ngIf="isTracking" class="tracking-indicator">📍 Suivi GPS activé</div>
 
   <!-- Liste des trajets -->
   <div class="section-header">
     <h2><i class="bi bi-truck"></i> Trajets disponibles</h2>
-    <span class="badge-count">{{ availableTrips.length }} trajet(s)</span>
+    <span class="badge-count">{{ availableTrips?.length || 0 }} trajet(s)</span>
   </div>
 
-  <div *ngIf="isLoadingTrips" class="loading-state">
-    <div class="spinner"></div>
-    <p>Chargement des commandes...</p>
-  </div>
+  <div *ngIf="isLoadingTrips" class="loading-state">Chargement...</div>
 
-  <div *ngIf="!isLoadingTrips && availableTrips.length === 0" class="empty-state">
+  <div *ngIf="!isLoadingTrips && availableTrips?.length === 0" class="empty-state">
     <i class="bi bi-inbox"></i>
-    <p>Aucun trajet disponible pour le moment</p>
-    <small>Définissez votre position ou attendez de nouvelles commandes</small>
+    <p>Aucun trajet disponible</p>
   </div>
 
   <div class="trips-list">
@@ -84,128 +101,64 @@
       
       <div class="trip-body">
         <div class="trip-info">
-          <div class="info-row">
-            <i class="bi bi-person"></i>
-            <span>{{ trip.clientName }}</span>
-          </div>
-          <div class="info-row">
-            <i class="bi bi-geo-alt"></i>
-            <span class="address">{{ trip.address }}</span>
-          </div>
-          <div class="info-row">
-            <i class="bi bi-calendar"></i>
-            <span>{{ trip.date | date:'dd/MM/yyyy' }}</span>
-          </div>
-          <div class="info-row" *ngIf="trip.telephone">
-            <i class="bi bi-telephone"></i>
-            <span>{{ trip.telephone }}</span>
-          </div>
+          <div class="info-row"><i class="bi bi-person"></i>{{ trip.clientName }}</div>
+          <div class="info-row"><i class="bi bi-geo-alt"></i>{{ trip.address }}</div>
+          <div class="info-row"><i class="bi bi-calendar"></i>{{ trip.date | date:'dd/MM/yyyy' }}</div>
+          <div class="info-row" *ngIf="trip.telephone"><i class="bi bi-telephone"></i>{{ trip.telephone }}</div>
         </div>
-        
         <div class="trip-impact">
-          <div class="impact-item">
-            <i class="bi bi-tree"></i>
-            <span>CO₂: {{ trip.co2 }}</span>
-          </div>
+          <div class="impact-item"><i class="bi bi-tree"></i>CO₂: {{ trip.co2 }}</div>
         </div>
       </div>
       
-      <!-- Cas 1: Trajet non accepté et aucun trajet actif -->
       <div class="trip-actions" *ngIf="!trip.accepted && !hasActiveTrip">
-        <button class="btn-accept" (click)="acceptTrip(trip)">
-          <i class="bi bi-check-lg"></i> Accepter
-        </button>
-        <button class="btn-refuse" (click)="refuseTrip(trip)">
-          <i class="bi bi-x-lg"></i> Refuser
-        </button>
+        <button class="btn-accept" (click)="acceptTrip(trip)">✅ Accepter</button>
+        <button class="btn-refuse" (click)="refuseTrip(trip)">❌ Refuser</button>
       </div>
       
-      <!-- Cas 2: Trajet non accepté mais un trajet actif existe -->
       <div class="trip-disabled-message" *ngIf="!trip.accepted && hasActiveTrip">
-        <i class="bi bi-exclamation-triangle-fill"></i> ⚠️ Trajet en cours - Terminez votre livraison en cours
+        ⚠️ Trajet en cours
       </div>
       
-      <!-- Cas 3: Trajet accepté et en cours -->
       <div class="trip-active-message" *ngIf="trip.accepted && !trip.completed">
-        <div class="message-content">
-          <i class="bi bi-truck"></i> 🚚 Trajet en cours - Livraison en progression
-        </div>
-        <button class="btn-complete" (click)="completeTrip(trip.id)">
-          <i class="bi bi-check-circle"></i> Terminer la livraison
-        </button>
+        <div class="message-content">🚚 Trajet en cours</div>
+        <button class="btn-complete" (click)="completeTrip(trip.id)">✅ Terminer</button>
       </div>
       
-      <!-- Cas 4: Trajet terminé -->
       <div class="trip-completed-message" *ngIf="trip.completed">
-        <i class="bi bi-check-circle-fill"></i> ✅ Livraison terminée
+        ✅ Livraison terminée
       </div>
     </div>
   </div>
 </div>
 
-<!-- Modal carte -->
-<div class="modal-overlay" *ngIf="showMapModal" (click)="closeMapModal()">
-  <div class="modal map-modal" (click)="$event.stopPropagation()">
+<!-- Modal problème -->
+<div class="modal-overlay" *ngIf="showProblemeModal" (click)="closeProblemeModal()">
+  <div class="modal probleme-modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>
-        <i class="bi bi-geo-alt"></i>
-        Trajet: {{selectedTrip?.from}} → {{selectedTrip?.to}}
-      </h2>
-      <button class="btn-icon" (click)="closeMapModal()">✕</button>
+      <h2>🚨 Signaler un problème</h2>
+      <button class="btn-icon" (click)="closeProblemeModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="trip-summary">
-        <div class="summary-item">
-          <label>Distance:</label>
-          <span>{{selectedTrip?.distance}} km</span>
-        </div>
-        <div class="summary-item">
-          <label>Client:</label>
-          <span>{{selectedTrip?.clientName}}</span>
-        </div>
-        <div class="summary-item">
-          <label>Téléphone:</label>
-          <span>{{selectedTrip?.telephone || 'Non renseigné'}}</span>
-        </div>
-        <div class="summary-item">
-          <label>Adresse:</label>
-          <span>{{selectedTrip?.address}}</span>
-        </div>
-        <div class="summary-item">
-          <label>Date:</label>
-          <span>{{selectedTrip?.date | date:'dd/MM/yyyy'}}</span>
-        </div>
-        <div class="summary-item">
-          <label>CO₂:</label>
-          <span>{{selectedTrip?.co2}}</span>
-        </div>
+      <select [(ngModel)]="problemeType" class="form-control">
+        <option value="PANNE">🔧 Panne véhicule</option>
+        <option value="EMBOUTEILLAGE">🚦 Embouteillage</option>
+        <option value="ACCIDENT">🚗 Accident</option>
+        <option value="CLIENT_ABSENT">🏠 Client absent</option>
+      </select>
+      <textarea [(ngModel)]="problemeDescription" rows="2" class="form-control" placeholder="Description..."></textarea>
+      <div class="retard-buttons">
+        <button (click)="problemeRetard = 15" [class.active]="problemeRetard === 15">15 min</button>
+        <button (click)="problemeRetard = 30" [class.active]="problemeRetard === 30">30 min</button>
+        <button (click)="problemeRetard = 45" [class.active]="problemeRetard === 45">45 min</button>
+        <button (click)="problemeRetard = 60" [class.active]="problemeRetard === 60">60 min</button>
       </div>
-      <div id="routeMap" class="map-container route-map"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeMapModal()">Fermer</button>
-      
-      <button class="btn-primary" (click)="acceptTrip(selectedTrip); closeMapModal()" 
-              *ngIf="selectedTrip && !selectedTrip.accepted && !hasActiveTrip">
-        <i class="bi bi-check-lg"></i> Accepter
-      </button>
-      
-      <button class="btn-complete-modal" (click)="completeTrip(selectedTrip.id); closeMapModal()" 
-              *ngIf="selectedTrip && selectedTrip.accepted && !selectedTrip.completed">
-        <i class="bi bi-check-circle"></i> Terminer la livraison
-      </button>
-      
-      <div *ngIf="selectedTrip && selectedTrip.completed" class="accepted-badge-modal">
-        <i class="bi bi-check-circle-fill"></i> ✅ Livraison terminée
-      </div>
-      
-      <div *ngIf="selectedTrip && selectedTrip.accepted && !selectedTrip.completed && !hasActiveTrip" class="active-badge-modal">
-        <i class="bi bi-truck"></i> 🚚 Trajet en cours
-      </div>
-      
-      <div *ngIf="selectedTrip && !selectedTrip.accepted && hasActiveTrip" class="disabled-badge-modal">
-        <i class="bi bi-exclamation-triangle-fill"></i> ⚠️ Trajet en cours
-      </div>
+      <button class="btn-secondary" (click)="closeProblemeModal()">Annuler</button>
+      <button class="btn-danger" (click)="envoyerAlerteClient()">Notifier le client</button>
     </div>
   </div>
 </div>
+
+<button class="btn-diagnostic-ia" (click)="diagnosticIA()">🤖</button>

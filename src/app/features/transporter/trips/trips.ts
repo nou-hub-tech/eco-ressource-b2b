@@ -9,6 +9,7 @@ import { DeliveryOrder } from '../../../core/models/delivery-order';
 import { StatutCommande, StatutExpedition } from '../../../core/models/statut';
 import { Shipment } from '../../../core/models/shipment';
 import { environment } from '../../../../environments/environment';
+import { LivraisonIAService, PredictionLivraison, Probleme } from '../../../core/services/livraison-ia.service';
 
 declare var L: any;
 
@@ -25,6 +26,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     isLoadingLocation = false;
     locationError: string | null = null;
     locationSuccess: string | null = null;
+    locationWarning: string | null = null;
     private mainMap: any = null;
     private userMarker: any = null;
     private watchId: number | null = null;
@@ -50,6 +52,14 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     private transportersLoaded: boolean = false;
     private apiUrl = environment.apiUrl;
     
+    // Propriétés IA
+    iaPrediction: PredictionLivraison | null = null;
+    showProblemeModal = false;
+    problemeType: string = 'EMBOUTEILLAGE';
+    problemeDescription: string = '';
+    problemeRetard: number = 30;
+    toastMessage: string = '';
+    
     constructor(
         private deliveryOrderService: DeliveryOrderService,
         private pdfGenerator: PdfGeneratorService,
@@ -57,19 +67,16 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         private authService: AuthService,
         private shipmentUpdateService: ShipmentUpdateService,
         private transportService: TransportService,
-        private cd: ChangeDetectorRef
+        private cd: ChangeDetectorRef,
+        private iaService: LivraisonIAService
     ) {}
     
     async ngOnInit(): Promise<void> {
         console.log('🚚 INITIALISATION DE TRIPS');
         
-        // 1. Charger la liste des transporteurs
         await this.loadTransportersList();
-        
-        // 2. Récupérer le transporteur connecté
         await this.getCurrentTransporter();
         
-        // 3. Initialiser Leaflet
         (window as any).L = L;
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
@@ -78,20 +85,16 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
         });
         
-        // 4. Charger les données
         this.loadSavedPosition();
         this.loadAcceptedTripsFromStorage();
         this.loadDeliveryOrders();
         
-        // 5. Écouter les événements
         window.addEventListener('orderChanged', this.handleOrderChange.bind(this));
         
-        // 6. Rafraîchissement périodique
         this.refreshInterval = setInterval(() => {
             this.checkForOrderChanges();
         }, 5000);
         
-        // 7. Initialiser la carte
         setTimeout(() => {
             if (this.mainMap) {
                 this.addOrderMarkersToMap();
@@ -125,7 +128,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 },
                 error: (err) => {
                     console.error('❌ Erreur chargement transporteurs:', err);
-                    // Données mock de secours
                     this.transportersList = [
                         { id: 1, userId: 3, companyName: 'Karim Logistics', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() },
                         { id: 2, userId: 4, companyName: 'linda', sector: '', taxId: '', listingsCount: 0, ordersCount: 0, revenue: '', createdAt: new Date().toISOString() }
@@ -141,12 +143,10 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     async getCurrentTransporter(): Promise<void> {
         console.log('🔍 Recherche du transporteur connecté...');
         
-        // Attendre que la liste soit chargée
         if (!this.transportersLoaded) {
             await this.loadTransportersList();
         }
         
-        // Récupérer l'utilisateur courant
         const currentUser = this.authService.currentUser;
         console.log('👤 Utilisateur courant:', currentUser);
         
@@ -172,7 +172,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             console.warn('⚠️ Aucun utilisateur transporteur connecté');
         }
         
-        // S'abonner aux changements futurs
         this.authService.user$.subscribe(user => {
             if (user && user.role === 'transporter') {
                 const userId = parseInt(user.id, 10);
@@ -364,6 +363,23 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }, 1000);
     }
     
+    extraireVilleFromAdresse(adresse: string): string {
+        const villes = [
+            'Tunis', 'Ariana', 'Ben Arous', 'La Marsa', 'Sidi Bou Said', 
+            'Manouba', 'Mégrine', 'Rades', 'Hammam Lif', 'Sousse', 
+            'Sfax', 'Gabès', 'Bizerte', 'Nabeul', 'Kairouan', 'Béja', 
+            'Jendouba', 'Le Kef', 'Gafsa', 'Tozeur', 'Tataouine', 
+            'Monastir', 'Mahdia', 'Kasserine', 'Sidi Bouzid'
+        ];
+        
+        for (const ville of villes) {
+            if (adresse && adresse.toLowerCase().includes(ville.toLowerCase())) {
+                return ville;
+            }
+        }
+        return 'Tunis';
+    }
+    
     calculateAvailableTrips(): void {
         console.log('Calcul des trajets disponibles...');
         this.availableTrips = [];
@@ -422,6 +438,10 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 }
                 
                 const distance = this.calculateDistance(this.userLat, this.userLng, cityLat, cityLng);
+                
+                // Pas de filtre - on affiche toutes les commandes
+                console.log(`📦 Commande #${order.idDelivery}: ${cityName}, distance: ${distance} km`);
+                
                 const isAccepted = this.acceptedTrips.has(order.idDelivery);
                 const isCompleted = this.acceptedTrips.get(order.idDelivery)?.completed || false;
                 
@@ -639,8 +659,60 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
     }
     
+    calculerPredictionIA(trip: any): void {
+        const depart = this.getCurrentCityName();
+        const arrivee = this.extraireVilleFromAdresse(trip.address);
+        
+        console.log(`🤖 IA: Calcul prédiction de ${depart} vers ${arrivee}`);
+        
+        this.iaPrediction = this.iaService.predireLivraison(depart, arrivee);
+        
+        console.log('📊 Résultat IA:', this.iaPrediction);
+    }
+    
+    openProblemeModal(): void {
+        console.log('🟢 openProblemeModal appelé');
+        this.showProblemeModal = true;
+        this.cd.detectChanges();
+    }
+    
+    closeProblemeModal(): void {
+        console.log('🔴 closeProblemeModal appelé');
+        this.showProblemeModal = false;
+        this.problemeDescription = '';
+        this.problemeRetard = 30;
+        this.cd.detectChanges();
+    }
+    
+    envoyerAlerteClient(): void {
+        console.log('📨 envoyerAlerteClient appelé');
+        if (!this.currentAcceptedTrip) {
+            console.error('Pas de trajet actif');
+            return;
+        }
+        
+        const probleme = this.iaService.signalerProbleme(
+            this.problemeType,
+            this.problemeDescription,
+            this.problemeRetard
+        );
+        
+        this.iaService.envoyerNotificationClient(
+            probleme,
+            this.currentAcceptedTrip.clientName,
+            this.currentAcceptedTrip.telephone || "Non renseigné"
+        );
+        
+        this.toastMessage = `✅ Client notifié : ${probleme.messageClient.substring(0, 80)}...`;
+        setTimeout(() => this.toastMessage = '', 5000);
+        
+        this.closeProblemeModal();
+        
+        this.locationWarning = `🚨 Problème signalé: ${probleme.type} - Retard: ${probleme.retardMinutes} min`;
+        setTimeout(() => this.locationWarning = '', 8000);
+    }
+    
     acceptTrip(trip: any): void {
-        // Vérifier que le transporteur est bien identifié
         if (!this.currentTransporterId || this.currentTransporterId <= 0) {
             console.error('❌ currentTransporterId invalide:', this.currentTransporterId);
             this.locationError = '❌ Impossible d\'accepter: transporteur non identifié. Veuillez rafraîchir la page.';
@@ -674,7 +746,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                             
                             this.pdfGenerator.generateDeliveryOrderPDF(deliveryOrder);
                             
-                            // Récupérer toutes les expéditions
                             this.shipmentService.getAll().subscribe({
                                 next: (shipments: Shipment[]) => {
                                     const existingShipment = shipments.find(
@@ -749,7 +820,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                 }
                             });
                             
-                            // Mise à jour locale
                             trip.accepted = true;
                             trip.completed = false;
                             trip.transporterId = this.currentTransporterId;
@@ -774,6 +844,10 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                             this.saveAcceptedTripsToStorage();
                             this.calculateAvailableTrips();
                             this.addOrderMarkersToMap();
+                            
+                            setTimeout(() => {
+                                this.calculerPredictionIA(trip);
+                            }, 500);
                             
                             setTimeout(() => {
                                 this.drawRoute(trip.lat, trip.lng);
@@ -850,6 +924,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     
                     this.hasActiveTrip = false;
                     this.currentAcceptedTrip = null;
+                    this.iaPrediction = null;
                     
                     this.routeLines.forEach(line => {
                         if (this.mainMap) this.mainMap.removeLayer(line);
@@ -1165,6 +1240,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         if (this.currentAcceptedTrip && this.currentAcceptedTrip.id === tripId) {
             this.hasActiveTrip = false;
             this.currentAcceptedTrip = null;
+            this.iaPrediction = null;
         }
         
         this.routeLines.forEach(line => {
@@ -1213,7 +1289,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         });
     }
     
-    // Méthode de diagnostic
     diagnosticTransporteur(): void {
         console.log('=== DIAGNOSTIC TRANSPORTEUR ===');
         console.log('transportersLoaded:', this.transportersLoaded);
@@ -1232,5 +1307,27 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
         
         alert(`Diagnostic:\nTransporteur ID: ${this.currentTransporterId}\nNom: ${this.currentTransporterName}\nListe taille: ${this.transportersList.length}`);
+    }
+    
+    diagnosticCommandes(): void {
+        console.log('=== DIAGNOSTIC COMMANDES ===');
+        console.log('Commandes reçues:', this.deliveryOrders.length);
+        
+        if (this.deliveryOrders.length === 0) {
+            alert('❌ Aucune commande chargée ! Vérifiez l\'API');
+            return;
+        }
+        
+        this.deliveryOrders.forEach(order => {
+            console.log(`- #${order.idDelivery}: ${order.nomClient} - ${order.adresseLivraison} - ${order.statut}`);
+        });
+        
+        alert(`${this.deliveryOrders.length} commandes chargées. Regardez la console (F12) pour les détails.`);
+    }
+    
+    diagnosticIA(): void {
+        console.log('=== DIAGNOSTIC IA ===');
+        console.log('Prédiction actuelle:', this.iaPrediction);
+        alert(`IA Active\nPrédiction: ${this.iaPrediction?.tempsEnHeures || 'N/A'}\nConfiance: ${this.iaPrediction?.confiance || 'N/A'}%`);
     }
 }
