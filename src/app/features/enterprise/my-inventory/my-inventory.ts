@@ -503,13 +503,22 @@ export class MyInventory implements OnInit, AfterViewChecked {
   }
   getImageUrl(img: string | undefined): string {
     if (!img || img === 'default.png' || img === 'undefined' || img === 'null') return '';
-    if (img.startsWith('http')) return img;
-    return `/files/${img}`;
- 
-
-
-
-
-    
+    const str = img.trim();
+    // Si c'est une URL complète (http://localhost:8080/files/...), extraire le nom de fichier
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      if (str.includes('/files/undefined') || str.includes('/files/null')) return '';
+      if (str.includes('/files/')) {
+        const filename = str.split('/files/')[1];
+        return `/files/${filename}`;
+      }
+      return str;
+    }
+    // Si c'est déjà un chemin /files/...
+    if (str.includes('files/')) {
+      const filename = str.split('files/')[1];
+      return `/files/${filename}`;
+    }
+    // Sinon c'est juste le nom de fichier
+    return `/files/${str}`;
   }
 }

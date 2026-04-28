@@ -26,7 +26,7 @@ export class ProductListComponent implements OnInit {
     private productService: ProductService,
     private router: Router,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.loadPaginated();
@@ -114,34 +114,38 @@ export class ProductListComponent implements OnInit {
     if (imagePath === null || imagePath === undefined || imagePath === '') {
       return '';
     }
-    
+
     // Convert to string and trim
     const str = String(imagePath).trim();
-    
+
     // Reject only known invalid values
-    if (!str || 
-        str === 'undefined' || 
-        str === 'null' || 
-        str === 'default.png' || 
-        str === '[object Object]') {
+    if (!str ||
+      str === 'undefined' ||
+      str === 'null' ||
+      str === 'default.png' ||
+      str === '[object Object]') {
       return '';
     }
-    
-    // If it's already a valid full URL, return as-is
+
+    // If it's a full URL (http/https), extract only the filename part to go through proxy
     if (str.startsWith('http://') || str.startsWith('https://')) {
-      // Reject URLs with invalid path segments
       if (str.includes('/files/undefined') || str.includes('/files/null')) {
         return '';
       }
+      // Extract filename from full URL to route through Angular proxy
+      if (str.includes('/files/')) {
+        const filename = str.split('/files/')[1];
+        return `/files/${filename}`;
+      }
       return str;
     }
-    
+
     // If it contains 'files/', extract the filename
     if (str.includes('files/')) {
       const filename = str.split('files/')[1];
       return `/files/${filename}`;
     }
-    
+
     // Otherwise, treat as filename and build the URL
     return `/files/${str}`;
   }
@@ -159,8 +163,8 @@ export class ProductListComponent implements OnInit {
   }
   // Inside ProductListComponent class, add this method:
 
-handleImageError(product: Product): void {
-  product.image = '';  // Clear invalid image URL
-  this.cdr.detectChanges();
-}
+  handleImageError(product: Product): void {
+    product.image = '';  // Clear invalid image URL
+    this.cdr.detectChanges();
+  }
 }

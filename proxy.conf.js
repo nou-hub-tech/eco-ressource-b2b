@@ -1,12 +1,12 @@
 /**
- * Proxy dev → Spring (port 8080).
+ * Proxy dev → Spring (port 9090).
  *
  * Si vous ouvrez l’app sur http://127.0.0.1:4200, le navigateur envoie
  * Origin: http://127.0.0.1:4200 ; Spring ne l’a souvent pas dans sa liste CORS
  * (seulement localhost:4200), ce qui peut donner 403 sur POST /api/auth/login.
  * On réécrit Origin/Referer côté proxy pour correspondre au contrat backend habituel.
  */
-const TARGET = 'http://localhost:8080';
+const TARGET = 'http://localhost:9090';
 
 /** Doit matcher une origine autorisée par Spring en dev (voir FRONTEND spec / CORS). */
 const PROXY_ORIGIN = 'http://localhost:4200';

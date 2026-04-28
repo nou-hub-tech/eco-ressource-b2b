@@ -44,10 +44,10 @@
         p.category === 'Chemical'    ? '#dc2626' : '#6b7280'">
       </div>
 
-      <div class="stock-card-img" *ngIf="p.image && p.image !== 'default.png'">
-        <img [src]="p.image" alt="{{ p.name }}" style="width:100%;height:140px;object-fit:cover;">
+      <div class="stock-card-img" *ngIf="getImageUrl(p.image)">
+        <img [src]="getImageUrl(p.image)" alt="{{ p.name }}" style="width:100%;height:140px;object-fit:cover;">
       </div>
-      <div class="stock-card-img-placeholder" *ngIf="!p.image || p.image === 'default.png'">
+      <div class="stock-card-img-placeholder" *ngIf="!getImageUrl(p.image)">
         <span>📦</span>
       </div>
 
@@ -167,8 +167,8 @@
           <span>Uploading…</span>
         </div>
 
-        <div *ngIf="form.image && !uploading" class="upload-preview">
-          <img [src]="form.image" alt="preview"
+        <div *ngIf="getImageUrl(form.image) && !uploading" class="upload-preview">
+          <img [src]="getImageUrl(form.image)" alt="preview"
                style="width:100%;height:120px;object-fit:cover;border-radius:8px">
           <button type="button" class="upload-remove"
                   (click)="$event.stopPropagation(); form.image = ''">✕ Remove</button>

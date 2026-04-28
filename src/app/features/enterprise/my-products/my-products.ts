@@ -102,7 +102,14 @@ export class MyProducts implements OnInit {
     const file = input.files[0];
     this.uploading = true;
     this.enterpriseService.uploadImage(file).subscribe({
-      next: (res) => { this.form.image = res.url; this.uploading = false; this.cdr.detectChanges(); },
+      next: (res) => {
+        // Extract only filename from URL to avoid hardcoded port issues
+        const url = res.url;
+        const filename = url.includes('/files/') ? url.split('/files/')[1] : url;
+        this.form.image = filename;
+        this.uploading = false;
+        this.cdr.detectChanges();
+      },
       error: () => { this.uploading = false; this.cdr.detectChanges(); }
     });
   }
@@ -165,5 +172,29 @@ export class MyProducts implements OnInit {
 
   private emptyForm(): Partial<Product> {
     return { name: '', category: '', materialType: 'Raw', recyclable: false, description: '', image: '' };
+  }
+
+  /** Normalise une URL d'image pour passer par le proxy Angular (évite le port 8080 hardcodé) */
+  getImageUrl(imagePath: string | undefined | null): string {
+    if (!imagePath || imagePath === 'default.png' || imagePath === 'undefined' || imagePath === 'null') {
+      return '';
+    }
+    const str = String(imagePath).trim();
+    // Si c'est une URL complète (http://localhost:8080/files/...), extraire seulement le nom de fichier
+    if (str.startsWith('http://') || str.startsWith('https://')) {
+      if (str.includes('/files/undefined') || str.includes('/files/null')) return '';
+      if (str.includes('/files/')) {
+        const filename = str.split('/files/')[1];
+        return `/files/${filename}`;
+      }
+      return str;
+    }
+    // Si c'est déjà un chemin relatif /files/...
+    if (str.includes('files/')) {
+      const filename = str.split('files/')[1];
+      return `/files/${filename}`;
+    }
+    // Sinon c'est juste le nom de fichier
+    return `/files/${str}`;
   }
 }

@@ -72,7 +72,7 @@ export function normalizeListing(raw: Record<string, unknown>): ListingResponse 
 export function httpErrorMessage(err: unknown): string {
   if (err instanceof HttpErrorResponse) {
     if (err.status === 0) {
-      return 'Connexion impossible au backend (vérifiez que Spring Boot est démarré sur le port 8080 et que CORS autorise http://localhost:4200).';
+      return 'Connexion impossible au backend (vérifiez que Spring Boot est démarré sur le port 9090 et que CORS autorise http://localhost:4200).';
     }
     if (err.status === 401) {
       return 'Non authentifié ou session expirée — reconnectez-vous (compte entreprise).';

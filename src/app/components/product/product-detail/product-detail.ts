@@ -47,11 +47,15 @@ export class ProductDetailComponent implements OnInit {
       return '';
     }
     
-    // If it's already a valid full URL, return as-is
+    // If it's a full URL (http/https), extract only the filename part to go through proxy
     if (str.startsWith('http://') || str.startsWith('https://')) {
-      // Reject URLs with invalid path segments
       if (str.includes('/files/undefined') || str.includes('/files/null')) {
         return '';
+      }
+      // Extract filename from full URL to route through Angular proxy
+      if (str.includes('/files/')) {
+        const filename = str.split('/files/')[1];
+        return `/files/${filename}`;
       }
       return str;
     }
