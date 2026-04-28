@@ -84,7 +84,7 @@
         </div>
         <div class="ent-ps-div"></div>
         <div class="ent-ps-item">
-          <div class="ent-ps-val" style="color:#6366f1">{{ companySummary.length }}</div>
+          <div class="ent-ps-val" style="color:var(--primary)">{{ companySummary.length }}</div>
           <div class="ent-ps-lbl">Entreprises Actives</div>
         </div>
       </div>
@@ -111,7 +111,7 @@
           <tbody>
             <tr *ngFor="let c of companySummary" class="ent-table-row" (click)="selectCompany(c.name)">
               <td>
-                <div style="font-weight:700;color:#1e293b">{{ c.name }}</div>
+                <div style="font-weight:700;color:var(--text)">{{ c.name }}</div>
               </td>
               <td class="adm-center">
                 <span class="adm-chip chip-vente">{{ c.sales }}</span> /

@@ -32,17 +32,16 @@
   </div>
 
   <!-- ====== HEADER + ONGLETS ====== -->
-  <div class="page-top">
-    <div class="page-title-row">
-      <div>
-        <h1 class="page-title">🧾 Gestion des Factures</h1>
-        <p class="page-subtitle">Création, suivi, exports PDF/Excel — TVA calculée automatiquement</p>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-outline btn-sm" (click)="exportAllToExcel()">📊 Excel</button>
-        <button class="btn btn-primary btn-sm" (click)="openForm()">➕ Nouvelle Facture</button>
-      </div>
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>🧾 Gestion des Factures</h1>
+      <p>Création, suivi, exports PDF/Excel — TVA calculée automatiquement</p>
     </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-outline btn-sm" (click)="exportAllToExcel()">📊 Excel</button>
+      <button class="btn btn-primary btn-sm" (click)="openForm()">➕ Nouvelle Facture</button>
+    </div>
+  </div>
 
     <!-- Barre d'onglets -->
     <div class="tab-bar">
@@ -60,7 +59,6 @@
         </span>
       </button>
     </div>
-  </div>
 
   <!-- ====== ONGLET STATISTIQUES ====== -->
   <div *ngIf="activeInvTab==='stats'" class="tab-content">
