@@ -4,11 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { BackendReservation, ReservationApiService } from '../../shared/api/reservation-api.service';
 
-type ReservationStatus = 'confirmed' | 'pending' | 'cancelled';
+type ReservationStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED';
 
 type ReservationRow = {
   id: number;
-  companyName: string;
+  company: string;
   machine: string;
   date: string;
   startHour: number;
@@ -30,7 +30,7 @@ type ReservationRow = {
           <h1>My reservations</h1>
           <p class="sub">View reservations and cancel when needed.</p>
         </div>
-        <a routerLink="/enterprise/new-reservation" class="btn primary">+ New reservation</a>
+        <a routerLink="/enterprise/reservations" class="btn primary">Open reservations</a>
       </header>
 
       <div class="card">
@@ -42,9 +42,9 @@ type ReservationRow = {
           <label class="field-label">Status</label>
           <select class="input" [(ngModel)]="statusFilter">
             <option value="">All</option>
-            <option value="confirmed">confirmed</option>
-            <option value="pending">pending</option>
-            <option value="cancelled">cancelled</option>
+            <option value="CONFIRMED">CONFIRMED</option>
+            <option value="PENDING">PENDING</option>
+            <option value="CANCELLED">CANCELLED</option>
           </select>
         </div>
       </div>
@@ -68,10 +68,10 @@ type ReservationRow = {
           </thead>
           <tbody>
             <tr *ngFor="let r of filtered">
-              <td>{{ r.companyName }}</td>
+              <td>{{ r.company }}</td>
               <td>{{ r.machine }}</td>
               <td>{{ r.date }}</td>
-              <td>{{ r.startHour }}:00 → {{ (r.startHour + r.hours) % 24 }}:00</td>
+              <td>{{ r.startHour }}:00 -> {{ (r.startHour + r.hours) % 24 }}:00</td>
               <td>{{ r.status }}</td>
               <td>
                 <button class="btn sm ghost" (click)="cancel(r)">Cancel</button>
@@ -102,7 +102,6 @@ export class ReservationListSimple implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        // Keep the UI usable even if the server is down.
         this.error = err?.error?.message ?? 'Failed to load reservations.';
         this.loading = false;
       },
@@ -112,12 +111,12 @@ export class ReservationListSimple implements OnInit {
   private mapRow(r: BackendReservation): ReservationRow {
     return {
       id: r.id,
-      companyName: r.companyName ?? '',
-      machine: (r.machine ?? r.item ?? ''),
-      date: r.fromDate,
+      company: r.company ?? '',
+      machine: r.machine ?? '',
+      date: r.date,
       startHour: r.startHour ?? 9,
       hours: r.hours ?? 1,
-      status: (r.status as ReservationStatus) ?? 'pending',
+      status: r.status ?? 'PENDING',
       solar: r.solar,
       cancelReason: r.cancelReason,
     };
@@ -126,7 +125,7 @@ export class ReservationListSimple implements OnInit {
   get filtered(): ReservationRow[] {
     const q = this.query.trim().toLowerCase();
     return this.rows
-      .filter(r => !q || r.machine.toLowerCase().includes(q) || r.companyName.toLowerCase().includes(q))
+      .filter(r => !q || r.machine.toLowerCase().includes(q) || r.company.toLowerCase().includes(q))
       .filter(r => !this.statusFilter || r.status === this.statusFilter);
   }
 
@@ -134,7 +133,6 @@ export class ReservationListSimple implements OnInit {
     const reason = window.prompt('Cancellation reason (optional):', r.cancelReason ?? '') ?? '';
     this.api.cancel(r.id, reason).subscribe({
       next: () => {
-        // Soft-cancel (status becomes cancelled) then refresh.
         this.ngOnInit();
       },
       error: (err) => {
@@ -143,4 +141,3 @@ export class ReservationListSimple implements OnInit {
     });
   }
 }
-

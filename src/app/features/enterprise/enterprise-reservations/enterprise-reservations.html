@@ -20,11 +20,9 @@
         <label>Status</label>
         <select name="statusFilter" [(ngModel)]="statusFilter">
           <option value="">All</option>
-          <option value="pending">pending</option>
-          <option value="active">active</option>
-          <option value="confirmed">confirmed</option>
-          <option value="completed">completed</option>
-          <option value="cancelled">cancelled</option>
+          <option value="PENDING">PENDING</option>
+          <option value="CONFIRMED">CONFIRMED</option>
+          <option value="CANCELLED">CANCELLED</option>
         </select>
       </div>
 
@@ -90,16 +88,15 @@
           <th>Status</th>
           <th>Urgency</th>
           <th>Recommendation</th>
-          <th>Price</th>
           <th>Solar</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let reservation of visibleReservations">
-          <td>{{ reservation.companyName }}</td>
-          <td>{{ machineName(reservation) }}</td>
-          <td>{{ reservation.fromDate }}</td>
+          <td>{{ reservation.company }}</td>
+          <td>{{ reservation.machine }}</td>
+          <td>{{ reservation.date }}</td>
           <td>
             {{ reservation.startHour ?? 0 }}:00 -
             {{ (reservation.startHour ?? 0) + durationHours(reservation) }}:00
@@ -114,14 +111,13 @@
             </span>
           </td>
           <td>{{ recommendationFor(reservation) }}</td>
-          <td>{{ reservation.price }}</td>
           <td>{{ reservation.solar ? 'Yes' : 'No' }}</td>
           <td>
             <button
               class="btn btn-outline btn-sm"
               type="button"
               (click)="cancel(reservation)"
-              [disabled]="reservation.status === 'cancelled'"
+              [disabled]="reservation.status === 'CANCELLED'"
             >
               Cancel
             </button>

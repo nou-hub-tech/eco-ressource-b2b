@@ -6,7 +6,7 @@ import {
   ReservationSlotApiService,
   SlotRequest,
 } from '../../../pages/moduleReservation/shared/api/reservation-slot-api.service';
-import { AuthService, User } from '../../../core/services/auth.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 type SlotFormModel = {
   machine: string;
@@ -40,6 +40,7 @@ export class EnterpriseSlots implements OnInit {
   success = '';
 
   editingId: number | null = null;
+  currentEnterpriseId: number | null = null;
   slots: BackendReservationSlot[] = [];
 
   form: SlotFormModel = this.createEmptyForm();
@@ -53,20 +54,12 @@ export class EnterpriseSlots implements OnInit {
     this.loadSlots();
   }
 
-  get currentUser(): User | null {
-    return this.auth.currentUser;
-  }
-
-  get currentOwner(): string {
-    return this.currentUser?.company?.trim() || this.currentUser?.name?.trim() || '';
-  }
-
   get durationHours(): number {
     return Math.max(0, this.form.endHour - this.form.startHour);
   }
 
   get mine(): BackendReservationSlot[] {
-    return this.slots.filter(slot => this.isMine(slot));
+    return this.slots.filter(slot => slot.enterprise?.id === this.currentEnterpriseId);
   }
 
   get bookedSlotsCount(): number {
@@ -122,9 +115,7 @@ export class EnterpriseSlots implements OnInit {
       }
     }
 
-    if (!bestGap) {
-      return null;
-    }
+    if (!bestGap) return null;
 
     const density = futureSlots.filter(slot =>
       slot.date === bestGap?.date &&
@@ -148,8 +139,8 @@ export class EnterpriseSlots implements OnInit {
     this.error = '';
     this.success = '';
 
-    if (!this.currentOwner) {
-      this.error = 'Unable to identify the current enterprise account.';
+    if (this.currentEnterpriseId == null) {
+      this.error = 'Unable to resolve enterprise ID from backend data.';
       return;
     }
 
@@ -170,13 +161,11 @@ export class EnterpriseSlots implements OnInit {
       endHour: this.form.endHour,
       solar: this.form.solar,
       discountPct: this.form.discountPct,
-      owner: this.currentOwner,
-      enterpriseId: this.currentEnterpriseId(),
+      enterpriseId: this.currentEnterpriseId,
       status: 'open',
     };
 
     this.saving = true;
-
     const request$ = this.editingId
       ? this.slotApi.update(this.editingId, payload)
       : this.slotApi.create(payload);
@@ -253,6 +242,7 @@ export class EnterpriseSlots implements OnInit {
     this.loading = true;
     this.slotApi.list(false).subscribe({
       next: (rows) => {
+        this.currentEnterpriseId = this.resolveEnterpriseId(rows);
         this.slots = rows.filter(slot => !slot.deleted);
         this.loading = false;
         this.saving = false;
@@ -265,6 +255,12 @@ export class EnterpriseSlots implements OnInit {
     });
   }
 
+  private resolveEnterpriseId(rows: BackendReservationSlot[]): number | null {
+    const company = this.auth.currentUser?.company?.trim().toLowerCase() || '';
+    const match = rows.find(slot => (slot.enterprise?.companyName ?? '').trim().toLowerCase() === company);
+    return match?.enterprise?.id ?? null;
+  }
+
   private createEmptyForm(): SlotFormModel {
     return {
       machine: '',
@@ -274,26 +270,5 @@ export class EnterpriseSlots implements OnInit {
       solar: false,
       discountPct: 0,
     };
-  }
-
-  private currentEnterpriseId(): number | null {
-    const raw = this.currentUser?.id;
-    const parsed = raw ? Number(raw) : NaN;
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  private isMine(slot: BackendReservationSlot): boolean {
-    const currentOwner = this.currentOwner.toLowerCase();
-    const currentName = this.currentUser?.name?.trim().toLowerCase() || '';
-    const currentEmail = this.currentUser?.email?.trim().toLowerCase() || '';
-    const currentEnterpriseId = this.currentEnterpriseId();
-    const slotOwner = (slot.owner ?? '').trim().toLowerCase();
-
-    return (
-      (!!currentEnterpriseId && slot.enterprise?.id === currentEnterpriseId) ||
-      (!!currentOwner && slotOwner === currentOwner) ||
-      (!!currentName && slotOwner === currentName) ||
-      (!!currentEmail && slotOwner === currentEmail)
-    );
   }
 }

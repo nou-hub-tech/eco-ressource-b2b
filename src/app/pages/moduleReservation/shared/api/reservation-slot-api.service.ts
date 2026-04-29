@@ -9,18 +9,16 @@ export type BackendSlotStatus = 'open' | 'booked' | 'blocked';
 export interface BackendReservationSlot {
   id: number;
   machine: string;
-  date: string;            // ISO YYYY-MM-DD
-  startHour: number;       // 0..23
-  endHour: number;         // 1..24
+  date: string;
+  startHour: number;
+  endHour: number;
   status: BackendSlotStatus;
   solar: boolean;
   discountPct: number;
-  owner: string;
-  reservedBy?: string | null;
 
+  enterpriseId?: number | null;
   enterprise?: BackendEnterprise | null;
-  createdAt: string;
-
+  createdAt?: string | null;
   deleted?: boolean | null;
   cancelReason?: string | null;
 }
@@ -30,11 +28,9 @@ export interface SlotRequest {
   date: string;
   startHour: number;
   endHour: number;
-  status?: BackendSlotStatus;     // defaults to 'open'
+  status?: BackendSlotStatus;
   solar: boolean;
   discountPct?: number;
-  owner: string;
-  reservedBy?: string | null;
   enterpriseId?: number | null;
 }
 
@@ -49,7 +45,6 @@ export class ReservationSlotApiService {
     return this.http.get<BackendReservationSlot[]>(this.baseUrl, { params });
   }
 
-  /** Heatmap range query (any enterprise, server-filtered by date). */
   range(from: string, to: string): Observable<BackendReservationSlot[]> {
     const params = new HttpParams().set('from', from).set('to', to);
     return this.http.get<BackendReservationSlot[]>(`${this.baseUrl}/range`, { params });
@@ -67,15 +62,6 @@ export class ReservationSlotApiService {
     return this.http.put<BackendReservationSlot>(`${this.baseUrl}/${id}`, req);
   }
 
-  /** Drag-&-drop assignment from the heatmap. */
-  book(id: number, reservedBy: string): Observable<BackendReservationSlot> {
-    return this.http.post<BackendReservationSlot>(
-      `${this.baseUrl}/${id}/book`,
-      { reservedBy },
-    );
-  }
-
-  /** Toggle open ↔ blocked. */
   toggle(id: number): Observable<BackendReservationSlot> {
     return this.http.post<BackendReservationSlot>(`${this.baseUrl}/${id}/toggle`, {});
   }

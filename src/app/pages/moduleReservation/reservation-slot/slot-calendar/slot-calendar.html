@@ -1,6 +1,4 @@
 <div class="eco-page rise">
-
-  <!-- HEADER -->
   <header class="eco-page-head">
     <div>
       <div class="section-label"><span class="ai-dot"></span> AI Decision Dashboard</div>
@@ -8,27 +6,18 @@
       <p class="sub">
         Week-level view of shared machine availability, cross-referenced with
         <strong>grid carbon intensity</strong>, <strong>solar generation</strong>, and
-<<<<<<< HEAD
-        peer demand. Pick a slot or let a scenario decide.
+        <strong>peer demand</strong>. Pick a real slot or let a scenario decide.
       </p>
     </div>
     <div class="head-actions">
-      <a routerLink="/enterprise/my-reservations" class="btn ghost">← Back to list</a>
-      <a routerLink="/enterprise/slot-management" class="btn ghost">🗂 Slot inventory</a>
-      <a routerLink="/enterprise/new-reservation" class="btn primary">+ Book selected</a>
-=======
-        peer demand.
-      </p>
-    </div>
-
-    <div class="head-actions">
-      <a routerLink="/enterprise/my-reservations" class="btn ghost">← Back to list</a>
-      <a routerLink="/enterprise/slot-management" class="btn ghost">🗂 Slot inventory</a>
->>>>>>> cda022fda5f1e71be1944f7d292072be3009713e
+      <a routerLink="/enterprise/reservations" class="btn ghost">← Back to reservations</a>
+      <a routerLink="/enterprise/slots" class="btn ghost">🗂 Slot inventory</a>
+      <button class="btn primary" type="button" [disabled]="!selected" (click)="reserveSelectedSlot()">
+        + Book selected
+      </button>
     </div>
   </header>
 
-  <!-- CONTROLS -->
   <div class="controls">
     <div class="ctrl">
       <label class="field-label">Machine</label>
@@ -36,21 +25,12 @@
         <option *ngFor="let m of ai.machines" [value]="m.name">{{ m.name }}</option>
       </select>
     </div>
-<<<<<<< HEAD
+
     <div class="ctrl narrow">
       <label class="field-label">Duration</label>
       <input class="input" type="number" min="1" max="8" [(ngModel)]="hours" (change)="onHoursChange()" />
     </div>
-=======
 
-    <div class="ctrl narrow">
-      <label class="field-label">Duration</label>
-      <input class="input" type="number" min="1" max="8"
-             [(ngModel)]="hours"
-             (change)="onHoursChange()" />
-    </div>
-
->>>>>>> cda022fda5f1e71be1944f7d292072be3009713e
     <div class="week-nav">
       <button class="btn sm ghost" (click)="prevWeek()">← Prev</button>
       <div class="week-label">{{ weekLabel }}</div>
@@ -58,7 +38,6 @@
     </div>
   </div>
 
-  <!-- QUICK STATS -->
   <div class="quick-stats">
     <div class="qs">
       <span class="qs-val">{{ lowDemandCount() }}</span>
@@ -70,19 +49,19 @@
     </div>
     <div class="qs">
       <span class="qs-val">{{ avgIntensity() }}<small>g</small></span>
-<<<<<<< HEAD
       <span class="qs-lbl">avg CO₂/kWh this week</span>
     </div>
   </div>
 
-  <!-- SCENARIOS -->
   <div class="scenarios">
     <div class="section-label">Pick a strategy</div>
     <div class="scenario-grid">
-      <button class="scenario"
-              *ngFor="let s of scenarios"
-              [class.active]="activeScenario === s.id"
-              (click)="applyScenario(s.id)">
+      <button
+        class="scenario"
+        *ngFor="let s of scenarios"
+        [class.active]="activeScenario === s.id"
+        (click)="applyScenario(s.id)"
+      >
         <div class="sc-head">
           <div class="sc-icon" [attr.data-kind]="s.id">
             <span *ngIf="s.id === 'cheapest'">€</span>
@@ -108,40 +87,11 @@
           <span>{{ s.confidence }}% confidence</span>
         </div>
       </button>
-=======
-      <span class="qs-lbl">avg CO₂/kWh</span>
->>>>>>> cda022fda5f1e71be1944f7d292072be3009713e
     </div>
   </div>
 
-  <!-- HEATMAP + SIDE PANEL -->
   <div class="dash-split">
-
-    <!-- HEATMAP -->
     <div class="heatmap-wrap">
-<<<<<<< HEAD
-      <!-- Drag tray: pending bookings to assign -->
-      <div class="drag-tray" *ngIf="pendingBookings.length">
-        <div class="drag-tray-head">
-          <div class="section-label"><span class="ai-dot"></span> Pending bookings</div>
-          <div class="drag-tray-hint">drag → drop on a cell to assign</div>
-        </div>
-        <div class="drag-cards">
-          <div class="drag-card"
-               *ngFor="let b of pendingBookings"
-               draggable="true"
-               (dragstart)="onDragStart(b, $event)"
-               (dragend)="onDragEnd()">
-            <div class="drag-card-icon">≡</div>
-            <div class="drag-card-body">
-              <div class="drag-card-company">{{ b.company }}</div>
-              <div class="drag-card-meta">{{ b.machine }} · {{ b.hours }} h</div>
-            </div>
-            <button class="drag-card-x" (click)="removePending(b.id)" title="Dismiss">×</button>
-          </div>
-        </div>
-      </div>
-
       <div class="heat-head">
         <div class="section-label">Week heatmap · demand × hour</div>
         <div class="heat-legend">
@@ -153,93 +103,44 @@
       </div>
 
       <div class="heat-grid">
-        <!-- Column headers -->
-=======
-
-      <div class="heat-head">
-        <div class="section-label">Week heatmap</div>
-      </div>
-
-      <div class="heat-grid">
-
->>>>>>> cda022fda5f1e71be1944f7d292072be3009713e
         <div class="heat-corner"></div>
         <div class="heat-col-head" *ngFor="let b of hourBandLabels">{{ b }}</div>
 
         <ng-container *ngFor="let row of weekGrid; let dayIdx = index">
-<<<<<<< HEAD
-          <!-- Day label -->
-=======
-
-          <!-- DAY -->
->>>>>>> cda022fda5f1e71be1944f7d292072be3009713e
           <div class="heat-row-head" [class.today]="isToday(row)">
             <div class="day-name">{{ dayLabel(row) }}</div>
             <div class="day-num">{{ dayNum(row) }}</div>
           </div>
 
-<<<<<<< HEAD
-          <!-- 6 cells per day -->
-          <button [class]="cellClass(s)"
-                  *ngFor="let s of row; let b = index"
-                  [class.selected]="isSelectedCell(dayIdx, b)"
-                  [class.assigned]="cellAssignment(dayIdx, b)"
-                  [class.drag-hover]="isHoverCell(dayIdx, b)"
-                  (click)="pickCell(dayIdx, b)"
-                  (dragover)="onCellDragOver(dayIdx, b, $event)"
-                  (dragleave)="onCellDragLeave()"
-                  (drop)="onCellDrop(dayIdx, b, $event)"
-                  [title]="s.date + ' ' + hourBandLabels[b] + ' · ' + s.demand + ' demand · ' + s.gridIntensity + ' gCO₂/kWh · ' + cellShareTip(s)">
+          <button
+            [class]="cellClass(s)"
+            *ngFor="let s of row; let b = index"
+            [class.selected]="isSelectedCell(dayIdx, b)"
+            [class.booked]="s.status === 'booked'"
+            [class.blocked]="s.status === 'blocked'"
+            [disabled]="s.status !== 'open' || !s.id"
+            (click)="pickCell(dayIdx, b)"
+            [title]="s.date + ' ' + hourBandLabels[b] + ' · ' + s.demand + ' demand · ' + s.gridIntensity + ' gCO₂/kWh'"
+          >
             <div class="cell-inner">
               <span class="cell-grid">{{ s.gridIntensity }}</span>
               <span class="cell-unit">g</span>
               <span class="cell-solar" *ngIf="s.solar">☀</span>
-              <span class="cell-assigned-tag" *ngIf="cellAssignment(dayIdx, b) as a">
-                {{ a.company }}
-              </span>
             </div>
           </button>
         </ng-container>
       </div>
 
       <div class="heat-foot">
-        Numbers show grid carbon intensity (gCO₂/kWh). <strong>Drag a pending booking</strong> onto any cell to auto-assign it →
-=======
-          <!-- CELLS -->
-          <button
-            *ngFor="let s of row; let b = index"
-            [class]="cellClass(s)"
-            [class.selected]="isSelectedCell(dayIdx, b)"
-            [class.booked]="s.status === 'booked'"
-            [class.blocked]="s.status === 'blocked'"
-            [class.ai-best]="isAiBest(s)"
-            [disabled]="s.status !== 'open'"
-            (click)="pickCell(dayIdx, b)">
-
-            <div class="cell-inner">
-              <span class="cell-grid">{{ s.gridIntensity }}</span>
-              <span class="cell-unit">g</span>
-
-              <span class="cell-solar" *ngIf="s.solar">☀</span>
-
-              <!-- 🔥 AI BADGE -->
-              <span class="ai-badge" *ngIf="isAiBest(s)">AI</span>
-            </div>
-
-          </button>
-        </ng-container>
-
->>>>>>> cda022fda5f1e71be1944f7d292072be3009713e
+        Only backend slots are selectable. Blocked or already booked windows stay visible for planning but cannot be reserved.
       </div>
     </div>
 
-    <!-- SIDE PANEL -->
     <aside class="side-panel">
-<<<<<<< HEAD
       <div *ngIf="!selected" class="side-empty">
         <div class="side-empty-icon">📍</div>
         <h3>Pick a slot</h3>
-        <p>Click any cell in the heatmap or choose a strategy above. Cost, carbon, risk and AI reasoning will appear here.</p>
+        <p>Click any available backend slot in the heatmap or choose a strategy above.</p>
       </div>
 
       <div *ngIf="selected">
@@ -251,19 +152,20 @@
         </div>
 
         <div class="slot-chips">
-          <span class="chip" [class.eco]="selected.demand === 'low'"
-                             [class.warn]="selected.demand === 'medium'"
-                             [class.danger]="selected.demand === 'high'">
+          <span
+            class="chip"
+            [class.eco]="selected.demand === 'low'"
+            [class.warn]="selected.demand === 'medium'"
+            [class.danger]="selected.demand === 'high'"
+          >
             {{ selected.demand }} demand
           </span>
           <span class="chip solar" *ngIf="selected.solar">☀ solar window</span>
-          <span class="chip" [class.eco]="selected.risk === 'low'"
-                             [class.warn]="selected.risk === 'medium'">
+          <span class="chip" [class.eco]="selected.risk === 'low'" [class.warn]="selected.risk === 'medium'">
             risk: {{ selected.risk }}
           </span>
         </div>
 
-        <!-- Metrics -->
         <div class="slot-metrics">
           <div class="sm">
             <div class="sm-label">Estimated cost</div>
@@ -283,7 +185,6 @@
           </div>
         </div>
 
-        <!-- AI reasoning -->
         <div class="ai-reason">
           <div class="ai-reason-head">
             <span class="ai-dot"></span>
@@ -297,85 +198,13 @@
           </div>
         </div>
 
-        <!-- CTA -->
-        <a routerLink="/enterprise/new-reservation" class="btn primary full">
-          Reserve this slot →
-        </a>
+        <button class="btn primary full" type="button" (click)="reserveSelectedSlot()">Reserve this slot →</button>
       </div>
     </aside>
-
-  </div>
-  <!-- toast -->
-  <div class="toast" *ngIf="toastMsg">
-    <span class="toast-icon">✓</span>
-    Booking assigned · {{ toastMsg }}
-  </div>
-=======
-
-      <!-- EMPTY -->
-      <div *ngIf="!selected" class="side-empty">
-        <div class="side-empty-icon">📍</div>
-        <h3>Pick a slot</h3>
-        <p>Select a slot to see details and reserve it.</p>
-      </div>
-
-      <!-- SELECTED SLOT -->
-      <div *ngIf="selected">
-
-        <div class="section-label">
-          <span class="ai-dot"></span>
-          Slot analysis
-        </div>
-
-        <div class="slot-header">
-          <div class="slot-date">{{ selected.date }}</div>
-          <div class="slot-window">
-            {{ selected.hour }}:00 → {{ selected.endHour }}:00
-          </div>
-        </div>
-
-        <div class="slot-chips">
-          <span class="chip">{{ selected.demand }} demand</span>
-          <span class="chip solar" *ngIf="selected.solar">☀ solar</span>
-          <span class="chip">risk: {{ selected.risk }}</span>
-        </div>
-
-        <div class="slot-metrics">
-          <div class="sm">
-            <div class="sm-label">Cost</div>
-            <div class="sm-value">€{{ selected.cost }}</div>
-          </div>
-          <div class="sm">
-            <div class="sm-label">CO₂</div>
-            <div class="sm-value">{{ selected.co2 }} kg</div>
-          </div>
-        </div>
-
-        <!-- 🔥 AI INFO -->
-        <div *ngIf="selected && isAiBest({backendId: selected.id})" class="ai-reason">
-          <div class="ai-reason-head">AI Recommendation</div>
-          <p>{{ selected.aiRec }}</p>
-        </div>
-
-        <!-- BOOK -->
-        <button 
-          class="btn primary full"
-          [disabled]="!selected || selected.status !== 'open'"
-          (click)="reserveSelectedSlot()">
-          Reserve this slot →
-        </button>
-
-      </div>
-
-    </aside>
-
   </div>
 
-  <!-- TOAST -->
   <div class="toast" *ngIf="toastMsg">
     <span class="toast-icon">✓</span>
     {{ toastMsg }}
   </div>
-
->>>>>>> cda022fda5f1e71be1944f7d292072be3009713e
 </div>

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth.service';
 import { AiSuggestionsService, AiSuggestion, Material } from '../../shared/ai-suggestions.service';
 import {
   EcoOrderApiService,
@@ -30,8 +31,10 @@ interface Order {
   supplier: string;
   distanceKm: number;
   date: string;
+  orderDate: string;
   status: OrderStatus;
   grade: 'A'|'B'|'C'|'D'|'E';
+  enterpriseId?: number | null;
   deleted?: boolean;
   cancelReason?: string;
 }
@@ -72,6 +75,7 @@ export class OrderPage implements OnInit {
   constructor(
     public ai: AiSuggestionsService,
     private api: EcoOrderApiService,
+    private auth: AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -105,8 +109,10 @@ export class OrderPage implements OnInit {
       supplier: r.supplier,
       distanceKm: r.distanceKm,
       date: r.orderDate,
+      orderDate: r.orderDate,
       status: r.status.toUpperCase() as Order['status'],
       grade: r.grade,
+      enterpriseId: r.enterprise?.id ?? null,
       deleted: r.deleted ?? false,
       cancelReason: r.cancelReason ?? undefined,
     };
@@ -115,13 +121,16 @@ export class OrderPage implements OnInit {
   private toBackend(o: Order | typeof this.draft, status?: BackendOrderStatus): EcoOrderRequest {
     const supplier = this.suppliers.find(s => s.name === (o as any).supplier);
     return {
-      companyName: 'company' in o ? o.company : 'You',
+      ref: 'ref' in o ? o.ref : undefined,
+      companyName: 'company' in o ? o.company : this.currentCompanyName(),
       material: o.material,
       qtyKg: o.qtyKg,
       supplier: o.supplier,
       distanceKm: 'distanceKm' in o ? o.distanceKm : (supplier?.distanceKm ?? 0),
+      orderDate: 'orderDate' in o ? o.orderDate : new Date().toISOString().slice(0, 10),
       status: status ?? (('status' in o ? (o.status as string).toLowerCase() : 'confirmed') as BackendOrderStatus),
       grade: ('grade' in o ? o.grade : this.draftGrade) as any,
+      enterpriseId: 'enterpriseId' in o ? o.enterpriseId ?? undefined : undefined,
     };
   }
 
@@ -266,7 +275,7 @@ export class OrderPage implements OnInit {
   placeOrder(): void {
     const sup = this.supplier;
     const payload: EcoOrderRequest = {
-      companyName: 'You',
+      companyName: this.currentCompanyName(),
       material: this.draft.material,
       qtyKg: this.draft.qtyKg,
       supplier: this.draft.supplier,
@@ -385,13 +394,16 @@ export class OrderPage implements OnInit {
 
     if (o.id <= 0) return;
     const payload: EcoOrderRequest = {
+      ref: o.ref,
       companyName: o.company,
       material: newMaterial,
       qtyKg: this.editDraft.qtyKg ?? o.qtyKg,
       supplier: newSupplier,
       distanceKm: newDistance,
+      orderDate: o.orderDate,
       status: ((this.editDraft.status as OrderStatus) ?? o.status).toLowerCase() as BackendOrderStatus,
       grade: newGrade,
+      enterpriseId: o.enterpriseId ?? undefined,
     };
     this.api.update(o.id, payload).subscribe({
       next: () => {
@@ -627,5 +639,9 @@ export class OrderPage implements OnInit {
     this.draft.supplier = o.supplier;
     await this.downloadInvoicePdf();
     this.draft = saved;
+  }
+
+  private currentCompanyName(): string {
+    return this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? '';
   }
 }

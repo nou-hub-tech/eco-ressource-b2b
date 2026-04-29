@@ -3,15 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_URL } from '../../../../core/constants/api-url';
 
-/* ============================================================
-   API contract — mirrors the Spring Boot Reservation entity.
-   Field names are kept identical to the backend so no mapping
-   layer is needed: drop these objects straight into the
-   existing components.
-============================================================ */
-
-export type BackendReservationStatus =
-  | 'confirmed' | 'active' | 'pending' | 'completed' | 'cancelled';
+export type BackendReservationStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED';
 
 export interface BackendEnterprise {
   id: number;
@@ -20,44 +12,34 @@ export interface BackendEnterprise {
 
 export interface BackendReservation {
   id: number;
-
-  // legacy/generic fields
-  typeLabel: string;
-  item: string;
-  companyName: string;
-  fromDate: string;       // ISO YYYY-MM-DD
-  toDate: string;
-  price: number;          // BigDecimal serialised as number
+  company: string;
+  machine: string;
+  date: string;
+  hours: number;
+  startHour: number;
   status: BackendReservationStatus;
+  solar: boolean;
+
+  slotId?: number | null;
+  enterpriseId?: number | null;
   enterprise?: BackendEnterprise | null;
-  createdAt: string;
-
-  // eco extensions
-  machine?: string | null;
-  hours?: number | null;
-  startHour?: number | null;
-  solar?: boolean | null;
+  createdAt?: string | null;
   co2Saved?: number | null;
-
-  // soft delete
   deleted?: boolean | null;
   cancelReason?: string | null;
 }
 
 export interface ReservationCreateRequest {
-  typeLabel: string;
-  item: string;
-  companyName: string;
-  fromDate: string;
-  toDate: string;
-  price: number;
+  company: string;
+  machine: string;
+  date: string;
+  hours: number;
+  startHour: number;
   status: BackendReservationStatus;
-  enterpriseId?: number | null;
+  solar: boolean;
 
-  machine?: string | null;
-  hours?: number | null;
-  startHour?: number | null;
-  solar?: boolean | null;
+  slotId?: number | null;
+  enterpriseId?: number | null;
   co2Saved?: number | null;
 }
 
@@ -84,7 +66,6 @@ export class ReservationApiService {
     return this.http.put<BackendReservation>(`${this.baseUrl}/${id}`, req);
   }
 
-  /** Soft delete with audit reason (frontend "cancel" button). */
   cancel(id: number, reason: string): Observable<BackendReservation> {
     return this.http.post<BackendReservation>(
       `${this.baseUrl}/${id}/cancel`,
@@ -92,7 +73,6 @@ export class ReservationApiService {
     );
   }
 
-  /** Hard delete — kept for admin/cleanup. */
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }

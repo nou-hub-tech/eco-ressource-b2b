@@ -154,7 +154,6 @@
           <th>Solar</th>
           <th>Discount</th>
           <th>Status</th>
-          <th>Reserved By</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -166,7 +165,6 @@
           <td>{{ slot.solar ? 'Yes' : 'No' }}</td>
           <td>{{ slot.discountPct || 0 }}%</td>
           <td><span class="badge badge-neutral">{{ slot.status }}</span></td>
-          <td>{{ slot.reservedBy || '-' }}</td>
           <td>
             <div class="row-actions">
               <button class="btn btn-outline btn-sm" type="button" (click)="edit(slot)">Edit</button>

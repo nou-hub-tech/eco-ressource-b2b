@@ -7,22 +7,8 @@ import {
   SlotRequest,
 } from './../shared/api/reservation-slot-api.service';
 
-/**
- * SlotStore
- * ---------
- * Single source of truth for ReservationSlot entities. Reads from the
- * backend at /api/reservation-slots and exposes a synchronous,
- * signal-based view that the slot-list, slot-form, and slot-calendar
- * pages consume directly.
- *
- * Mutation strategy: backend-first updates. The frontend does not mutate
- * local slot data directly for create/update/delete transitions; it waits
- * for API success and then refreshes from the server so backend state
- * remains the source of truth.
- */
 @Injectable({ providedIn: 'root' })
 export class SlotStore {
-
   private _slots = signal<ReservationSlot[]>([]);
   private _loading = signal(false);
   private _seeded = false;
@@ -31,24 +17,20 @@ export class SlotStore {
 
   constructor(private api: ReservationSlotApiService) {}
 
-  /** Read-all (used by all consumers). */
-  all(): ReservationSlot[] { return this._slots(); }
+  all(): ReservationSlot[] {
+    return this._slots();
+  }
 
   byId(id: number): ReservationSlot | undefined {
     return this._slots().find(s => s.id === id);
   }
 
-  /**
-   * Loads from backend on first call. Subsequent calls are no-ops unless
-   * {@code force=true} is passed.
-   */
   seedIfEmpty(force = false): void {
     if (this._seeded && !force) return;
     this._seeded = true;
     this.refresh();
   }
 
-  /** Force a fresh fetch from the server. */
   refresh(): void {
     this._loading.set(true);
     this.api.list().subscribe({
@@ -63,9 +45,6 @@ export class SlotStore {
     });
   }
 
-  // ====================================================================
-  //  Mutations — backend first (API then refresh)
-  // ====================================================================
   create(slot: Omit<ReservationSlot, 'id'>): ReservationSlot {
     this.api.create(this.toBackend(slot)).subscribe({
       next: () => this.refresh(),
@@ -89,7 +68,6 @@ export class SlotStore {
     });
   }
 
-  /** Soft delete with audit reason (the "delete" flow). */
   softDelete(id: number, reason: string): void {
     if (id < 0) return;
     this.api.cancel(id, reason).subscribe({
@@ -101,23 +79,6 @@ export class SlotStore {
     });
   }
 
-  /** Drag & drop helper used by the heatmap. */
-  bookSlot(id: number, byCompany: string): void {
-    if (id < 0) return;
-    this.api.book(id, byCompany).subscribe({
-      next: () => this.refresh(),
-      error: err => {
-        console.error('[SlotStore] book failed', err);
-        this.refresh();
-      },
-    });
-  }
-
-  // ====================================================================
-  //  Mapping — backend ↔ frontend
-  //  Backend uses lowercase enums (open/booked/blocked); frontend uses
-  //  uppercase. Convert at the boundary.
-  // ====================================================================
   private fromBackend = (s: BackendReservationSlot): ReservationSlot => ({
     id: s.id,
     machine: s.machine,
@@ -127,8 +88,7 @@ export class SlotStore {
     status: s.status.toUpperCase() as SlotStatus,
     solar: s.solar,
     discountPct: s.discountPct ?? 0,
-    owner: s.owner,
-    reservedBy: s.reservedBy ?? undefined,
+    enterpriseId: s.enterprise?.id ?? s.enterpriseId ?? null,
     deleted: s.deleted ?? false,
   });
 
@@ -141,8 +101,7 @@ export class SlotStore {
       status: (s.status?.toLowerCase() as BackendSlotStatus) ?? 'open',
       solar: !!s.solar,
       discountPct: s.discountPct ?? 0,
-      owner: s.owner,
-      reservedBy: s.reservedBy ?? null,
+      enterpriseId: s.enterpriseId ?? null,
     };
   }
 }

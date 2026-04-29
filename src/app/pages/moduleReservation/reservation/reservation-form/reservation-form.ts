@@ -16,7 +16,6 @@ import {
   styleUrls: ['./reservation-form.css'],
 })
 export class ReservationForm implements OnInit {
-
   step = 1;
   totalSteps = 4;
 
@@ -27,12 +26,10 @@ export class ReservationForm implements OnInit {
     startHour: 9,
     hours: 4,
     solar: false,
+    slotId: null as number | null,
   };
 
-  // Live-updated AI suggestions
   suggestions: AiSuggestion[] = [];
-
-  // Cached alternatives for the selected machine
   alternatives: Machine[] = [];
 
   saving = false;
@@ -46,12 +43,10 @@ export class ReservationForm implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Default date = tomorrow
     const d = new Date();
     d.setDate(d.getDate() + 1);
     this.form.date = d.toISOString().slice(0, 10);
 
-    // Prefill from slot-planner query params (used by `SlotCalendarSimple`)
     const qp = this.route.snapshot.queryParamMap;
     const machine = qp.get('machine');
     const company = qp.get('company');
@@ -59,6 +54,7 @@ export class ReservationForm implements OnInit {
     const startHour = qp.get('startHour');
     const hours = qp.get('hours');
     const solar = qp.get('solar');
+    const slotId = qp.get('slotId');
 
     if (machine) this.form.machine = machine;
     if (company) this.form.company = company;
@@ -66,11 +62,11 @@ export class ReservationForm implements OnInit {
     if (startHour != null && !Number.isNaN(Number(startHour))) this.form.startHour = Number(startHour);
     if (hours != null && !Number.isNaN(Number(hours))) this.form.hours = Number(hours);
     if (solar != null) this.form.solar = solar === 'true';
+    if (slotId != null && !Number.isNaN(Number(slotId))) this.form.slotId = Number(slotId);
 
     this.recompute();
   }
 
-  // ===== Navigation =====
   next(): void {
     if (this.step < this.totalSteps && this.canAdvance()) this.step++;
     this.recompute();
@@ -82,7 +78,10 @@ export class ReservationForm implements OnInit {
   }
 
   jumpTo(s: number): void {
-    if (s <= this.step) { this.step = s; this.recompute(); }
+    if (s <= this.step) {
+      this.step = s;
+      this.recompute();
+    }
   }
 
   canAdvance(): boolean {
@@ -91,7 +90,6 @@ export class ReservationForm implements OnInit {
     return true;
   }
 
-  // ===== Computed =====
   recompute(): void {
     this.suggestions = this.ai.analyzeReservation(this.form.machine, this.form.date, this.form.hours);
 
@@ -131,14 +129,12 @@ export class ReservationForm implements OnInit {
   }
 
   waterSaved(): number {
-    // Indirect saving from sharing — assume 12 L per kWh avoided vs new-machine manufacturing footprint
     const m = this.selectedMachine();
     if (!m) return 0;
     return Math.round(this.form.hours * m.kwhPerHour * 0.3);
   }
 
   wasteSaved(): number {
-    // Shared machine = amortised tooling
     const m = this.selectedMachine();
     if (!m) return 0;
     return Math.round(this.form.hours * 0.8);
@@ -148,7 +144,7 @@ export class ReservationForm implements OnInit {
     return Math.max(1, Math.round(this.co2Saved() / 21));
   }
 
-  ecoGrade(): 'A'|'B'|'C'|'D'|'E' {
+  ecoGrade(): 'A' | 'B' | 'C' | 'D' | 'E' {
     const m = this.selectedMachine();
     if (!m) return 'C';
     let s = 100;
@@ -162,8 +158,7 @@ export class ReservationForm implements OnInit {
     return 'E';
   }
 
-  // Mini heatmap: 24 hours demand + solar for the selected date
-  get hourStrip(): { h: number; demand: 'low'|'medium'|'high'; solar: boolean }[] {
+  get hourStrip(): { h: number; demand: 'low' | 'medium' | 'high'; solar: boolean }[] {
     if (!this.form.date) return [];
     const d = new Date(this.form.date);
     return Array.from({ length: 24 }, (_, h) => ({
@@ -193,24 +188,23 @@ export class ReservationForm implements OnInit {
     if (this.saving) return;
     this.saving = true;
     this.errorMsg = '';
+
     const payload: ReservationCreateRequest = {
-      typeLabel: 'Machine slot',
-      item: this.form.machine,
-      companyName: this.form.company || 'You',
-      fromDate: this.form.date,
-      toDate: this.form.date,
-      price: 0,
-      status: 'confirmed',
+      company: this.form.company,
       machine: this.form.machine,
+      date: this.form.date,
       hours: this.form.hours,
       startHour: this.form.startHour,
+      status: 'CONFIRMED',
       solar: this.form.solar,
+      slotId: this.form.slotId,
       co2Saved: this.co2Saved(),
     };
+
     this.api.create(payload).subscribe({
       next: () => {
         this.saving = false;
-        this.router.navigate(['/enterprise/my-reservations']);
+        this.router.navigate(['/enterprise/reservations']);
       },
       error: err => {
         console.error('[ReservationForm] create failed', err);
@@ -223,10 +217,10 @@ export class ReservationForm implements OnInit {
     });
   }
 
-  // Helpers for template
   toneClass(s: AiSuggestion): string {
     return `chip ${s.tone ?? 'info'}`;
   }
+
   endHourStr(): string {
     const end = (this.form.startHour + this.form.hours) % 24;
     return String(end).padStart(2, '0');

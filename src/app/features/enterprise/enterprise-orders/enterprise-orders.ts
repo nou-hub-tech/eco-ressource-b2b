@@ -1,22 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
-import { AuthService, User } from '../../../core/services/auth.service';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   BackendEcoOrder,
   BackendOrderStatus,
   EcoOrderApiService,
   EcoOrderRequest,
 } from '../../../pages/moduleReservation/shared/api/eco-order-api.service';
-import {
-  BackendReservation,
-  ReservationApiService,
-} from '../../../pages/moduleReservation/shared/api/reservation-api.service';
-import {
-  BackendReservationSlot,
-  ReservationSlotApiService,
-} from '../../../pages/moduleReservation/shared/api/reservation-slot-api.service';
 
 @Component({
   selector: 'app-enterprise-orders',
@@ -31,15 +22,13 @@ export class EnterpriseOrders implements OnInit {
   error = '';
 
   orders: BackendEcoOrder[] = [];
-  relatedCompanyNames = new Set<string>();
+  currentEnterpriseId: number | null = null;
   statusDrafts: Record<number, BackendOrderStatus> = {};
 
   readonly statuses: BackendOrderStatus[] = ['draft', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 
   constructor(
     private readonly auth: AuthService,
-    private readonly slotApi: ReservationSlotApiService,
-    private readonly reservationApi: ReservationApiService,
     private readonly orderApi: EcoOrderApiService,
   ) {}
 
@@ -48,7 +37,9 @@ export class EnterpriseOrders implements OnInit {
   }
 
   get visibleOrders(): BackendEcoOrder[] {
-    return this.orders.filter(order => !order.deleted && this.isRelatedOrder(order));
+    return this.orders.filter(
+      order => !order.deleted && this.currentEnterpriseId != null && order.enterprise?.id === this.currentEnterpriseId,
+    );
   }
 
   get totalCo2Saved(): number {
@@ -115,7 +106,7 @@ export class EnterpriseOrders implements OnInit {
       co2Saved: order.co2Saved ?? null,
       waterSaved: order.waterSaved ?? null,
       wasteAvoided: order.wasteAvoided ?? null,
-      enterpriseId: this.currentEnterpriseId(this.auth.currentUser),
+      enterpriseId: order.enterprise?.id ?? this.currentEnterpriseId ?? undefined,
     };
 
     this.savingId = order.id;
@@ -131,23 +122,15 @@ export class EnterpriseOrders implements OnInit {
   }
 
   lifecycleStage(order: BackendEcoOrder): 'created' | 'processing' | 'completed' {
-    if (order.status === 'shipped') {
-      return 'processing';
-    }
-    if (order.status === 'delivered') {
-      return 'completed';
-    }
+    if (order.status === 'shipped') return 'processing';
+    if (order.status === 'delivered') return 'completed';
     return 'created';
   }
 
   lifecycleProgress(order: BackendEcoOrder): number {
     const stage = this.lifecycleStage(order);
-    if (stage === 'completed') {
-      return 100;
-    }
-    if (stage === 'processing') {
-      return 66;
-    }
+    if (stage === 'completed') return 100;
+    if (stage === 'processing') return 66;
     return 33;
   }
 
@@ -155,12 +138,8 @@ export class EnterpriseOrders implements OnInit {
     const co2 = this.co2Value(order);
     const grade = this.gradeScore(order.grade);
 
-    if (co2 >= 200 || grade <= 2) {
-      return 'High environmental impact';
-    }
-    if (co2 >= 100 || grade <= 3) {
-      return 'Moderate impact';
-    }
+    if (co2 >= 200 || grade <= 2) return 'High environmental impact';
+    if (co2 >= 100 || grade <= 3) return 'Moderate impact';
     return 'Low environmental impact';
   }
 
@@ -172,29 +151,14 @@ export class EnterpriseOrders implements OnInit {
     this.loading = true;
     this.error = '';
 
-    forkJoin({
-      slots: this.slotApi.list(false),
-      reservations: this.reservationApi.list(false),
-      orders: this.orderApi.list(false),
-    }).subscribe({
-      next: ({ slots, reservations, orders }) => {
-        const ownedSlots = slots.filter(slot => !slot.deleted && this.isMySlot(slot));
-        const relatedReservations = reservations.filter(
-          reservation => !reservation.deleted && this.belongsToOwnedSlots(reservation, ownedSlots),
-        );
-
-        this.relatedCompanyNames = new Set(
-          relatedReservations
-            .map(reservation => (reservation.companyName ?? '').trim().toLowerCase())
-            .filter(Boolean),
-        );
-
+    this.orderApi.list(false).subscribe({
+      next: orders => {
+        this.currentEnterpriseId = this.resolveEnterpriseId(orders);
         this.orders = orders;
         this.statusDrafts = {};
         for (const order of this.visibleOrders) {
           this.statusDrafts[order.id] = order.status;
         }
-
         this.loading = false;
         this.savingId = null;
       },
@@ -204,6 +168,12 @@ export class EnterpriseOrders implements OnInit {
         this.savingId = null;
       },
     });
+  }
+
+  private resolveEnterpriseId(orders: BackendEcoOrder[]): number | null {
+    const company = this.auth.currentUser?.company?.trim().toLowerCase() || '';
+    const match = orders.find(order => (order.enterprise?.companyName ?? '').trim().toLowerCase() === company);
+    return match?.enterprise?.id ?? null;
   }
 
   private co2Value(order: BackendEcoOrder): number {
@@ -219,64 +189,5 @@ export class EnterpriseOrders implements OnInit {
     if (grade === 'C') return 3;
     if (grade === 'D') return 2;
     return 1;
-  }
-
-  private isRelatedOrder(order: BackendEcoOrder): boolean {
-    const company = (order.companyName ?? '').trim().toLowerCase();
-    const currentCompany = this.auth.currentUser?.company?.trim().toLowerCase() || '';
-    const enterpriseId = this.currentEnterpriseId(this.auth.currentUser);
-
-    return (
-      (!!enterpriseId && order.enterprise?.id === enterpriseId) ||
-      (!!company && this.relatedCompanyNames.has(company)) ||
-      (!!currentCompany && company === currentCompany)
-    );
-  }
-
-  private belongsToOwnedSlots(
-    reservation: BackendReservation,
-    ownedSlots: BackendReservationSlot[],
-  ): boolean {
-    const reservationMachine = (reservation.machine ?? reservation.item ?? '').trim().toLowerCase();
-    const reservationDate = reservation.fromDate;
-    const reservationStart = reservation.startHour ?? null;
-    const reservationHours = reservation.hours ?? 1;
-
-    return ownedSlots.some(slot => {
-      const sameMachine = slot.machine.trim().toLowerCase() === reservationMachine;
-      const sameDate = slot.date === reservationDate;
-
-      if (!sameMachine || !sameDate) {
-        return false;
-      }
-
-      if (reservationStart === null) {
-        return true;
-      }
-
-      const reservationEnd = reservationStart + reservationHours;
-      return reservationStart < slot.endHour && reservationEnd > slot.startHour;
-    });
-  }
-
-  private isMySlot(slot: BackendReservationSlot): boolean {
-    const user = this.auth.currentUser;
-    const owner = (slot.owner ?? '').trim().toLowerCase();
-    const company = user?.company?.trim().toLowerCase() || '';
-    const name = user?.name?.trim().toLowerCase() || '';
-    const email = user?.email?.trim().toLowerCase() || '';
-    const enterpriseId = this.currentEnterpriseId(user);
-
-    return (
-      (!!enterpriseId && slot.enterprise?.id === enterpriseId) ||
-      (!!company && owner === company) ||
-      (!!name && owner === name) ||
-      (!!email && owner === email)
-    );
-  }
-
-  private currentEnterpriseId(user: User | null): number | null {
-    const parsed = user?.id ? Number(user.id) : NaN;
-    return Number.isFinite(parsed) ? parsed : null;
   }
 }

@@ -5,10 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AiSuggestionsService, AiSuggestion } from '../../shared/ai-suggestions.service';
 import { ReservationSlot, SlotStatus } from '../../shared/models/slot.model';
 import { SlotStore } from '../slot.store';
-import {
-  ReservationSlotApiService,
-  BackendSlotStatus,
-} from '../../shared/api/reservation-slot-api.service';
+import { ReservationSlotApiService } from '../../shared/api/reservation-slot-api.service';
 
 interface ValidationErrors {
   machine?: string;
@@ -16,7 +13,6 @@ interface ValidationErrors {
   startHour?: string;
   endHour?: string;
   range?: string;
-  owner?: string;
 }
 
 @Component({
@@ -27,7 +23,6 @@ interface ValidationErrors {
   styleUrls: ['./slot-form.css'],
 })
 export class SlotForm implements OnInit {
-
   isEdit = false;
   editingId: number | null = null;
   saved = false;
@@ -40,16 +35,11 @@ export class SlotForm implements OnInit {
     status: 'OPEN',
     solar: false,
     discountPct: 0,
-    owner: '',
-    reservedBy: undefined,
+    enterpriseId: null,
   };
 
   errors: ValidationErrors = {};
-
-  // Live AI feedback
   liveAi: AiSuggestion[] = [];
-
-  // Computed solar discount preview
   recommendedDiscount = 0;
 
   constructor(
@@ -66,7 +56,6 @@ export class SlotForm implements OnInit {
     if (id) {
       this.isEdit = true;
       this.editingId = Number(id);
-      // Try store first, fall back to direct API fetch
       const existing = this.store.byId(this.editingId);
       if (existing) {
         this.applyToForm(existing);
@@ -81,8 +70,7 @@ export class SlotForm implements OnInit {
               status: s.status.toUpperCase() as SlotStatus,
               solar: s.solar,
               discountPct: s.discountPct,
-              owner: s.owner,
-              reservedBy: s.reservedBy ?? undefined,
+              enterpriseId: s.enterprise?.id ?? s.enterpriseId ?? null,
               id: s.id,
               deleted: s.deleted ?? false,
             });
@@ -92,7 +80,6 @@ export class SlotForm implements OnInit {
         });
       }
     } else {
-      // Default new-slot date = tomorrow at 9
       const d = new Date();
       d.setDate(d.getDate() + 1);
       this.form.date = d.toISOString().slice(0, 10);
@@ -109,43 +96,35 @@ export class SlotForm implements OnInit {
       status: s.status ?? 'OPEN',
       solar: s.solar ?? false,
       discountPct: s.discountPct ?? 0,
-      owner: s.owner ?? '',
-      reservedBy: s.reservedBy,
+      enterpriseId: s.enterpriseId ?? null,
     };
   }
 
-  // ===== Validation =====
   validate(): boolean {
     const e: ValidationErrors = {};
     if (!this.form.machine) e.machine = 'Pick a machine';
     if (!this.form.date) e.date = 'Date is required';
-    if (this.form.startHour < 0 || this.form.startHour > 23) e.startHour = 'Start must be 0–23';
-    if (this.form.endHour < 1 || this.form.endHour > 24) e.endHour = 'End must be 1–24';
+    if (this.form.startHour < 0 || this.form.startHour > 23) e.startHour = 'Start must be 0-23';
+    if (this.form.endHour < 1 || this.form.endHour > 24) e.endHour = 'End must be 1-24';
     if (this.form.endHour <= this.form.startHour) e.range = 'End must be after start';
-    if (!this.form.owner.trim()) e.owner = 'Owner is required';
     this.errors = e;
     return Object.keys(e).length === 0;
   }
 
-  // ===== Live computation =====
   recompute(): void {
-    // Solar / discount logic — solar slots get a discount based on solar factor
     const midHour = Math.floor((this.form.startHour + this.form.endHour) / 2);
     const solarF = this.ai.solarFactor(midHour);
     const isSolarMid = this.ai.isSolarSlot(midHour);
     this.form.solar = isSolarMid;
 
-    // Recommended discount: 10% base for solar + scaled by solar factor
     if (isSolarMid) {
       this.recommendedDiscount = Math.round(10 + solarF * 20);
     } else if (this.form.startHour < 6 || this.form.startHour >= 22) {
-      // Night band — small off-peak discount
       this.recommendedDiscount = 12;
     } else {
       this.recommendedDiscount = 0;
     }
 
-    // Build AI rail
     this.liveAi = this.computeAiRail();
   }
 
@@ -163,88 +142,58 @@ export class SlotForm implements OnInit {
     const d = new Date(this.form.date);
     const dur = Math.max(1, this.form.endHour - this.form.startHour);
     const midHour = Math.floor((this.form.startHour + this.form.endHour) / 2);
-
-    // Demand prediction
     const demand = this.ai.demand(d, midHour);
+
     if (demand === 'low') {
       out.push({
-        label: 'Low-demand window — easy to share',
+        label: 'Low-demand window - easy to share',
         detail: 'Peers in your sector are unlikely to compete for this slot',
-        score: 86, tone: 'eco', icon: '🤝',
+        score: 86, tone: 'eco', icon: 'Share',
       });
     } else if (demand === 'high') {
       out.push({
         label: 'High-demand window detected',
-        detail: 'Consider raising the discount to 0% or splitting into two slots',
-        score: 79, tone: 'warn', icon: '🔥',
+        detail: 'Consider splitting into smaller windows or reducing discount',
+        score: 79, tone: 'warn', icon: 'Fire',
       });
     }
 
-    // Solar
     if (this.form.solar) {
       out.push({
         label: 'Solar-aligned slot',
         detail: `On-site PV can offset ~${Math.round(this.ai.solarFactor(midHour) * 60)}% of draw`,
-        score: 92, tone: 'eco', icon: '☀️',
+        score: 92, tone: 'eco', icon: 'Sun',
       });
       out.push({
         label: `Recommended discount: -${this.recommendedDiscount}%`,
-        detail: 'Encourages peers to favour low-carbon windows',
-        score: 88, tone: 'savings', icon: '💸',
+        detail: 'Encourages low-carbon reservations',
+        score: 88, tone: 'savings', icon: 'Percent',
       });
     }
 
-    // Duration
     if (dur > 8) {
       out.push({
-        label: 'Long slot — consider splitting',
-        detail: 'Two 4h slots get more bookings than one 8h slot',
-        score: 74, tone: 'info', icon: '✂',
-      });
-    }
-    if (dur < 2) {
-      out.push({
-        label: 'Very short slot',
-        detail: 'Most operations need a minimum 2h block',
-        score: 71, tone: 'warn', icon: '⏱',
-      });
-    }
-
-    // Cancellation forecast
-    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-    const cancelRisk = demand === 'high' ? 22 : demand === 'medium' ? 14 : 9;
-    const cancelAdj = cancelRisk - (isWeekend ? 4 : 0) - (this.form.solar ? 3 : 0);
-    out.push({
-      label: `Cancellation risk: ${cancelAdj}%`,
-      detail: 'Lower for weekends and solar slots — peers commit more readily',
-      score: 100 - cancelAdj * 2, tone: cancelAdj > 15 ? 'warn' : 'info', icon: '📉',
-    });
-
-    // Share suggestion
-    if (this.form.status === 'OPEN' && demand !== 'high') {
-      out.push({
-        label: 'Eligible to broadcast to circular network',
-        detail: 'Share this slot with 2 peers — splits cost & boosts utilisation',
-        score: 83, tone: 'eco', icon: '📡',
+        label: 'Long slot - consider splitting',
+        detail: 'Two 4h slots often book faster than one long block',
+        score: 74, tone: 'info', icon: 'Split',
       });
     }
 
     return out;
   }
 
-  // ===== Quick presets =====
   applyPreset(preset: 'morning' | 'afternoon' | 'night' | 'solar-peak'): void {
-    if (preset === 'morning')      { this.form.startHour =  8; this.form.endHour = 12; }
-    if (preset === 'afternoon')    { this.form.startHour = 13; this.form.endHour = 17; }
-    if (preset === 'night')        { this.form.startHour = 22; this.form.endHour = 24; }
-    if (preset === 'solar-peak')   { this.form.startHour = 11; this.form.endHour = 15; }
+    if (preset === 'morning') { this.form.startHour = 8; this.form.endHour = 12; }
+    if (preset === 'afternoon') { this.form.startHour = 13; this.form.endHour = 17; }
+    if (preset === 'night') { this.form.startHour = 22; this.form.endHour = 24; }
+    if (preset === 'solar-peak') { this.form.startHour = 11; this.form.endHour = 15; }
     this.recompute();
   }
 
-  // ===== Display helpers =====
-  duration(): number { return Math.max(0, this.form.endHour - this.form.startHour); }
+  duration(): number {
+    return Math.max(0, this.form.endHour - this.form.startHour);
+  }
 
-  /** Hour strip (0–23) — picks demand colour + solar marker */
   get hourStrip() {
     if (!this.form.date) return [];
     const d = new Date(this.form.date);
@@ -264,10 +213,8 @@ export class SlotForm implements OnInit {
     this.recompute();
   }
 
-  // ===== Submit =====
   submit(form: NgForm): void {
     if (!this.validate()) {
-      // Scroll to first error
       setTimeout(() => {
         document.querySelector('.field-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 0);
@@ -280,10 +227,10 @@ export class SlotForm implements OnInit {
       this.store.create(this.form);
     }
     this.saved = true;
-    setTimeout(() => this.router.navigate(['/enterprise/slot-management']), 900);
+    setTimeout(() => this.router.navigate(['/enterprise/slots']), 900);
   }
 
   cancel(): void {
-    this.router.navigate(['/enterprise/slot-management']);
+    this.router.navigate(['/enterprise/slots']);
   }
 }

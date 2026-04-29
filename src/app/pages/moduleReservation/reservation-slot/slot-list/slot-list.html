@@ -1,6 +1,4 @@
 <div class="eco-page rise">
-
-  <!-- HEADER -->
   <header class="eco-page-head">
     <div>
       <div class="section-label"><span class="ai-dot"></span> EcoSlotAI · Slot inventory</div>
@@ -11,12 +9,11 @@
       </p>
     </div>
     <div class="head-actions">
-      <a routerLink="/enterprise/slots" class="btn ghost">📅 Open heatmap →</a>
+      <a routerLink="/enterprise/slots" class="btn ghost">📆 Open heatmap →</a>
       <button class="btn primary" (click)="goCreate()">+ New slot</button>
     </div>
   </header>
 
-  <!-- KPI STRIP -->
   <div class="kpi-strip">
     <div class="kpi accent">
       <div class="label">Slot utilisation</div>
@@ -40,9 +37,8 @@
     </div>
   </div>
 
-  <!-- FILTERS -->
   <div class="filter-bar">
-    <input class="input" [(ngModel)]="searchTerm" placeholder="Search machine, owner, or peer..." />
+    <input class="input" [(ngModel)]="searchTerm" placeholder="Search machine or date..." />
     <select class="input" [(ngModel)]="filterStatus">
       <option value="">All statuses</option>
       <option value="OPEN">Open</option>
@@ -64,11 +60,10 @@
     </select>
   </div>
 
-  <!-- TABLE -->
   <section class="slot-table-wrap card">
     <div class="slot-row slot-head">
       <span>Slot</span>
-      <span>Machine · Owner</span>
+      <span>Machine</span>
       <span>Window</span>
       <span>Status</span>
       <span>Demand · Cancel</span>
@@ -77,7 +72,6 @@
     </div>
 
     <div class="slot-row" *ngFor="let s of filtered" [class.row-deleted]="s.deleted" [class.row-past]="isPast(s)">
-      <!-- date + solar -->
       <span class="slot-date-col">
         <div class="slot-date">{{ s.date }}</div>
         <div class="slot-meta">
@@ -86,30 +80,25 @@
         </div>
       </span>
 
-      <!-- machine + owner -->
       <span>
         <div class="slot-machine">{{ s.machine }}</div>
-        <div class="slot-owner">by {{ s.owner }}<span *ngIf="s.reservedBy"> · for {{ s.reservedBy }}</span></div>
+        <div class="slot-owner">Enterprise #{{ s.enterpriseId ?? '—' }}</div>
       </span>
 
-      <!-- window -->
       <span>
         <div class="slot-window">{{ windowLabel(s) }}</div>
         <div class="slot-duration">{{ durationHours(s) }} h</div>
       </span>
 
-      <!-- status -->
       <span>
         <span class="status status-{{ s.status.toLowerCase() }}">{{ s.status }}</span>
       </span>
 
-      <!-- AI gauges -->
       <span class="slot-gauges">
         <div class="gauge">
           <div class="gauge-label">demand</div>
           <div class="gauge-bar">
-            <div class="gauge-fill {{ demandClass(aiFor(s).demandPct) }}"
-                 [style.width.%]="aiFor(s).demandPct"></div>
+            <div class="gauge-fill {{ demandClass(aiFor(s).demandPct) }}" [style.width.%]="aiFor(s).demandPct"></div>
           </div>
           <div class="gauge-val">{{ aiFor(s).demandPct }}%</div>
         </div>
@@ -122,7 +111,6 @@
         </div>
       </span>
 
-      <!-- AI tip -->
       <span>
         <div class="ai-tip" [ngClass]="'tone-' + aiFor(s).tone">
           <span class="ai-dot"></span>
@@ -130,12 +118,14 @@
         </div>
       </span>
 
-      <!-- Actions -->
       <span class="slot-actions">
         <button class="btn sm ghost" (click)="goEdit(s)" title="Edit slot">Edit</button>
-        <button class="btn sm ghost" (click)="toggleStatus(s)"
-                [title]="s.status === 'OPEN' ? 'Block this slot' : 'Reopen this slot'"
-                *ngIf="s.status !== 'BOOKED'">
+        <button
+          class="btn sm ghost"
+          (click)="toggleStatus(s)"
+          [title]="s.status === 'OPEN' ? 'Block this slot' : 'Reopen this slot'"
+          *ngIf="s.status !== 'BOOKED'"
+        >
           {{ s.status === 'OPEN' ? 'Block' : 'Reopen' }}
         </button>
         <button class="btn sm danger" (click)="askDelete(s)" title="Soft delete">Delete</button>
@@ -150,7 +140,6 @@
     </div>
   </section>
 
-  <!-- DELETE CONFIRMATION MODAL -->
   <div class="modal" *ngIf="deleteModal" (click)="cancelDelete()">
     <div class="modal-box small" (click)="$event.stopPropagation()">
       <div class="section-label danger-label"><span class="ai-dot"></span> Confirm deletion</div>
@@ -161,19 +150,20 @@
       </p>
 
       <p class="modal-hint" *ngIf="pendingDelete?.status === 'BOOKED'">
-        ⚠ This slot is booked by <strong>{{ pendingDelete?.reservedBy }}</strong>.
-        Deleting will release the reservation.
+        This slot is already booked. Deleting it will keep the audit trail and remove it from active scheduling.
       </p>
 
       <label class="field-label">Reason (kept for audit)</label>
-      <textarea class="input"
-                rows="3"
-                [(ngModel)]="deleteReason"
-                placeholder="e.g. machine maintenance, schedule conflict, owner withdrew..."></textarea>
+      <textarea
+        class="input"
+        rows="3"
+        [(ngModel)]="deleteReason"
+        placeholder="e.g. machine maintenance, schedule conflict, enterprise withdrew..."
+      ></textarea>
 
       <p class="modal-foot-note">
-        💡 Soft-deleted slots are hidden from booking but kept in the audit trail
-        — you can restore them via the slot management API.
+        Soft-deleted slots are hidden from booking but kept in the audit trail — you can restore them via the slot
+        management API.
       </p>
 
       <div class="modal-actions">
@@ -182,5 +172,4 @@
       </div>
     </div>
   </div>
-
 </div>
