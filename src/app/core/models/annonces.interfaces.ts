@@ -37,6 +37,7 @@ export interface ListingResponse {
   productCategory: string;
   companyId: number;
   companyName?: string | null;
+  ownerFullName?: string | null;
   createdAt: string;
   attachmentUrls: string[];
   groupPurchase: GroupPurchaseResponse | null;
@@ -88,6 +89,7 @@ export interface CreateCommentRequest {
 export interface CommentResponse {
   id: number;
   content: string;
+  originalContent?: string | null;
   userId: number;
   userFullName: string;
   listingId: number;

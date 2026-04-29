@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AdminApiService, AdminUserDto, EventDto, SolidarityDto } from '../../../core/services/admin-api.service';
 import { ListingService, ListingDto, ReservationDto, WalletTransactionDto, StockItemDto } from '../../../core/services/listing';
+import { RealtimeService } from '../../annonces/services/realtime.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -33,11 +34,21 @@ export class Dashboard implements OnInit {
 
   constructor(
     private adminApiService: AdminApiService,
-    private listingService: ListingService
+    private listingService: ListingService,
+    private realtimeService: RealtimeService
   ) {}
 
   ngOnInit(): void {
     this.loadDashboardData();
+    this.realtimeService.adminNotifications().subscribe((event) => {
+      this.activity = [{
+        icon: '!',
+        text: event.message || 'Alerte moderation commentaire',
+        time: 'Maintenant',
+        bg: 'rgba(239,68,68,.1)',
+        bdr: 'rgba(239,68,68,.25)'
+      }, ...this.activity].slice(0, 8);
+    });
   }
 
   private loadDashboardData(): void {

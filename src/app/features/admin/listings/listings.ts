@@ -84,11 +84,11 @@ export class Listings implements OnInit {
   }
 
   detail(listing: ListingResponse): void {
-    this.router.navigate(['/enterprise/annonces', listing.id]);
+    this.router.navigate(['/admin/annonces', listing.id]);
   }
 
   edit(listing: ListingResponse): void {
-    this.router.navigate(['/enterprise/annonces', listing.id, 'edit']);
+    this.router.navigate(['/admin/annonces', listing.id, 'edit']);
   }
 
   delete(listing: ListingResponse): void {

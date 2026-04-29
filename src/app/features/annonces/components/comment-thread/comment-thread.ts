@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, Validators } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { CommentService } from '../../services/comment.service';
 import { CommentResponse } from '../../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -40,11 +41,14 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   antiSpam = false;
   replyTo: CommentResponse | null = null;
   editingComment: CommentResponse | null = null;
+  editContentError = '';
   currentUserId: number | null = null;
   currentUserRole: string | null = null;
   currentCompanyId: number | null = null;
   currentUserEmail: string | null = null;
   private spamTimer: any;
+  private realtimeSub?: Subscription;
+  private realtimeListingId: number | null = null;
 
   constructor(
     private readonly commentService: CommentService,
@@ -153,7 +157,11 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
     if (changes['listingId'] && !changes['listingId'].firstChange) {
       const id = this.listingId;
       if (Number.isFinite(id) && id > 0) {
+        this.comments = [];
+        this.realtimeListingId = null;
+        this.realtimeSub?.unsubscribe();
         this.loadComments();
+        this.subscribeRealtimeComments();
       }
     }
   }
@@ -178,6 +186,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
 
   ngOnDestroy(): void {
     if (this.spamTimer) clearTimeout(this.spamTimer);
+    this.realtimeSub?.unsubscribe();
   }
 
   loadComments(): void {
@@ -233,18 +242,36 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   startReply(comment: CommentResponse): void {
     this.replyTo = comment;
     this.editingComment = null;
+    this.editContentError = '';
     this.commentCtrl.setValue('');
   }
 
   startEdit(comment: CommentResponse): void {
+    if (!this.canEdit(comment)) return;
     this.editingComment = comment;
     this.replyTo = null;
+    this.editContentError = '';
+
+    if (comment.moderationStatus === 'MASKED') {
+      const original = comment.originalContent?.trim();
+      const publicContent = comment.content?.trim();
+      if (original && original !== publicContent) {
+        this.commentCtrl.setValue(comment.originalContent || '');
+        return;
+      }
+
+      this.commentCtrl.setValue('');
+      this.reloadMaskedEditableContent(comment);
+      return;
+    }
+
     this.commentCtrl.setValue(comment.content);
   }
 
   cancelReply(): void {
     this.replyTo = null;
     this.editingComment = null;
+    this.editContentError = '';
     this.commentCtrl.setValue('');
   }
 
@@ -265,6 +292,20 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
     if (this.currentUserRole === 'admin') return true;
     if (this.isOwner(comment)) return true;
     return this.isListingOwner();
+  }
+
+  canEdit(comment: CommentResponse): boolean {
+    return this.isOwner(comment) && comment.moderationStatus !== 'BLOCKED';
+  }
+
+  canReply(comment: CommentResponse): boolean {
+    return comment.moderationStatus !== 'BLOCKED';
+  }
+
+  maybeEditMasked(comment: CommentResponse): void {
+    if (comment.moderationStatus === 'MASKED' && this.canEdit(comment)) {
+      this.startEdit(comment);
+    }
   }
 
   /** Vendeur de l’annonce (tous types : surplus, demande, achat groupé). */
@@ -292,6 +333,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
     this.commentCtrl.setValue('');
     this.replyTo = null;
     this.editingComment = null;
+    this.editContentError = '';
     this.sending = false;
   }
 
@@ -301,7 +343,12 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   }
 
   private subscribeRealtimeComments(): void {
-    this.realtimeService.commentEvents<CommentResponse>(this.listingId)
+    const id = Number(this.listingId);
+    if (!Number.isFinite(id) || id <= 0 || this.realtimeListingId === id) return;
+
+    this.realtimeSub?.unsubscribe();
+    this.realtimeListingId = id;
+    this.realtimeSub = this.realtimeService.commentEvents<CommentResponse>(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((event) => {
         const comment = event.payload;
@@ -332,5 +379,39 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
       if (node.replies?.length && this.containsComment(node.replies, id)) return true;
     }
     return false;
+  }
+
+  private reloadMaskedEditableContent(comment: CommentResponse): void {
+    this.commentService.findByListing(this.listingId).subscribe({
+      next: (comments) => {
+        const fresh = this.findCommentById(comments, comment.id);
+        const original = fresh?.originalContent?.trim();
+        const publicContent = fresh?.content?.trim();
+        if (original && original !== publicContent) {
+          this.commentCtrl.setValue(fresh!.originalContent || '');
+          this.editContentError = '';
+        } else {
+          this.editContentError =
+            'Le contenu original de ce commentaire masque est indisponible.';
+        }
+        this.refreshView();
+      },
+      error: () => {
+        this.editContentError =
+          'Le contenu original de ce commentaire masque est indisponible.';
+        this.refreshView();
+      }
+    });
+  }
+
+  private findCommentById(nodes: CommentResponse[], id: number): CommentResponse | null {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (node.replies?.length) {
+        const found = this.findCommentById(node.replies, id);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 }

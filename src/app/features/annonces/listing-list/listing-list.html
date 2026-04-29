@@ -122,4 +122,17 @@
     [pageSize]="pageSize"
     (pageChange)="onPageChange($event)">
   </app-pagination>
+
+  <app-confirm-dialog
+    [visible]="showDeleteConfirm"
+    title="Supprimer cette annonce ?"
+    [message]="deleteConfirmMessage"
+    confirmLabel="Oui, supprimer"
+    cancelLabel="Garder l'annonce"
+    [danger]="true"
+    [loading]="deletingId === listingToDelete?.id"
+    [errorMessage]="actionError"
+    (confirmed)="confirmDeleteListing()"
+    (cancelled)="cancelDeleteListing()">
+  </app-confirm-dialog>
 </div>

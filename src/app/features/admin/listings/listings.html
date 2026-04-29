@@ -85,7 +85,10 @@
             <strong class="listing-title">{{l.title}}</strong>
             <div class="listing-sub">{{l.location || 'Sans localisation'}} · {{l.quantity}} {{l.unit}}</div>
           </td>
-          <td>{{l.companyName || ('Entreprise #' + l.companyId)}}</td>
+          <td>
+            <strong>{{l.ownerFullName || l.companyName || ('Entreprise #' + l.companyId)}}</strong>
+            <div class="listing-sub" *ngIf="l.companyName && l.ownerFullName">{{l.companyName}}</div>
+          </td>
           <td><span class="badge badge-neutral">{{l.type}}</span></td>
           <td>{{l.productCategory}}</td>
           <td><strong>{{l.price !== null ? (l.price | number:'1.0-2') + ' TND' : 'Negociable'}}</strong></td>

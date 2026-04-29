@@ -1,6 +1,17 @@
-import { Component, DestroyRef, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  Output,
+  SimpleChanges
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, Validators } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { GroupPurchaseService } from '../../services/group-purchase.service';
 import { httpErrorMessage } from '../../services/api-normalize';
@@ -18,7 +29,7 @@ import { RealtimeService } from '../../services/realtime.service';
   templateUrl: './group-purchase-panel.html',
   styleUrls: ['./group-purchase-panel.css']
 })
-export class GroupPurchasePanel implements OnInit, OnDestroy {
+export class GroupPurchasePanel implements OnInit, OnDestroy, OnChanges {
   @Input() listing!: ListingResponse;
   @Input() group!: GroupPurchaseResponse;
   @Output() groupUpdated = new EventEmitter<GroupPurchaseResponse>();
@@ -33,6 +44,8 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
   countdown = { days: 0, hours: 0, minutes: 0, seconds: 0 };
   isExpired = false;
   private countdownInterval: any;
+  private groupRealtimeSub?: Subscription;
+  private realtimeGroupId: number | null = null;
 
   constructor(
     private readonly groupService: GroupPurchaseService,
@@ -55,13 +68,14 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
     }
 
     this.startCountdown();
-    this.realtimeService.groupEvents<GroupPurchaseResponse>(this.group.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((event) => {
-        if (!event.payload) return;
-        this.group = event.payload;
-        this.groupUpdated.emit(event.payload);
-      });
+    this.subscribeRealtimeGroup();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['group'] && !changes['group'].firstChange) {
+      this.startCountdown();
+      this.subscribeRealtimeGroup();
+    }
   }
 
   private syncCompanyId(): void {
@@ -70,6 +84,7 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.countdownInterval) clearInterval(this.countdownInterval);
+    this.groupRealtimeSub?.unsubscribe();
   }
 
   get progress(): number {
@@ -204,8 +219,24 @@ export class GroupPurchasePanel implements OnInit, OnDestroy {
   }
 
   private startCountdown(): void {
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
     this.updateCountdown();
     this.countdownInterval = setInterval(() => this.updateCountdown(), 1000);
+  }
+
+  private subscribeRealtimeGroup(): void {
+    const id = Number(this.group?.id);
+    if (!Number.isFinite(id) || id <= 0 || this.realtimeGroupId === id) return;
+
+    this.groupRealtimeSub?.unsubscribe();
+    this.realtimeGroupId = id;
+    this.groupRealtimeSub = this.realtimeService.groupEvents<GroupPurchaseResponse>(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event) => {
+        if (!event.payload) return;
+        this.group = event.payload;
+        this.groupUpdated.emit(event.payload);
+      });
   }
 
   participantLabel(p: ParticipantInfo): string {

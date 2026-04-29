@@ -14,4 +14,5 @@ export class GeocodingService {
     const params = new HttpParams().set('q', query);
     return this.http.get<GeocodingResponse>(this.baseUrl, { params });
   }
+
 }
