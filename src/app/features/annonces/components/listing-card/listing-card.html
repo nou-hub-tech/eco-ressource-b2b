@@ -44,8 +44,8 @@
 
     <div class="lc-footer">
       <div class="lc-stats">
-        <span>❤ {{listing.favoriteCount}}</span>
-        <span>💬 {{listing.commentCount}}</span>
+        <span>Coeur {{listing.favoriteCount}}</span>
+        <span>Com. {{listing.commentCount}}</span>
         <span class="lc-time">{{timeAgo(listing.createdAt)}}</span>
       </div>
       <app-favorite-button
@@ -55,6 +55,11 @@
         [showCount]="false"
         (toggled)="onFavoriteToggled($event)">
       </app-favorite-button>
+    </div>
+
+    <div class="lc-owner-actions" *ngIf="canManage">
+      <button class="lc-action lc-edit" type="button" (click)="requestEdit($event)">Modifier</button>
+      <button class="lc-action lc-delete" type="button" (click)="requestDelete($event)">Supprimer</button>
     </div>
   </div>
 </div>

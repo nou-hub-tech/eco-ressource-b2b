@@ -36,9 +36,9 @@ export class Login implements OnInit, AfterViewInit, OnDestroy {
   private frameCount = 0;
   private animPaused = false;
   demoAccounts = [
-    { label: 'Admin',       email: 'admin@eco.tn',       password: 'admin123' },
-    { label: 'Enterprise',  email: 'slim@entreprise.tn',  password: 'demo123'  },
-    { label: 'Transporter', email: 'karim@transport.tn',  password: 'demo123'  },
+    { label: 'Admin',       email: 'admin@marketplace.com', password: 'admin123' },
+    { label: 'Enterprise',  email: 'slim@entreprise.tn',    password: 'demo123' },
+    { label: 'Transporter', email: 'karim@transport.tn',    password: 'demo123' },
   ];
 
   constructor(
@@ -200,8 +200,9 @@ export class Login implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  fillDemo(email: string, password: string): void {
-    this.form.patchValue({ email, password });
+  /* ── FORM ── */
+  fillDemo(account: { email: string; password: string }): void {
+    this.form.patchValue({ email: account.email, password: account.password });
     this.errorMessage = '';
   }
 
@@ -257,8 +258,10 @@ export class Login implements OnInit, AfterViewInit, OnDestroy {
           this.animPaused = false;
         }
       },
-      error: () => {
-        this.errorMessage = 'Server error. Please try again.';
+      error: (err) => {
+        this.errorMessage = err?.status === 401
+          ? 'Incorrect email or password.'
+          : 'Server error. Please try again.';
         this.loading = false;
         this.animPaused = false;
       }

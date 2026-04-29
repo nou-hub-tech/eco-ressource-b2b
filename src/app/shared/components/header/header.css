@@ -1,4 +1,17 @@
 /* All header styles are in src/styles.css via theme classes */
+.notif-row-btn {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.notif-row-btn:hover {
+  background: var(--bg3);
+}
+
 /* Language Switcher styling for header */
 :host ::ng-deep .lang-switcher-container {
   position: relative;

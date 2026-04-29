@@ -82,9 +82,50 @@
       <div class="form-group">
         <label>Description *</label>
         <textarea formControlName="description" rows="4" placeholder="Décrivez votre annonce en détail..."></textarea>
+        <div class="lc-ai-toolbar" aria-label="Assistant description">
+          <button type="button" class="btn btn-ghost btn-sm" (click)="applyDescriptionPreset('clarity')">Clarifier</button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="applyDescriptionPreset('quality')">Qualite</button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="applyDescriptionPreset('logistics')">Logistique</button>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="applyDescriptionPreset('cta')">CTA</button>
+          <button type="button" class="btn btn-outline btn-sm" [disabled]="aiLoading" (click)="generateMarketingSuggestion()">
+            {{ aiLoading ? 'IA en cours...' : 'IA marketing' }}
+          </button>
+        </div>
         <div class="form-error" *ngIf="form.get('description')!.touched && form.get('description')!.hasError('required')">La description est obligatoire</div>
         <div class="form-error" *ngIf="form.get('description')!.hasError('minlength')">Minimum 10 caractères</div>
         <div class="form-error" *ngIf="form.get('description')!.hasError('maxlength')">Maximum 2000 caractères</div>
+      </div>
+      <div class="lc-ai-panel" *ngIf="aiSuggestion || aiError || aiLoading">
+        <div class="lc-ai-head">
+          <strong>Assistant IA annonce</strong>
+          <span *ngIf="aiSuggestion?.qualityScore">Score {{ aiSuggestion?.qualityScore | number:'1.0-0' }}/100</span>
+        </div>
+        <p class="form-error" *ngIf="aiError">{{ aiError }}</p>
+        <p class="lc-hint" *ngIf="aiLoading">Generation d'une version plus attractive...</p>
+        <ng-container *ngIf="aiSuggestion">
+          <div class="lc-ai-block" *ngIf="aiSuggestion.improvedTitle">
+            <span>Titre propose</span>
+            <strong>{{ aiSuggestion.improvedTitle }}</strong>
+          </div>
+          <div class="lc-ai-block" *ngIf="aiSuggestion.improvedDescription">
+            <span>Description proposee</span>
+            <p>{{ aiSuggestion.improvedDescription }}</p>
+          </div>
+          <div class="lc-ai-meta">
+            <span *ngIf="aiSuggestion.materialType">Matiere: {{ aiSuggestion.materialType }}</span>
+            <span *ngIf="aiSuggestion.suggestedPrice">Prix IA: {{ aiSuggestion.suggestedPrice }} TND</span>
+            <span *ngIf="aiSuggestion.callToAction">{{ aiSuggestion.callToAction }}</span>
+          </div>
+          <div class="lc-ai-tags" *ngIf="aiSuggestion.tags.length">
+            <span *ngFor="let tag of aiSuggestion.tags">#{{ tag }}</span>
+          </div>
+          <p class="lc-hint" *ngIf="aiSuggestion.priceExplanation">{{ aiSuggestion.priceExplanation }}</p>
+          <div class="lc-ai-actions">
+            <button type="button" class="btn btn-outline btn-sm" (click)="applyAiTitle()">Appliquer titre</button>
+            <button type="button" class="btn btn-outline btn-sm" (click)="applyAiDescription()">Appliquer description</button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="applyAiAll()">Tout appliquer</button>
+          </div>
+        </ng-container>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -103,11 +144,27 @@
         <div class="form-group">
           <label>Prix (TND)</label>
           <input type="number" formControlName="price" placeholder="Optionnel" min="0" step="0.01">
+          <button type="button" class="btn btn-outline btn-sm lc-price-ai" [disabled]="priceSuggestionLoading" (click)="suggestMarketPrice()">
+            {{ priceSuggestionLoading ? 'Calcul...' : 'Suggérer prix marché' }}
+          </button>
+          <p class="lc-location-status" *ngIf="priceSuggestionStatus">{{ priceSuggestionStatus }}</p>
           <div class="form-error" *ngIf="form.get('price')!.hasError('min')">Le prix doit être positif</div>
         </div>
         <div class="form-group">
           <label>Localisation</label>
-          <input type="text" formControlName="location" placeholder="Ex: Tunis, Sfax...">
+          <div class="lc-location-control">
+            <input type="text" formControlName="location" placeholder="Ex: Tunis, Sfax...">
+            <button type="button" class="btn btn-outline btn-sm" [disabled]="geocodingLocation || !form.value.location" (click)="geocodeLocation()">
+              {{ geocodingLocation ? 'Recherche...' : 'Localiser' }}
+            </button>
+          </div>
+          <p class="lc-location-status" *ngIf="locationStatus">{{ locationStatus }}</p>
+          <div class="lc-location-map" *ngIf="locationPreviewListings.length">
+            <app-listing-map
+              [listings]="locationPreviewListings"
+              [height]="220">
+            </app-listing-map>
+          </div>
         </div>
       </div>
     </div>

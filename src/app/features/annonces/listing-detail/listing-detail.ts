@@ -8,15 +8,18 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ResourceListingService } from '../services/resource-listing.service';
 import { FavoriteService } from '../services/favorite.service';
 import {
   ListingResponse,
   FavoriteResponse,
-  GroupPurchaseResponse
+  GroupPurchaseResponse,
+  ListingMatchResponse
 } from '../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../core/services/auth.service';
 import { DEFAULT_LISTING_IMAGE_URL, MAX_LISTING_PHOTOS } from '../constants/listing-images';
+import { RealtimeService } from '../services/realtime.service';
 
 @Component({
   selector: 'app-listing-detail',
@@ -34,10 +37,20 @@ export class ListingDetail implements OnInit {
   isFavorite = false;
   currentCompanyId: number | null = null;
   currentImageIndex = 0;
-  showCancelConfirm = false;
-  cancelLoading = false;
+  showDeleteConfirm = false;
+  deleteLoading = false;
+  realtimeNotices: string[] = [];
+  matches: ListingMatchResponse[] = [];
+  matchesLoading = false;
   /** Incrémenté après un toggle favori ; ignore les réponses HTTP myFavorites arrivées trop tard. */
   private favoriteSyncGen = 0;
+  private activeRealtimeListingId: number | null = null;
+  private activeRealtimeGroupId: number | null = null;
+  private listingRealtimeSub?: Subscription;
+  private favoriteRealtimeSub?: Subscription;
+  private groupRealtimeSub?: Subscription;
+  private readonly notificationUserIds = new Set<number>();
+  private adminNotificationsSubscribed = false;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -45,6 +58,7 @@ export class ListingDetail implements OnInit {
     private readonly listingService: ResourceListingService,
     private readonly favoriteService: FavoriteService,
     private readonly authService: AuthService,
+    private readonly realtimeService: RealtimeService,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone,
     private readonly destroyRef: DestroyRef,
@@ -97,8 +111,9 @@ export class ListingDetail implements OnInit {
     this.currentCompanyId = this.authService.getCompanyProfileId();
     this.authService.user$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
+      .subscribe((user) => {
         this.currentCompanyId = this.authService.getCompanyProfileId();
+        this.subscribeNotifications(user);
       });
 
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((pm) => {
@@ -130,7 +145,9 @@ export class ListingDetail implements OnInit {
         }
         this.loading = false;
         this.refreshView();
+        this.loadMatches(id);
         this.loadFavoriteStatus(id);
+        this.subscribeRealtime(id, data.groupPurchase?.id ?? null);
       },
       error: (err) => {
         this.error = err.error?.message || 'Annonce introuvable';
@@ -161,8 +178,13 @@ export class ListingDetail implements OnInit {
     return this.isOwner && this.listing?.status === 'ACTIVE';
   }
 
-  get canCancel(): boolean {
-    return this.isOwner && this.listing?.status === 'ACTIVE';
+  get isAdmin(): boolean {
+    return this.authService.getRole() === 'admin';
+  }
+
+  get deleteConfirmMessage(): string {
+    const title = this.listing?.title || 'cette annonce';
+    return `L'annonce "${title}" sera supprimee definitivement. Elle ne sera plus visible dans la marketplace.`;
   }
 
   /** Toujours au moins une URL pour la galerie (placeholder si l’API ne renvoie rien). */
@@ -188,12 +210,23 @@ export class ListingDetail implements OnInit {
   }
 
   get ownerDisplayName(): string {
-    const n = this.listing?.companyName?.trim();
-    return n || 'Entreprise';
+    const fullName = this.listing?.ownerFullName?.trim();
+    if (fullName) return fullName;
+    const companyName = this.listing?.companyName?.trim();
+    return companyName || 'Auteur';
   }
 
   get ownerInitial(): string {
     return this.ownerDisplayName.charAt(0).toUpperCase();
+  }
+
+  get ownerSubtitle(): string {
+    const companyName = this.listing?.companyName?.trim();
+    return companyName || "Auteur de l'annonce";
+  }
+
+  get listBackRoute(): string {
+    return this.authService.getRole() === 'admin' ? '/admin/listings' : '/enterprise/annonces';
   }
 
   get typeLabel(): string {
@@ -247,25 +280,39 @@ export class ListingDetail implements OnInit {
     });
   }
 
-  confirmCancel(): void {
-    this.showCancelConfirm = true;
+  deleteListing(): void {
+    if (!this.listing || (!this.isOwner && !this.isAdmin)) return;
+    this.error = '';
+    this.showDeleteConfirm = true;
+    this.refreshView();
   }
 
-  cancelListing(): void {
-    if (!this.listing || !this.currentCompanyId) return;
-    this.cancelLoading = true;
-    this.listingService.cancel(this.listing.id, this.currentCompanyId).subscribe({
+  confirmDeleteListing(): void {
+    if (!this.listing || (!this.isOwner && !this.isAdmin)) return;
+    const fallback = this.isAdmin ? '/admin/listings' : '/enterprise/annonces';
+    this.deleteLoading = true;
+    this.listingService.delete(this.listing.id).subscribe({
       next: () => {
-        this.showCancelConfirm = false;
-        this.cancelLoading = false;
-        this.loadListing(this.listing!.id);
+        this.showDeleteConfirm = false;
+        this.deleteLoading = false;
+        void this.router.navigate([fallback]);
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de l\'annulation';
-        this.cancelLoading = false;
-        this.showCancelConfirm = false;
+        this.error = err.error?.message || 'Erreur lors de la suppression';
+        this.deleteLoading = false;
+        this.refreshView();
       }
     });
+  }
+
+  cancelDeleteListing(): void {
+    this.showDeleteConfirm = false;
+    this.error = '';
+  }
+
+  deleteListingAsAdmin(): void {
+    if (!this.listing || !this.isAdmin) return;
+    this.deleteListing();
   }
 
   onCommentCountUpdated(total: number): void {
@@ -305,6 +352,134 @@ export class ListingDetail implements OnInit {
     this.listing = { ...listing, favoriteCount: next };
     this.pulseCounters();
     this.refreshListingCountersFromApi(listing.id);
+  }
+
+  get hasCoordinates(): boolean {
+    return typeof this.listing?.latitude === 'number' && typeof this.listing?.longitude === 'number';
+  }
+
+  get mapListings(): ListingResponse[] {
+    return this.listing ? [this.listing] : [];
+  }
+
+  openMatch(match: ListingMatchResponse): void {
+    this.router.navigate(['/enterprise/annonces', match.listing.id]);
+  }
+
+  openListing(id: number): void {
+    if (!id || this.listing?.id === id) return;
+    this.router.navigate(['/enterprise/annonces', id]);
+  }
+
+  dismissNotice(index: number): void {
+    this.realtimeNotices.splice(index, 1);
+    this.refreshView();
+  }
+
+  private subscribeRealtime(listingId: number, groupId: number | null): void {
+    if (this.activeRealtimeListingId !== listingId) {
+      this.listingRealtimeSub?.unsubscribe();
+      this.favoriteRealtimeSub?.unsubscribe();
+      this.activeRealtimeListingId = listingId;
+
+      this.listingRealtimeSub = this.realtimeService.listingDetailEvents(listingId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => {
+          if (this.listing?.id !== listingId) return;
+          if (event.type === 'LISTING_DELETED') {
+            this.pushNotice('Cette annonce vient d etre supprimee.');
+            this.router.navigate(['/enterprise/annonces']);
+            return;
+          }
+          this.refreshListingCountersFromApi(listingId);
+          if (event.type === 'LISTING_UPDATED') {
+            return;
+          }
+          this.pushNotice(this.messageForEvent(event.type));
+        });
+
+      this.favoriteRealtimeSub = this.realtimeService.favoriteEvents(listingId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => {
+          if (this.listing?.id !== listingId) return;
+          this.refreshListingCountersFromApi(listingId);
+        });
+
+    }
+
+    if (this.activeRealtimeGroupId !== groupId) {
+      this.groupRealtimeSub?.unsubscribe();
+      this.activeRealtimeGroupId = groupId;
+    }
+
+    if (groupId && !this.groupRealtimeSub) {
+      this.groupRealtimeSub = this.realtimeService.groupEvents<GroupPurchaseResponse>(groupId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => {
+          if (this.listing?.id !== listingId) return;
+          if (event.payload) {
+            this.onGroupPurchaseUpdated(event.payload);
+          }
+          this.pushNotice('Achat groupe mis a jour en temps reel.');
+        });
+    }
+  }
+
+  private loadMatches(listingId: number): void {
+    this.matchesLoading = true;
+    this.listingService.matches(listingId, 4).subscribe({
+      next: (rows) => {
+        this.matches = rows.filter((row) => row.listing?.id && row.listing.id !== listingId);
+        this.matchesLoading = false;
+        this.refreshView();
+      },
+      error: () => {
+        this.matches = [];
+        this.matchesLoading = false;
+        this.refreshView();
+      }
+    });
+  }
+
+  private pushNotice(message: string): void {
+    if (!message) return;
+    if (this.realtimeNotices.includes(message)) return;
+    this.realtimeNotices = [message, ...this.realtimeNotices].slice(0, 3);
+    this.refreshView();
+    setTimeout(() => {
+      this.realtimeNotices = this.realtimeNotices.filter((m) => m !== message);
+      this.refreshView();
+    }, 5500);
+  }
+
+  private subscribeNotifications(user: { id?: string; role?: string } | null): void {
+    const id = user?.id ? Number(user.id) : null;
+    if (id && Number.isFinite(id) && !this.notificationUserIds.has(id)) {
+      this.notificationUserIds.add(id);
+      this.realtimeService.userNotifications(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => this.pushNotice(event.message || 'Nouvelle notification'));
+    }
+
+    if (user?.role === 'admin' && !this.adminNotificationsSubscribed) {
+      this.adminNotificationsSubscribed = true;
+      this.realtimeService.adminNotifications()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => this.pushNotice(event.message || 'Alerte moderation admin'));
+    }
+  }
+
+  private messageForEvent(type: string): string {
+    switch (type) {
+      case 'LISTING_UPDATED': return 'Annonce mise a jour.';
+      case 'LISTING_CANCELLED': return 'Annonce annulee.';
+      case 'COMMENT_CREATED': return 'Nouveau commentaire.';
+      case 'COMMENT_UPDATED': return 'Commentaire modifie.';
+      case 'COMMENT_DELETED': return 'Commentaire supprime.';
+      case 'FAVORITE_CHANGED': return 'Favoris mis a jour.';
+      case 'GROUP_CHANGED': return 'Achat groupe mis a jour.';
+      default: return 'Mise a jour temps reel recue.';
+    }
   }
 
   timeAgo(dateStr: string): string {

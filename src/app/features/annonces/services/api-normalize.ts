@@ -50,13 +50,14 @@ export function normalizeListing(raw: Record<string, unknown>): ListingResponse 
     unit: String(raw['unit'] ?? ''),
     price: raw['price'] !== undefined && raw['price'] !== null ? Number(raw['price']) : null,
     location: (raw['location'] as string) ?? null,
-    latitude: raw['latitude'] !== undefined ? Number(raw['latitude']) : null,
-    longitude: raw['longitude'] !== undefined ? Number(raw['longitude']) : null,
+    latitude: raw['latitude'] !== undefined && raw['latitude'] !== null ? Number(raw['latitude']) : null,
+    longitude: raw['longitude'] !== undefined && raw['longitude'] !== null ? Number(raw['longitude']) : null,
     productId: Number(raw['productId'] ?? raw['product_id']),
     productName: String(raw['productName'] ?? raw['product_name'] ?? ''),
     productCategory: String(raw['productCategory'] ?? raw['product_category'] ?? ''),
     companyId: Number(raw['companyId'] ?? raw['company_id']),
     companyName: (raw['companyName'] ?? raw['company_name'] ?? null) as string | null,
+    ownerFullName: (raw['ownerFullName'] ?? raw['owner_full_name'] ?? null) as string | null,
     createdAt: String(raw['createdAt'] ?? raw['created_at'] ?? ''),
     attachmentUrls: Array.isArray(raw['attachmentUrls'])
       ? (raw['attachmentUrls'] as string[])

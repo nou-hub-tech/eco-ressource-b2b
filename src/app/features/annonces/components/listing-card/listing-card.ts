@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input, NgZone } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, Output } from '@angular/core';
 import { Router } from '@angular/router';
 import { ListingResponse } from '../../../../core/models/annonces.interfaces';
 import { DEFAULT_LISTING_IMAGE_URL } from '../../constants/listing-images';
@@ -12,6 +12,9 @@ import { DEFAULT_LISTING_IMAGE_URL } from '../../constants/listing-images';
 export class ListingCard {
   @Input() listing!: ListingResponse;
   @Input() favoriteIds: Set<number> = new Set();
+  @Input() canManage = false;
+  @Output() editRequested = new EventEmitter<ListingResponse>();
+  @Output() deleteRequested = new EventEmitter<ListingResponse>();
 
   constructor(
     private readonly router: Router,
@@ -78,6 +81,16 @@ export class ListingCard {
 
   goToDetail(): void {
     this.router.navigate(['/enterprise/annonces', this.listing.id]);
+  }
+
+  requestEdit(event: Event): void {
+    event.stopPropagation();
+    this.editRequested.emit(this.listing);
+  }
+
+  requestDelete(event: Event): void {
+    event.stopPropagation();
+    this.deleteRequested.emit(this.listing);
   }
 
   onFavoriteToggled(nowFavorite: boolean): void {

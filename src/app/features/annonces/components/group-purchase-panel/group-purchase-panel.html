@@ -48,7 +48,7 @@
   </div>
 
   <!-- Participants : nom (entreprise / transporteur) + quantité engagée -->
-  <div class="gp-participants" *ngIf="group.participants?.length">
+  <div class="gp-participants" *ngIf="group.participants.length">
     <div class="gp-part-head">Participants au groupe ({{group.participants.length}})</div>
     <div class="gp-part-list">
       <div class="gp-part-item" *ngFor="let p of group.participants">

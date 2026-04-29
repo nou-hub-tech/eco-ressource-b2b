@@ -1,64 +1,73 @@
 <div class="page-wrapper">
-  <!-- Header -->
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1>Annonces</h1>
-      <p>Découvrez les surplus, demandes et achats groupés</p>
+      <h1>{{ pageTitle }}</h1>
+      <p>{{ pageSubtitle }}</p>
     </div>
     <div class="ll-actions">
+      <a class="btn btn-outline" routerLink="/enterprise/annonces/mine" *ngIf="mode !== 'mine'">
+        Mes annonces
+      </a>
+      <a class="btn btn-outline" routerLink="/enterprise/annonces" *ngIf="mode === 'mine'">
+        Toutes les annonces
+      </a>
       <a class="btn btn-outline" routerLink="/enterprise/annonces/search">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        Recherche avancée
+        Recherche avancee
       </a>
       <a class="btn btn-primary" routerLink="/enterprise/annonces/create">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nouvelle Annonce
+        Nouvelle annonce
       </a>
     </div>
   </div>
 
-  <!-- Filters -->
   <div class="ll-filters">
-    <div class="ll-filter-group">
-      <select class="filter-select" [(ngModel)]="filterType" (ngModelChange)="applyFilters()">
-        <option value="">Tous les types</option>
-        <option value="SURPLUS">Surplus</option>
-        <option value="DEMANDE">Demande</option>
-        <option value="GROUP_BUYING">Achat Groupé</option>
-      </select>
+    <div class="ll-filter-head">
+      <div>
+        <strong>Filtres</strong>
+        <span>{{filtered.length}} annonce{{filtered.length > 1 ? 's' : ''}}</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" *ngIf="hasActiveFilters" (click)="clearFilters()">
+        Effacer
+      </button>
+    </div>
 
-      <select class="filter-select" [(ngModel)]="filterCategory" (ngModelChange)="applyFilters()">
-        <option value="">Toutes catégories</option>
-        <option *ngFor="let cat of categories" [value]="cat">{{cat}}</option>
-      </select>
+    <div class="ll-filter-row">
+      <div class="ll-segment" aria-label="Type d'annonce">
+        <button type="button" [class.active]="filterType === ''" (click)="filterType=''; applyFilters()">Tous</button>
+        <button type="button" [class.active]="filterType === 'SURPLUS'" (click)="filterType='SURPLUS'; applyFilters()">Surplus</button>
+        <button type="button" [class.active]="filterType === 'DEMANDE'" (click)="filterType='DEMANDE'; applyFilters()">Demandes</button>
+        <button type="button" [class.active]="filterType === 'GROUP_BUYING'" (click)="filterType='GROUP_BUYING'; applyFilters()">Achats groupes</button>
+      </div>
 
       <div class="search-box ll-loc-box">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <input type="text" placeholder="Localisation..." [(ngModel)]="filterLocation" (input)="applyFilters()">
+        <span>Lieu</span>
+        <input type="text" placeholder="Tunis, Sfax..." [(ngModel)]="filterLocation" (input)="applyFilters()">
       </div>
 
       <div class="search-box ll-price-box">
-        <span style="font-size:12px;color:var(--text3)">Max</span>
-        <input type="number" placeholder="Prix max" [(ngModel)]="filterMaxPrice" (input)="applyFilters()" min="0">
+        <span>Max</span>
+        <input type="number" placeholder="Prix" [(ngModel)]="filterMaxPrice" (input)="applyFilters()" min="0">
       </div>
-    </div>
 
-    <div class="ll-sort-group">
-      <select class="filter-select" [(ngModel)]="sortBy" (ngModelChange)="onSortChange()">
-        <option value="date">Plus récent</option>
+      <select class="filter-select ll-sort-select" [(ngModel)]="sortBy" (ngModelChange)="onSortChange()">
+        <option value="date">Plus recent</option>
         <option value="price-asc">Prix croissant</option>
-        <option value="price-desc">Prix décroissant</option>
-        <option value="popularity">Popularité</option>
-        <option value="title">Alphabétique</option>
+        <option value="price-desc">Prix decroissant</option>
+        <option value="popularity">Popularite</option>
+        <option value="title">Alphabetique</option>
       </select>
-
-      <button class="btn btn-ghost btn-sm" *ngIf="hasActiveFilters" (click)="clearFilters()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        Effacer filtres
-      </button>
-
-      <span class="toolbar-count">{{filtered.length}} annonce{{filtered.length > 1 ? 's' : ''}}</span>
     </div>
+
+    <div class="ll-categories" *ngIf="categories.length">
+      <button type="button" [class.active]="filterCategory === ''" (click)="filterCategory=''; applyFilters()">Toutes categories</button>
+      <button type="button" *ngFor="let cat of categories" [class.active]="filterCategory === cat" (click)="filterCategory=cat; applyFilters()">{{cat}}</button>
+    </div>
+  </div>
+
+  <div class="rt-notices" *ngIf="realtimeNotices.length">
+    <button type="button" *ngFor="let notice of realtimeNotices; let i = index" (click)="dismissNotice(i)">
+      {{ notice }}
+    </button>
   </div>
 
   <div class="alert alert-danger" *ngIf="loadError" style="margin-bottom:16px;padding:12px 16px;border-radius:8px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:var(--danger,#dc2626);">
@@ -66,31 +75,64 @@
     {{ loadError }}
   </div>
 
-  <!-- Loading -->
+  <div class="alert alert-danger" *ngIf="actionError" style="margin-bottom:16px;padding:12px 16px;border-radius:8px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:var(--danger,#dc2626);">
+    {{ actionError }}
+  </div>
+
   <div class="ll-loading" *ngIf="loading">
     <div class="spinner-lg"></div>
     <p>Chargement des annonces...</p>
   </div>
 
-  <!-- Grid -->
-  <div class="ll-grid" *ngIf="!loading && paged.length > 0">
-    <app-listing-card *ngFor="let l of paged" [listing]="l" [favoriteIds]="favoriteIds"></app-listing-card>
+  <div class="ll-map-panel" *ngIf="!loading && filtered.length > 0">
+    <div class="ll-map-head">
+      <strong>Carte des annonces</strong>
+      <span>{{ mappedCount }} localisee{{ mappedCount > 1 ? 's' : '' }}</span>
+    </div>
+    <app-listing-map
+      [listings]="filtered"
+      [height]="300"
+      (listingSelected)="openListing($event)">
+    </app-listing-map>
   </div>
 
-  <!-- Empty -->
+  <div class="ll-grid" *ngIf="!loading && paged.length > 0">
+    <app-listing-card
+      *ngFor="let l of paged"
+      [listing]="l"
+      [favoriteIds]="favoriteIds"
+      [canManage]="canManage(l)"
+      (editRequested)="editListing($event)"
+      (deleteRequested)="deleteListing($event)">
+    </app-listing-card>
+  </div>
+
   <div class="empty-state" *ngIf="!loading && !loadError && filtered.length === 0">
-    <span class="empty-icon">📦</span>
-    <h3>Aucune annonce trouvée</h3>
+    <span class="empty-icon">Aucune</span>
+    <h3>Aucune annonce trouvee</h3>
     <p *ngIf="hasActiveFilters">Essayez de modifier vos filtres</p>
-    <p *ngIf="!hasActiveFilters">Il n'y a pas encore d'annonces publiées</p>
+    <p *ngIf="!hasActiveFilters && mode === 'all'">Il n'y a pas encore d'annonces publiees</p>
+    <p *ngIf="!hasActiveFilters && mode === 'mine'">Vous n'avez pas encore publie d'annonce</p>
     <a class="btn btn-primary" routerLink="/enterprise/annonces/create" style="margin-top:12px">Publier une annonce</a>
   </div>
 
-  <!-- Pagination -->
   <app-pagination
     [currentPage]="currentPage"
     [totalItems]="filtered.length"
     [pageSize]="pageSize"
     (pageChange)="onPageChange($event)">
   </app-pagination>
+
+  <app-confirm-dialog
+    [visible]="showDeleteConfirm"
+    title="Supprimer cette annonce ?"
+    [message]="deleteConfirmMessage"
+    confirmLabel="Oui, supprimer"
+    cancelLabel="Garder l'annonce"
+    [danger]="true"
+    [loading]="deletingId === listingToDelete?.id"
+    [errorMessage]="actionError"
+    (confirmed)="confirmDeleteListing()"
+    (cancelled)="cancelDeleteListing()">
+  </app-confirm-dialog>
 </div>
