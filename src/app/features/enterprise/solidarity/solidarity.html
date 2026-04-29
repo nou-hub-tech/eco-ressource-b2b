@@ -257,8 +257,13 @@
     <div *ngIf="!detailsLoading && associationDonations.length > 0" style="max-height: 400px; overflow-y: auto;">
       <div *ngFor="let d of associationDonations" class="card" style="padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); box-shadow: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
-          <span style="font-size: 10px; font-weight: 700; color: var(--danger); text-transform: uppercase;">Management</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase;">Management</span>
+            <span *ngIf="isAdmin" style="font-size: 9px; color: var(--success); font-weight: 600;">(Admin)</span>
+            <span *ngIf="!isAdmin && currentUserId === d.userId" style="font-size: 9px; color: var(--primary); font-weight: 600;">(Owner)</span>
+          </div>
           <button class="btn btn-outline btn-sm" 
+                  *ngIf="isAdmin || (currentUserId && d.userId && currentUserId === d.userId)"
                   style="color: #ef4444 !important; border: 1px solid #ef4444 !important; background: transparent; cursor: pointer; visibility: visible !important; display: block !important; padding: 2px 8px;"
                   (click)="d.id && deleteDonation(d.id)">
             🗑️ Delete

@@ -64,6 +64,7 @@ export class Solidarity implements OnInit {
     if (user) {
       this.currentUserId = user.id ? AdminApiService.parseUserNumericId(user.id) : null;
       this.isAdmin = user.role === 'admin' || (user as any).role === 'ROLE_ADMIN';
+      console.log('[Solidarity] User context:', { id: this.currentUserId, role: user.role, isAdmin: this.isAdmin });
     }
     this.loadAssociations();
   }

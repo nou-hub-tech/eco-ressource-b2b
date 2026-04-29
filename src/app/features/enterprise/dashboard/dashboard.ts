@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ViewEncapsulation, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ThemeService } from '../../../core/services/theme';
 import { AuthService, User } from '../../../core/services/auth';
@@ -105,11 +105,17 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
     }, 50);
   }
 
-  constructor(public themeService: ThemeService, private authService: AuthService, private listingService: ListingService, private transportService: TransportService) {}
+  constructor(public themeService: ThemeService, private authService: AuthService, private listingService: ListingService, private transportService: TransportService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    this.subs.add(this.themeService.isDark$.subscribe(d => this.isDark = d));
-    this.subs.add(this.authService.user$.subscribe(u => this.user = u));
+    this.subs.add(this.themeService.isDark$.subscribe(d => {
+      this.isDark = d;
+      this.cdr.detectChanges();
+    }));
+    this.subs.add(this.authService.user$.subscribe(u => {
+      this.user = u;
+      this.cdr.detectChanges();
+    }));
     this.loadDashboardData();
   }
 
@@ -150,6 +156,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       this.quickStats[0].val = this.listings.length.toString();
       this.quickStats[1].val = Math.floor(this.listings.length * 0.05).toString();
       this.updateTicker(this.listings);
+      this.cdr.detectChanges();
     });
 
     // Load my listings
@@ -168,6 +175,7 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       }));
       const activeCount = this.myListings.filter(l => l.status === 'active').length;
       this.quickStats[2].val = activeCount.toString();
+      this.cdr.detectChanges();
     });
 
     // Load deliveries
@@ -175,12 +183,14 @@ export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
       this.deliveries = deliveries;
       const inTransitCount = deliveries.filter(d => d.status === 'in-transit').length;
       this.quickStats[3].val = inTransitCount.toString();
+      this.cdr.detectChanges();
     });
 
     // Load wallet transactions
     this.listingService.getWalletTransactions().subscribe(transactions => {
       const balance = transactions.reduce((sum, t) => sum + (t.positive ? t.amount : -t.amount), 0);
       this.quickStats[4].val = balance.toString();
+      this.cdr.detectChanges();
     });
   }
 

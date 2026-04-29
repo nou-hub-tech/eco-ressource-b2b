@@ -19,7 +19,7 @@ export interface AdminUserDto {
   phone: string;
   city: string;
   joined: string;
-  date: string; // For template compatibility
+  date: string;
   listings: number;
   orders: number;
   revenue: string;
@@ -45,9 +45,10 @@ export interface SolidarityDto {
   statusLabel: string;
   aiInsight: string;
   goalAmount?: number;
+  userId?: number;
 }
 
-export interface CreateAssociationRequest {
+export interface SolidarityAssociationRequest {
   name: string;
   mission: string;
   members: number;
@@ -67,7 +68,7 @@ export interface DonationDto {
   createdAt?: string;
 }
 
-const REQUEST_TIMEOUT_MS = 10_000; // 10 seconds — fail fast if backend is unreachable
+const REQUEST_TIMEOUT_MS = 10_000;
 
 @Injectable({ providedIn: 'root' })
 export class AdminApiService {
@@ -75,7 +76,6 @@ export class AdminApiService {
 
   constructor(private readonly http: HttpClient) { }
 
-  /** Wraps any request with a 10s timeout and detailed console error logging. */
   private withTimeout<T>(obs: Observable<T>, label: string): Observable<T> {
     return obs.pipe(
       timeout({
@@ -117,7 +117,6 @@ export class AdminApiService {
     );
   }
 
-  /** Parse USR-001 -> 1 */
   static parseUserNumericId(displayId: string): number {
     const n = displayId.replace(/^USR-/, '');
     return parseInt(n, 10);
@@ -144,10 +143,24 @@ export class AdminApiService {
     );
   }
 
-  createSolidarity(data: CreateAssociationRequest): Observable<SolidarityDto> {
+  createAssociation(data: SolidarityAssociationRequest): Observable<SolidarityDto> {
     return this.withTimeout(
       this.http.post<SolidarityDto>(`${this.apiUrl}/solidarity-associations`, data),
       'POST /solidarity-associations'
+    );
+  }
+
+  updateAssociation(id: number, data: SolidarityAssociationRequest): Observable<SolidarityDto> {
+    return this.withTimeout(
+      this.http.put<SolidarityDto>(`${this.apiUrl}/solidarity-associations/${id}`, data),
+      `PUT /solidarity-associations/${id}`
+    );
+  }
+
+  deleteAssociation(id: number): Observable<void> {
+    return this.withTimeout(
+      this.http.delete<void>(`${this.apiUrl}/solidarity-associations/${id}`),
+      `DELETE /solidarity-associations/${id}`
     );
   }
 
@@ -165,6 +178,13 @@ export class AdminApiService {
     );
   }
 
+  deleteDonation(id: number): Observable<void> {
+    return this.withTimeout(
+      this.http.delete<void>(`${this.apiUrl}/donations/${id}`),
+      `DELETE /donations/${id}`
+    );
+  }
+
   getTreasuryTransactions(): Observable<WalletTransactionDto[]> {
     return this.withTimeout(
       this.http.get<WalletTransactionDto[]>(`${this.apiUrl}/wallet-transactions`),
@@ -179,5 +199,3 @@ export class AdminApiService {
     );
   }
 }
-
-
