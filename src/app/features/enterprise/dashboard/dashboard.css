@@ -314,6 +314,7 @@ body.dark-mode .ed-nav-btn:hover { border-color:rgba(255,255,255,.35); color:#ff
 /* ══ RESPONSIVE ══ */
 @media (max-width:1280px) { .ed-body{grid-template-columns:1fr 280px} .ed-hero{height:380px} .ed-hero-panel{width:270px} }
 @media (max-width:1024px) { .ed-hero-panel{display:none} .ed-body{grid-template-columns:1fr} .ed-side{display:grid;grid-template-columns:1fr 1fr} }
+
 @media (max-width:768px) { .ed-hero{height:320px} .ed-slide{padding:28px 20px} .ed-slide-title{font-size:28px} .ed-hero-controls{padding:0 20px} .ed-grid{grid-template-columns:1fr} .ed-main{padding:16px} .ed-side{grid-template-columns:1fr} }
 /* ══ MARKET STOCK SECTION ══ */
 .ed-market-stock-section {

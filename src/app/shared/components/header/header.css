@@ -1,4 +1,4 @@
-﻿/* All header styles are in src/styles.css via theme classes */
+/* All header styles are in src/styles.css via theme classes */
 /* Language Switcher styling for header */
 :host ::ng-deep .lang-switcher-container {
   position: relative;
@@ -131,9 +131,9 @@
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-

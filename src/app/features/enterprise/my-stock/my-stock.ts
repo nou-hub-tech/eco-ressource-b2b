@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { EnterpriseService, StockItem, Product } from '../../../core/services/enterprise.service';
 import { ReclamationService } from '../../../core/services/reclamation.service';
-import { catchError } from 'rxjs/operators';
+import { catchError } from 'rxjs';
 import { of } from 'rxjs';
 
 
@@ -306,6 +306,8 @@ export class MyStock implements OnInit {
     this.cdr.detectChanges();
   }
 
+  openModal(): void { this.openAdd(); }
+
   closeModal(): void {
     this.showModal = false;
     this.saving = false;
@@ -478,4 +480,4 @@ export class MyStock implements OnInit {
       expirationDate: '' 
     };
   }
-}
+}

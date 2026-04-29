@@ -1,0 +1,220 @@
+<div class="page-wrapper">
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1><i class="bi bi-box-seam"></i> Commandes de livraison</h1>
+      <p>Recherche, statistiques et gestion des commandes</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="button" class="btn btn-outline" (click)="toggleStats()">
+        <i class="bi bi-graph-up"></i> Statistiques
+      </button>
+      <button type="button" class="btn btn-danger" (click)="generateAllPDFs()" 
+              *ngIf="filteredOrders.length > 0" title="Exporter toutes les commandes filtrées">
+        <i class="bi bi-file-pdf"></i> Exporter tout
+      </button>
+      <!-- BOUTON "NOUVELLE COMMANDE" SUPPRIMÉ -->
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3><i class="bi bi-search"></i> Recherche</h3>
+      <span *ngIf="rechercheActive" class="badge badge-info">Recherche active</span>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="searchForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nom client</label>
+            <input type="text" formControlName="nomClient" placeholder="Tapez pour rechercher…">
+          </div>
+          <div class="form-group">
+            <label>Adresse</label>
+            <input type="text" formControlName="adresseLivraison" placeholder="Adresse de livraison…">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Statut</label>
+            <select formControlName="statut">
+              <option value="">Tous</option>
+              <option *ngFor="let statut of statuts" [value]="statut">{{ statut }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date prévue</label>
+            <input type="date" formControlName="datePrevue">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button type="button" class="btn btn-outline" (click)="resetFilters()">
+            <i class="bi bi-eraser"></i> Réinitialiser
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div *ngIf="rechercheActive && isLoading" class="alert alert-success" style="border-color:rgba(52,211,153,.3)">
+    <i class="bi bi-search"></i> Recherche en cours…
+  </div>
+
+  <div *ngIf="showStats && statistiques" class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <h3><i class="bi bi-graph-up"></i> Statistiques</h3>
+    </div>
+    <div class="card-body">
+      <div class="stats-grid">
+        <div class="stat-card text-center">
+          <div class="stat-value">{{ statistiques.total || 0 }}</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--warning)">{{ statistiques.parStatut?.EN_ATTENTE || 0 }}</div>
+          <div class="stat-label">En attente</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-warning" [style.width]="getProgressWidth('EN_ATTENTE')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_EN_ATTENTE | number:'1.0-0' }}%</small>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--info)">{{ statistiques.parStatut?.EN_COURS || 0 }}</div>
+          <div class="stat-label">En cours</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-info" [style.width]="getProgressWidth('EN_COURS')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_EN_COURS | number:'1.0-0' }}%</small>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--success)">{{ statistiques.parStatut?.LIVREE || 0 }}</div>
+          <div class="stat-label">Livrées</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-success" [style.width]="getProgressWidth('LIVREE')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_LIVREE | number:'1.0-0' }}%</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tx-sort-row">
+    <div class="tx-sort-group">
+      <button type="button" class="tx-sort-btn" [class.active]="sortBy === 'date'" (click)="sortByField('date')">
+        <i class="bi bi-calendar"></i> Date
+        <i *ngIf="sortBy === 'date'" [class]="sortOrder === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+      </button>
+      <button type="button" class="tx-sort-btn" [class.active]="sortBy === 'nom'" (click)="sortByField('nom')">
+        <i class="bi bi-person"></i> Client
+        <i *ngIf="sortBy === 'nom'" [class]="sortOrder === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+      </button>
+    </div>
+    <span style="font-size:12px;color:var(--text3)">{{ filteredOrders.length }} commande(s)</span>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+
+  <div *ngIf="isLoading && !rechercheActive" class="empty-state">
+    <div class="spinner-border" role="status"></div>
+    <p class="mt-2" style="color:var(--text3)">Chargement…</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="card" style="padding:0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Adresse</th>
+            <th>Date prévue</th>
+            <th>Statut</th>
+            <th style="width:140px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of paginatedOrders">
+            <td><code style="font-size:11px;color:var(--text3)">{{ order.idDelivery }}</code></td>
+            <td><strong style="color:var(--text)">{{ order.nomClient }}</strong></td>
+            <td style="font-size:12px;color:var(--text2)">{{ order.adresseLivraison }}</td>
+            <td style="font-size:12px;color:var(--text3)">{{ order.datePrevue | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><span [class]="getStatutClass(order.statut)">{{ order.statut }}</span></td>
+            <td>
+              <div class="btn-group" role="group" style="display: flex; gap: 5px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary btn-sm" (click)="openQrCode(order)" title="QR Code">
+                  <i class="bi bi-qr-code"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="onGeneratePDF(order)" title="Générer PDF">
+                  <i class="bi bi-file-pdf"></i>
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" (click)="onViewDetail(order.idDelivery)" title="Détail">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <!-- BOUTON MODIFIER (EDIT) SUPPRIMÉ -->
+                <!-- BOUTON SUPPRIMER (DELETE) SUPPRIMÉ -->
+              </div>
+             </td>
+           </tr>
+          <tr *ngIf="filteredOrders.length === 0">
+            <td colspan="6" class="text-center" style="padding:32px;color:var(--text3)">
+              <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
+              Aucune commande trouvée
+              <!-- BOUTON CRÉER SUPPRIMÉ -->
+            </td>
+           </tr>
+        </tbody>
+       </table>
+    </div>
+  </div>
+
+  <!-- ========== PAGINATION ========== -->
+  <div *ngIf="!isLoading && filteredOrders.length > 0" class="pagination-container">
+    <div class="pagination-info">
+      <span>
+        Affichage de {{ getStartIndex() }} à {{ getEndIndex() }} sur {{ totalItems }} commande(s)
+      </span>
+    </div>
+    
+    <div class="pagination-controls">
+      <button class="pagination-btn" 
+              (click)="goToPage(1)" 
+              [disabled]="currentPage === 1"
+              title="Première page">
+        <i class="bi bi-chevron-bar-left"></i>
+      </button>
+      
+      <button class="pagination-btn" 
+              (click)="previousPage()" 
+              [disabled]="currentPage === 1"
+              title="Page précédente">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      
+      <div class="page-numbers">
+        <button *ngFor="let page of getPageNumbers()" 
+                class="page-number" 
+                [class.active]="currentPage === page"
+                (click)="goToPage(page)">
+          {{ page }}
+        </button>
+      </div>
+      
+      <button class="pagination-btn" 
+              (click)="nextPage()" 
+              [disabled]="currentPage === getTotalPages()"
+              title="Page suivante">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+      
+      <button class="pagination-btn" 
+              (click)="goToPage(getTotalPages())" 
+              [disabled]="currentPage === getTotalPages()"
+              title="Dernière page">
+        <i class="bi bi-chevron-bar-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal QR Code -->
+<app-qr-modal #qrModal></app-qr-modal>

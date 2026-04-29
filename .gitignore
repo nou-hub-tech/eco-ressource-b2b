@@ -43,6 +43,7 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 # Local spec / notes (not versioned)
@@ -52,3 +53,5 @@ Thumbs.db
 /guide code/
 /docs/
 >>>>>>> origin/integration/gestion-annonce-et-product-v2
+=======
+>>>>>>> origin/gestion_livraison

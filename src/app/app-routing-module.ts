@@ -1,6 +1,4 @@
 import { NgModule } from '@angular/core';
-
-
 import { AuthGuard } from './core/guards/auth.guard';
 import { RoleGuard } from './core/guards/role.guard';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
@@ -17,7 +15,6 @@ import { StockItemHistoryComponent } from './components/stock-item/stock-item-hi
 import { Chatbot } from './components/chatbot/chatbot';
 import { BrokenProductDetectComponent } from './components/broken-product-detect/broken-product-detect';
 import { InventoryScanComponent } from './components/inventory-scan/inventory-scan';
-
 
 const routes: Routes = [
   { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
@@ -43,7 +40,6 @@ const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { role: 'transporter' }
   },
-
   { path: 'products', component: ProductListComponent, canActivate: [AuthGuard] },
   { path: 'products/add', component: ProductFormComponent, canActivate: [AuthGuard] },
   { path: 'products/edit/:id', component: ProductFormComponent, canActivate: [AuthGuard] },
@@ -58,20 +54,16 @@ const routes: Routes = [
   { path: 'chatbot', component: Chatbot, canActivate: [AuthGuard] },
   { path: 'broken-product', component: BrokenProductDetectComponent, canActivate: [AuthGuard] },
   { path: 'inventory', component: InventoryScanComponent, canActivate: [AuthGuard] },
-
   { path: '**', redirectTo: '/auth/login' }
 ];
 
 @NgModule({
-
   imports: [
     RouterModule.forRoot(routes, {
-      /** Précharge les modules lazy (auth, enterprise, annonces…) en arrière-plan après la première navigation. */
       preloadingStrategy: PreloadAllModules,
       scrollPositionRestoration: 'top'
     })
   ],
   exports: [RouterModule]
 })
-export class AppRoutingModule { }
-
+export class AppRoutingModule {}

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+
 import { AdminEvents } from './events';
 
 describe('AdminEvents', () => {
@@ -12,6 +13,7 @@ describe('AdminEvents', () => {
     .compileComponents();
 
     fixture = TestBed.createComponent(AdminEvents);
+
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

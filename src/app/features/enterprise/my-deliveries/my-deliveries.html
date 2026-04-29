@@ -1,20 +1,130 @@
 <div class="page-wrapper">
-  <div class="page-header"><h1>My Deliveries</h1><p>Track all your shipments and logistics operations</p></div>
-  <div class="card" style="padding:0">
-    <table class="data-table">
-      <thead><tr><th>ID</th><th>Product</th><th>Route</th><th>Transporter</th><th>CO₂ Saved</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let d of deliveries">
-          <td><code style="font-size:11px;color:var(--text3)">{{d.id}}</code></td>
-          <td><strong style="color:var(--text)">{{d.product}}</strong></td>
-          <td style="color:var(--text2);font-size:12px">{{d.from}} → {{d.to}}</td>
-          <td style="color:var(--text2)">{{d.transporter}}</td>
-          <td><span style="color:var(--success,#059669);font-weight:600;font-size:12px">🌿 {{d.co2}}</span></td>
-          <td><strong style="color:var(--primary)">{{d.amount}} TND</strong></td>
-          <td><span class="badge" [ngClass]="d.status==='delivered'?'badge-success':d.status==='in-transit'?'badge-info':'badge-warning'">{{d.status}}</span></td>
-          <td style="color:var(--text3);font-size:12px">{{d.date}}</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="page-header">
+    <div class="page-header-content">
+      <h1><i class="bi bi-truck"></i> My Deliveries</h1>
+      <p>Track all your shipments and logistics operations</p>
+      <p class="user-info" *ngIf="currentUserName">
+        <i class="bi bi-person-circle"></i> Deliveries for : <strong>{{ currentUserName }}</strong>
+      </p>
+    </div>
+    <div class="page-header-actions">
+      <button type="button" class="btn btn-outline" 
+              (click)="generateAllPDFs()" 
+              *ngIf="filteredShipments.length > 0" 
+              title="Exporter toutes les livraisons">
+        <i class="bi bi-file-pdf"></i> Export all ({{ filteredShipments.length }})
+      </button>
+      
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i> {{ errorMessage }}
+  </div>
+  <div *ngIf="successMessage" class="alert alert-success">
+    <i class="bi bi-check-circle"></i> {{ successMessage }}
+  </div>
+
+  <!-- Statistiques -->
+  <div class="stats-grid" *ngIf="!isLoading && filteredShipments.length > 0">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Total deliveries</div>
+        <div class="stat-value">{{ getTotalDeliveries() }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Delivered</div>
+        <div class="stat-value text-success">{{ getCompletedDeliveries() }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value text-warning">{{ getPendingDeliveries() }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-truck"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">In progress</div>
+        <div class="stat-value text-info">{{ getInProgressDeliveries() }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- État de chargement -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner-border" role="status"></div>
+    <p>Loading deliveries...</p>
+  </div>
+
+  <!-- Aucune expédition trouvée pour l'utilisateur -->
+  <div *ngIf="!isLoading && filteredShipments.length === 0 && allShipments.length > 0" class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <p>No deliveries for your account</p>
+    <small>You don't have any deliveries associated with your name yet "{{ currentUserName }}"</small>
+  </div>
+
+  <!-- Aucune expédition dans le système -->
+  <div *ngIf="!isLoading && allShipments.length === 0" class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <p>No deliveries found in the system</p>
+    <small>Deliveries will appear here when they are created</small>
+  </div>
+
+  <!-- Tableau des expéditions filtrées -->
+  <div *ngIf="!isLoading && filteredShipments.length > 0" class="card">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Product</th>
+            <th>Client</th>
+            <th>Destination</th>
+            <th>Transporter</th>
+            <th>Quantity</th>
+            <th>CO₂</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th style="width: 80px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let shipment of filteredShipments">
+            <td class="shipment-id">#{{ shipment.id }}</td>
+            <td><strong>{{ getProductName(shipment.produitId) }}</strong></td>
+            <td>{{ getClientName(shipment.deliveryOrder?.idDelivery) }}</td>
+            <td class="address">{{ getClientAddress(shipment.deliveryOrder?.idDelivery) }}</td>
+            <!-- LIGNE CORRIGÉE : affiche le nom UNIQUEMENT si la commande est acceptée -->
+            <td class="transporter">{{ getTransporterName(shipment.idTransporter, shipment.statut, shipment.deliveryOrder?.idDelivery) }}</td>
+            <td class="quantity">{{ getQuantity(shipment.quantite) }}</td>
+            <td class="co2">🌿 {{ getCO2Saved(shipment.quantite) }}</td>
+            <td><span [class]="getStatutClass(shipment.statut)">{{ getStatutText(shipment.statut) }}</span></td>
+            <td class="date">{{ shipment.dateDepart | date:'dd/MM/yyyy' }}</td>
+            <td class="actions">
+              <button type="button" class="btn-icon btn-pdf" 
+                      title="Générer PDF" 
+                      (click)="onGeneratePDF(shipment.id)">
+                <i class="bi bi-file-pdf"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredShipments.length === 0">
+            <td colspan="10" class="text-center" style="padding: 32px; color: var(--text3);">
+              <i class="bi bi-inbox" style="font-size: 2rem; opacity: .4; display: block; margin-bottom: 8px;"></i>
+              No deliveries found for your account
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
+

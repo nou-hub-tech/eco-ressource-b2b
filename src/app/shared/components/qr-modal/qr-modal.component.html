@@ -1,0 +1,114 @@
+<div *ngIf="showModal" class="modal-overlay" (click)="close()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-header-info">
+                <i class="bi bi-qr-code-scan"></i>
+                <div>
+                    <h4>Commande #{{ order?.idDelivery }}</h4>
+                    <p class="modal-subtitle">Gestion de livraison</p>
+                </div>
+            </div>
+            <button class="btn-close" (click)="close()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <div *ngIf="order">
+                
+                <!-- Informations commande -->
+                <div class="order-info-card">
+                    <div class="info-header">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span>Détails de la commande</span>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Client</label>
+                            <span class="info-value">{{ order.nomClient }}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Téléphone</label>
+                            <span class="info-value">{{ order.telephoneClient || 'Non renseigné' }}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Adresse</label>
+                            <span class="info-value">{{ order.adresseLivraison }}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Statut</label>
+                            <span [class]="'status-badge ' + getStatutClass(order.statut)">
+                                {{ order.statut }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code -->
+                <div class="qr-section-card">
+                    <div class="qr-header">
+                        <i class="bi bi-smartphone"></i>
+                        <span>Scannez avec votre téléphone</span>
+                    </div>
+                    <div class="qr-code-container">
+                        <div class="qr-code-wrapper">
+                            <img [src]="qrUrl" alt="QR Code" *ngIf="qrUrl" id="qrCodeImage">
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons Télécharger et Imprimer -->
+                    <div class="qr-actions">
+                        <button class="btn-action btn-download" (click)="downloadQRCode()">
+                            <i class="bi bi-download"></i>
+                            <span>Télécharger</span>
+                        </button>
+                        <button class="btn-action btn-print" (click)="printQRCode()">
+                            <i class="bi bi-printer"></i>
+                            <span>Imprimer</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Séparateur -->
+                <div class="divider-custom">
+                    <span>OU</span>
+                </div>
+
+                <!-- Bouton confirmation -->
+                <div class="confirm-section">
+                    <button class="btn-confirm" (click)="confirmerLivraison()" [disabled]="isLoading">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>{{ isLoading ? 'Traitement en cours...' : 'Confirmer la livraison' }}</span>
+                        <i class="bi bi-arrow-right-short" *ngIf="!isLoading"></i>
+                    </button>
+                </div>
+
+                <!-- Lien alternatif -->
+                <div class="link-section-card">
+                    <div class="link-header">
+                        <i class="bi bi-link-45deg"></i>
+                        <span>Lien direct</span>
+                    </div>
+                    <div class="link-content">
+                        <input type="text" [value]="lienConfirmation" readonly class="link-input">
+                        <button class="btn-copy" (click)="copierLien()">
+                            <i class="bi bi-files"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div *ngIf="errorMessage" class="alert-error">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    {{ errorMessage }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn-footer" (click)="close()">
+                <i class="bi bi-x-circle"></i>
+                Fermer
+            </button>
+        </div>
+    </div>
+</div>

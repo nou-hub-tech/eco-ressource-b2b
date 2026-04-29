@@ -6,17 +6,14 @@ import { SharedModule } from '../../shared/shared-module';
 import { Layout } from '../../shared/components/layout/layout';
 import { Dashboard } from './dashboard/dashboard';
 import { Users } from './users/users';
-
 import { AdminEvents } from './events/events';
-
 import { Stock } from './stock/stock';
 import { Deliveries } from './deliveries/deliveries';
 import { Listings } from './listings/listings';
 import { Reservations } from './reservations/reservations';
 import { Treasury } from './treasury/treasury';
-import { Solidarity } from './solidarity/solidarity';
-
 import { TreasuryAdmin } from './treasury/treasuryadmin';
+import { Solidarity } from './solidarity/solidarity';
 
 import { StockItemService } from '../../core/services/stock-item';
 import { ProductService } from '../../core/services/product';
@@ -34,24 +31,11 @@ import { BrokenProductDetectComponent } from '../../components/broken-product-de
 import { InventoryScanComponent } from '../../components/inventory-scan/inventory-scan';
 import { StockItemStatsAdvancedComponent } from '../../components/stock-item-stats-advanced/stock-item-stats-advanced';
 
-
 const routes: Routes = [
   {
     path: '',
     component: Layout,
     children: [
-
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', component: Dashboard },
-      { path: 'users', component: Users },
-
-      { path: 'stock', component: Stock },
-      { path: 'deliveries', component: Deliveries },
-      { path: 'listings', component: Listings },
-      { path: 'reservations', component: Reservations },
-      { path: 'treasury', component: Treasury },
-      { path: 'treasury-finance', component: TreasuryAdmin },
-      { path: 'solidarity', component: Solidarity },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: Dashboard },
       { path: 'users', component: Users },
@@ -61,6 +45,7 @@ const routes: Routes = [
       { path: 'listings', component: Listings },
       { path: 'reservations', component: Reservations },
       { path: 'treasury', component: Treasury },
+      { path: 'treasury-finance', component: TreasuryAdmin },
       { path: 'solidarity', component: Solidarity },
       { path: 'products', component: ProductListComponent },
       { path: 'products/add', component: ProductFormComponent },
@@ -76,14 +61,12 @@ const routes: Routes = [
       { path: 'chatbot', component: Chatbot },
       { path: 'broken-product', component: BrokenProductDetectComponent },
       { path: 'inventory', component: InventoryScanComponent }
-
     ]
   }
 ];
 
 @NgModule({
   declarations: [
-
     Dashboard,
     Users,
     AdminEvents,
@@ -117,5 +100,4 @@ const routes: Routes = [
   ],
   providers: [StockItemService, ProductService]
 })
-export class AdminModule { }
-
+export class AdminModule {}

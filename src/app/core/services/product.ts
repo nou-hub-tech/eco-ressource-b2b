@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -24,7 +23,7 @@ export class ProductService {
     private readonly listing: ListingService,
     private readonly adminApi: AdminApiService,
     private readonly http: HttpClient
-  ) { }
+  ) {}
 
   getMyStock(): Observable<StockItemDto[]> {
     return this.listing.getMyStock();
@@ -33,7 +32,6 @@ export class ProductService {
   getAdminStock(): Observable<StockItemDto[]> {
     return this.adminApi.getStockItems();
   }
-
 
   getAll(): Observable<Product[]> {
     return this.http.get<Product[]>(`${this.productApi}/retrieve-all-products`);
@@ -71,5 +69,4 @@ export class ProductService {
       params: { page, size, sortBy, direction }
     });
   }
-
 }

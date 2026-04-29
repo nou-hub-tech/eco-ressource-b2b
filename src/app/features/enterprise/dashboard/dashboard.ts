@@ -1,4 +1,4 @@
-import {
+﻿import {
   Component,
   OnInit,
   OnDestroy,
@@ -447,4 +447,4 @@ export class Dashboard implements OnInit, OnDestroy, AfterViewInit {
     this.deliverySub?.unsubscribe();
     clearInterval(this.progressTimer);
   }
-}
+}

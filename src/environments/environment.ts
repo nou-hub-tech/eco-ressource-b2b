@@ -4,6 +4,8 @@ export const environment = {
   apiUrl: 'http://localhost:9090/api',
 
   /** API Spring « gestion produit » (CRUD catalogue) */
-  productApiUrl: '/product'
+  productApiUrl: '/product',
 
+  /** URL de base pour les QR codes (tunnel ngrok, domaine, etc.). Vide = window.location.origin */
+  qrCodeBaseUrl: ''
 };

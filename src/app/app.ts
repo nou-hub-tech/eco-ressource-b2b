@@ -9,7 +9,6 @@ import { Component, signal } from '@angular/core';
 export class App {
   protected readonly title = signal('eco-ressource-b2b');
 
-
   toggleSidebar(): void {
     document.querySelector('.sidebar')?.classList.toggle('collapsed');
   }
@@ -21,5 +20,4 @@ export class App {
   toggleNotifications(): void {
     console.log('Notifications clicked');
   }
-
 }

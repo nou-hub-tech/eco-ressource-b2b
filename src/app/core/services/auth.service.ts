@@ -1,4 +1,6 @@
+
 import { Injectable, NgZone } from '@angular/core';
+
 
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -12,8 +14,10 @@ export interface User {
   role: 'admin' | 'enterprise' | 'transporter';
   company?: string;
 
+
   /** Enterprise or transporter id for API payloads (distinct from user id). */
   companyId?: string | number;
+
 
   avatar: string;
 }
@@ -28,8 +32,8 @@ interface JwtResponse {
     email: string;
     role: string;
     company?: string;
-
     companyId?: string | number;
+
 
     avatar: string;
   };
@@ -104,6 +108,7 @@ export class AuthService {
     }
     this.userSubject.next(next);
   }
+
 
 
   get currentUser(): User | null {
@@ -199,6 +204,7 @@ export class AuthService {
     );
   }
 
+
   isLoggedIn(): boolean {
     return !!this.getToken() && !!this.currentUser;
   }
@@ -236,6 +242,7 @@ export class AuthService {
       company: u.company,
 
       companyId: u.companyId,
+
 
       avatar: u.avatar
     };

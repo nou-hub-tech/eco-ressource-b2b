@@ -14,8 +14,7 @@ export class Events implements OnInit {
     { title: 'Recycling Summit', date: '2025-02-15', location: 'Sousse', participants: 95, status: 'done', type: 'Summit' },
     { title: 'Green Logistics Day', date: '2025-05-05', location: 'Bizerte', participants: 30, status: 'upcoming', type: 'Event' },
   ];
-  ngOnInit(): void { }
+  ngOnInit(): void {}
   openModal(): void { this.showModal = true; }
   closeModal(): void { this.showModal = false; }
-
 }

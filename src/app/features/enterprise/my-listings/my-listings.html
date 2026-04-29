@@ -1,3 +1,4 @@
+
 <div class="ml-page">
 
   <!-- Header -->
@@ -102,10 +103,8 @@
           [disabled]="deletingId === l.id">
           {{ deletingId === l.id ? '...' : '🗑 Delete' }}
         </button>
-      </div>
-    </div>
-  </div>
-</div>
+
+
 
 
 <!-- ══ CREATE / EDIT MODAL ══ -->
@@ -167,6 +166,7 @@
         <span *ngIf="saving" class="ml-spinner-sm"></span>
         {{ saving ? 'Saving...' : (modalMode === 'create' ? 'Create Listing' : 'Save Changes') }}
       </button>
+
     </div>
   </div>
 </div>

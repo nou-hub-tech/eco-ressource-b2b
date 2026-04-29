@@ -42,6 +42,8 @@ export class MyListings implements OnInit {
     });
   }
 
+  openModal(): void { this.openCreate(); }
+
   openCreate(): void {
     this.modalMode = 'create'; this.editingId = null; this.saveError = null;
     this.form = { title: '', category: 'Metal', price: 0, quantityLabel: '', status: 'ACTIVE', aiInsight: '' };

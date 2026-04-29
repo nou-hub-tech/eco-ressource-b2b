@@ -35,7 +35,6 @@ export class Login implements OnInit, AfterViewInit, OnDestroy {
   private resizeObserver: any;
   private frameCount = 0;
   private animPaused = false;
-
   demoAccounts = [
     { label: 'Admin',       email: 'admin@eco.tn',       password: 'admin123' },
     { label: 'Enterprise',  email: 'slim@entreprise.tn',  password: 'demo123'  },
@@ -201,7 +200,6 @@ export class Login implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  /* ── FORM ── */
   fillDemo(email: string, password: string): void {
     this.form.patchValue({ email, password });
     this.errorMessage = '';

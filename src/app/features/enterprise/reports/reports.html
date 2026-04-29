@@ -1,10 +1,12 @@
 <div class="page-wrapper">
   <div class="page-header-row">
 
+
     <div class="page-header" style="margin:0">
       <h1>Reports & KPIs</h1>
       <p>Environmental impact, financial performance and activity overview</p>
     </div>
+
 
     <button class="btn btn-primary">Export PDF</button>
   </div>
@@ -14,8 +16,10 @@
       <div class="stat-icon" [style.background]="k.bg">{{k.icon}}</div>
       <div>
 
+
         <div class="stat-value">{{k.value}} <span style="font-size:13px;font-weight:500;opacity:.5">{{k.unit}}</span>
         </div>
+
 
         <div class="stat-label">{{k.label}}</div>
         <div class="stat-change up">▲ {{k.change}} vs last month</div>
@@ -25,6 +29,7 @@
 
   <div class="grid-2">
     <div class="card">
+
 
       <div class="card-header">
         <h3>Monthly Revenue (TND)</h3>
@@ -36,6 +41,7 @@
             [style.height.%]="b" [style.background]="i===11 ? 'var(--primary)' : 'rgba(2,132,199,.12)'"
             [style.border-color]="i===11 ? 'var(--primary)' : 'rgba(2,132,199,.2)'">
 
+
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-top:8px">
@@ -46,9 +52,11 @@
 
     <div class="card">
 
+
       <div class="card-header">
         <h3>Environmental Impact</h3>
       </div>
+
 
       <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
         <div>
@@ -58,8 +66,10 @@
           </div>
           <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
 
+
             <div style="height:100%;width:48%;background:var(--success,#059669);border-radius:4px;transition:width .3s">
             </div>
+
 
           </div>
         </div>
@@ -79,6 +89,7 @@
           </div>
           <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
 
+
             <div style="height:100%;width:60%;background:var(--info,#0284c7);border-radius:4px;transition:width .3s">
             </div>
           </div>
@@ -91,6 +102,7 @@
           <p style="font-size:12px;color:var(--text2);line-height:1.6">Your CO₂ impact is 48% of your annual target.
             Posting 2 more listings this month would reach the 50% milestone and qualify for the Green Badge
             certification.</p>
+
 
         </div>
       </div>
