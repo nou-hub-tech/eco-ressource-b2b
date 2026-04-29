@@ -12,7 +12,7 @@ import { normalizeListing, unwrapApiArray } from './api-normalize';
 
 @Injectable({ providedIn: 'root' })
 export class ResourceListingService {
-  private readonly baseUrl = `${environment.apiUrl}/listings`;
+  private readonly baseUrl = `${environment.apiUrl}/resource-listings`;
 
   constructor(private readonly http: HttpClient) {}
 
