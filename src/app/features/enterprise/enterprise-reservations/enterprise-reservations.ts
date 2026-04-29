@@ -7,6 +7,7 @@ import {
   BackendReservation,
   BackendReservationStatus,
   ReservationApiService,
+  ReservationCreateRequest,
 } from '../../../pages/moduleReservation/shared/api/reservation-api.service';
 import {
   BackendReservationSlot,
@@ -15,15 +16,249 @@ import {
 
 type ReservationUrgency = 'high' | 'medium' | 'low';
 
+type ReservationFormModel = {
+  id: number | null;
+  company: string;
+  slotId: number | null;
+  machine: string;
+  date: string;
+  startHour: number;
+  hours: number;
+  solar: boolean;
+  status: BackendReservationStatus;
+};
+
 @Component({
   selector: 'app-enterprise-reservations',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './enterprise-reservations.html',
+  template: `
+    <div class="page-wrapper">
+      <div class="page-header">
+        <h1>Enterprise Reservations</h1>
+        <p>Reservations booked on the slots owned by your enterprise.</p>
+      </div>
+
+      <div class="card">
+        <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
+          <div class="form-group">
+            <label>Search</label>
+            <input
+              type="text"
+              name="query"
+              [(ngModel)]="query"
+              placeholder="Search by company, machine, or status"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Status</label>
+            <select name="statusFilter" [(ngModel)]="statusFilter">
+              <option value="">All</option>
+              <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Machine</label>
+            <select name="machineFilter" [(ngModel)]="machineFilter">
+              <option value="">All</option>
+              <option *ngFor="let machine of machineOptions" [ngValue]="machine">{{ machine }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>From</label>
+            <input type="date" name="dateFrom" [(ngModel)]="dateFrom" />
+          </div>
+
+          <div class="form-group">
+            <label>To</label>
+            <input type="date" name="dateTo" [(ngModel)]="dateTo" />
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px">
+          <button class="btn btn-primary" type="button" (click)="openCreate()" [disabled]="!ownedSlots.length">
+            Create Reservation
+          </button>
+          <button class="btn btn-outline" type="button" (click)="exportPdf()">Export PDF</button>
+        </div>
+      </div>
+
+      <div class="card" *ngIf="showForm">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+          <div>
+            <h2 style="margin:0 0 6px">{{ editMode ? 'Update Reservation' : 'Create Reservation' }}</h2>
+            <p style="margin:0;color:var(--text2)">Pick one of your backend slots and save the reservation from this page.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" type="button" (click)="closeForm()" [disabled]="savingForm">
+            Close
+          </button>
+        </div>
+
+        <div class="form-row" style="margin-top:16px">
+          <div class="form-group">
+            <label>Company</label>
+            <input type="text" name="formCompany" [(ngModel)]="form.company" />
+          </div>
+
+          <div class="form-group">
+            <label>Slot</label>
+            <select name="formSlotId" [(ngModel)]="form.slotId" (ngModelChange)="syncFormFromSlot()">
+              <option [ngValue]="null">Select a slot</option>
+              <option *ngFor="let slot of ownedSlots" [ngValue]="slot.id">
+                {{ slot.machine }} | {{ slot.date }} | {{ slot.startHour }}:00-{{ slot.endHour }}:00
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Machine</label>
+            <input type="text" name="formMachine" [(ngModel)]="form.machine" />
+          </div>
+
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" name="formDate" [(ngModel)]="form.date" />
+          </div>
+
+          <div class="form-group">
+            <label>Start Hour</label>
+            <input type="number" min="0" max="23" name="formStartHour" [(ngModel)]="form.startHour" />
+          </div>
+
+          <div class="form-group">
+            <label>Hours</label>
+            <input type="number" min="1" max="24" name="formHours" [(ngModel)]="form.hours" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select name="formStatus" [(ngModel)]="form.status">
+              <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
+            </select>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label>Solar</label>
+            <label class="toggle-row">
+              <input type="checkbox" name="formSolar" [(ngModel)]="form.solar" />
+              <span>Solar-supported reservation</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="message error" *ngIf="error">{{ error }}</div>
+
+        <div class="actions-row">
+          <button class="btn btn-primary" type="button" (click)="saveReservation()" [disabled]="savingForm">
+            {{ savingForm ? 'Saving...' : (editMode ? 'Update Reservation' : 'Create Reservation') }}
+          </button>
+          <button class="btn btn-outline" type="button" (click)="closeForm()" [disabled]="savingForm">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <h2 style="margin:0 0 8px">Booking Intelligence Panel</h2>
+            <p style="margin:0;color:var(--text2)">Urgency and recommendation computed from reservation date proximity and booking duration.</p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <span class="badge badge-neutral">High: {{ intelligenceSummary.high }}</span>
+            <span class="badge badge-neutral">Medium: {{ intelligenceSummary.medium }}</span>
+            <span class="badge badge-neutral">Low: {{ intelligenceSummary.low }}</span>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding:14px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb">
+          <strong style="display:block;margin-bottom:6px">Recommendation</strong>
+          <span class="badge badge-neutral">{{ intelligenceSummary.recommendation }}</span>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="table-header">
+          <h2>My Slot Reservations</h2>
+          <span>{{ visibleReservations.length }} reservation(s)</span>
+        </div>
+
+        <div class="table-state error" *ngIf="error">{{ error }}</div>
+        <div class="table-state" *ngIf="loading">Loading reservations...</div>
+
+        <table class="data-table" *ngIf="!loading && visibleReservations.length">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Machine</th>
+              <th>Date</th>
+              <th>Hours</th>
+              <th>Status</th>
+              <th>Urgency</th>
+              <th>Recommendation</th>
+              <th>Solar</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reservation of visibleReservations">
+              <td>{{ reservation.company }}</td>
+              <td>{{ reservation.machine }}</td>
+              <td>{{ reservation.date }}</td>
+              <td>
+                {{ reservation.startHour ?? 0 }}:00 -
+                {{ (reservation.startHour ?? 0) + durationHours(reservation) }}:00
+              </td>
+              <td><span class="badge badge-neutral">{{ reservation.status }}</span></td>
+              <td>
+                <span
+                  class="badge"
+                  [ngStyle]="{ 'background-color': urgencyColor(reservation) + '22', color: urgencyColor(reservation) }"
+                >
+                  {{ urgencyFor(reservation) }}
+                </span>
+              </td>
+              <td>{{ recommendationFor(reservation) }}</td>
+              <td>{{ reservation.solar ? 'Yes' : 'No' }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn-outline btn-sm" type="button" (click)="openEdit(reservation)">
+                    Edit
+                  </button>
+                  <button
+                    class="btn btn-outline btn-sm"
+                    type="button"
+                    (click)="cancel(reservation)"
+                    [disabled]="reservation.status === 'CANCELLED'"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="table-state" *ngIf="!loading && !visibleReservations.length">
+          No reservations found on your slots.
+        </div>
+      </div>
+    </div>
+  `,
   styleUrls: ['./enterprise-reservations.css'],
 })
 export class EnterpriseReservations implements OnInit {
   loading = true;
+  savingForm = false;
+  showForm = false;
+  editMode = false;
   error = '';
   query = '';
   statusFilter: '' | BackendReservationStatus = '';
@@ -34,6 +269,9 @@ export class EnterpriseReservations implements OnInit {
   reservations: BackendReservation[] = [];
   ownedSlots: BackendReservationSlot[] = [];
   currentEnterpriseId: number | null = null;
+  form: ReservationFormModel = this.createEmptyForm();
+
+  readonly statuses: BackendReservationStatus[] = ['PENDING', 'CONFIRMED', 'CANCELLED'];
 
   constructor(
     private readonly auth: AuthService,
@@ -100,7 +338,7 @@ export class EnterpriseReservations implements OnInit {
   async exportPdf(): Promise<void> {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const companyName = this.auth.currentUser?.company || this.auth.currentUser?.name || 'Enterprise';
+    const companyName = this.form.company || this.auth.currentUser?.name || 'Enterprise';
     const dateLabel = this.summaryDateRange();
     const rows = this.visibleReservations;
 
@@ -138,6 +376,103 @@ export class EnterpriseReservations implements OnInit {
     }
 
     doc.save(`reservation-summary-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
+  openCreate(): void {
+    this.editMode = false;
+    this.showForm = true;
+    this.error = '';
+    this.form = this.createEmptyForm();
+    if (this.ownedSlots.length) {
+      this.form.slotId = this.ownedSlots[0].id;
+      this.syncFormFromSlot();
+    }
+  }
+
+  openEdit(reservation: BackendReservation): void {
+    this.editMode = true;
+    this.showForm = true;
+    this.error = '';
+    this.form = {
+      id: reservation.id,
+      company: reservation.company,
+      slotId: reservation.slotId ?? null,
+      machine: reservation.machine,
+      date: reservation.date,
+      startHour: reservation.startHour ?? 9,
+      hours: reservation.hours ?? 1,
+      solar: reservation.solar ?? false,
+      status: reservation.status,
+    };
+  }
+
+  closeForm(): void {
+    this.showForm = false;
+    this.editMode = false;
+    this.savingForm = false;
+    this.form = this.createEmptyForm();
+  }
+
+  syncFormFromSlot(): void {
+    const slot = this.ownedSlots.find(item => item.id === this.form.slotId);
+    if (!slot) {
+      return;
+    }
+
+    this.form.machine = slot.machine;
+    this.form.date = slot.date;
+    this.form.startHour = slot.startHour;
+    this.form.hours = Math.max(1, slot.endHour - slot.startHour);
+    this.form.solar = slot.solar;
+  }
+
+  saveReservation(): void {
+    if (this.savingForm) {
+      return;
+    }
+    if (this.currentEnterpriseId == null) {
+      this.error = 'Unable to resolve the current enterprise identity.';
+      return;
+    }
+    if (!this.form.company.trim() || !this.form.machine.trim() || !this.form.date || this.form.slotId == null) {
+      this.error = 'Company, slot, machine, and date are required.';
+      return;
+    }
+    if (this.form.hours <= 0) {
+      this.error = 'Reservation hours must be greater than zero.';
+      return;
+    }
+
+    this.savingForm = true;
+    this.error = '';
+
+    const payload: ReservationCreateRequest = {
+      company: this.form.company.trim(),
+      machine: this.form.machine.trim(),
+      date: this.form.date,
+      hours: this.form.hours,
+      startHour: this.form.startHour,
+      status: this.form.status,
+      solar: this.form.solar,
+      slotId: this.form.slotId,
+      enterpriseId: this.currentEnterpriseId,
+      co2Saved: this.estimatedCo2Saved(this.form.hours, this.form.solar),
+    };
+
+    const request$ = this.editMode && this.form.id
+      ? this.reservationApi.update(this.form.id, payload)
+      : this.reservationApi.create(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.closeForm();
+        this.loadData();
+      },
+      error: (err) => {
+        this.error = err?.error?.message ?? 'Failed to save reservation.';
+        this.savingForm = false;
+      },
+    });
   }
 
   cancel(reservation: BackendReservation): void {
@@ -178,14 +513,16 @@ export class EnterpriseReservations implements OnInit {
   private loadData(): void {
     this.loading = true;
     this.error = '';
+    this.currentEnterpriseId = this.readCurrentEnterpriseId();
 
     forkJoin({
       slots: this.slotApi.list(false),
       reservations: this.reservationApi.list(false),
     }).subscribe({
       next: ({ slots, reservations }) => {
-        this.currentEnterpriseId = this.resolveEnterpriseId(slots);
-        this.ownedSlots = slots.filter(slot => !slot.deleted && slot.enterprise?.id === this.currentEnterpriseId);
+        this.ownedSlots = slots.filter(slot =>
+          !slot.deleted && this.enterpriseIdForSlot(slot) === this.currentEnterpriseId,
+        );
         this.reservations = reservations.filter(reservation => !reservation.deleted);
         this.loading = false;
       },
@@ -196,10 +533,34 @@ export class EnterpriseReservations implements OnInit {
     });
   }
 
-  private resolveEnterpriseId(slots: BackendReservationSlot[]): number | null {
-    const company = this.auth.currentUser?.company?.trim().toLowerCase() || '';
-    const match = slots.find(slot => (slot.enterprise?.companyName ?? '').trim().toLowerCase() === company);
-    return match?.enterprise?.id ?? null;
+  private createEmptyForm(): ReservationFormModel {
+    return {
+      id: null,
+      company: this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? '',
+      slotId: null,
+      machine: '',
+      date: new Date().toISOString().slice(0, 10),
+      startHour: 9,
+      hours: 1,
+      solar: false,
+      status: 'PENDING',
+    };
+  }
+
+  private readCurrentEnterpriseId(): number | null {
+    const raw = (this.auth.currentUser as { enterprise?: { id?: number | string } } | null)?.enterprise?.id
+      ?? this.auth.currentUser?.id;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private enterpriseIdForSlot(slot: BackendReservationSlot): number | null {
+    return slot.enterprise?.id ?? slot.enterpriseId ?? null;
+  }
+
+  private estimatedCo2Saved(hours: number, solar: boolean): number {
+    const base = hours * 12;
+    return solar ? Math.round(base * 0.6) : Math.round(base * 0.25);
   }
 
   private summaryDateRange(): string {

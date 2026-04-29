@@ -25,6 +25,7 @@ interface Reservation {
   cancelReason?: string;
   slotId?: number | null;
   enterpriseId?: number | null;
+  co2SavedValue?: number | null;
 }
 
 interface LeaderboardEntry {
@@ -90,7 +91,7 @@ export class ReservationList implements OnInit {
   }
 
   private fromBackend(r: BackendReservation): Reservation {
-    return {
+    const draft: Reservation = {
       id: r.id,
       company: r.company,
       machine: r.machine,
@@ -99,12 +100,16 @@ export class ReservationList implements OnInit {
       startHour: r.startHour ?? 9,
       status: r.status,
       solar: r.solar ?? false,
-      ai: this.ai.analyzeReservation(r.machine, r.date, r.hours ?? 1),
+      ai: [],
       deleted: r.deleted ?? false,
       cancelReason: r.cancelReason ?? undefined,
       slotId: r.slotId ?? null,
       enterpriseId: r.enterprise?.id ?? r.enterpriseId ?? null,
+      co2SavedValue: r.co2Saved ?? null,
     };
+
+    draft.ai = this.buildReservationAi(draft);
+    return draft;
   }
 
   private toBackend(r: Reservation): ReservationCreateRequest {
@@ -167,28 +172,25 @@ export class ReservationList implements OnInit {
   }
 
   co2(r: Reservation): number {
-    const m = this.ai.machines.find(x => x.name === r.machine);
-    if (!m) return 0;
-    return this.ai.co2ForBooking(m, r.hours, r.startHour);
+    const baseline = r.hours * 14;
+    return Math.max(1, Math.round(r.solar ? baseline * 0.65 : baseline));
   }
 
   co2Saved(r: Reservation): number {
-    const m = this.ai.machines.find(x => x.name === r.machine);
-    if (!m) return 0;
-    return this.ai.co2SavedVsBaseline(m, r.hours, r.startHour);
+    if (r.co2SavedValue != null) {
+      return Math.round(r.co2SavedValue);
+    }
+    const baseline = r.hours * 12;
+    const proximityBoost = this.daysUntil(r.date) <= 3 ? 4 : 0;
+    return Math.max(0, Math.round((r.solar ? baseline * 0.55 : baseline * 0.25) + proximityBoost));
   }
 
   grade(r: Reservation): 'A' | 'B' | 'C' | 'D' | 'E' {
-    const m = this.ai.machines.find(x => x.name === r.machine);
-    if (!m) return 'C';
-    let s = 100;
-    s -= m.distanceKm * 1.5;
-    s -= (this.co2(r) / Math.max(1, r.hours)) * 2;
-    if (r.solar) s += 8;
-    if (s >= 85) return 'A';
-    if (s >= 70) return 'B';
-    if (s >= 55) return 'C';
-    if (s >= 40) return 'D';
+    const saved = this.co2Saved(r);
+    if (r.solar && saved >= 35) return 'A';
+    if (saved >= 25) return 'B';
+    if (saved >= 15) return 'C';
+    if (saved >= 8) return 'D';
     return 'E';
   }
 
@@ -203,34 +205,42 @@ export class ReservationList implements OnInit {
   }
 
   refreshInsights(): void {
+    const active = this.reservations.filter(r => !r.deleted && r.status !== 'CANCELLED');
+    const urgent = active.filter(r => this.priorityFor(r) === 'high').length;
+    const medium = active.filter(r => this.priorityFor(r) === 'medium').length;
+    const solarRate = active.length ? Math.round((active.filter(r => r.solar).length / active.length) * 100) : 0;
+    const avgSaved = active.length
+      ? Math.round(active.reduce((sum, item) => sum + this.co2Saved(item), 0) / active.length)
+      : 0;
+
     this.aiInsights = [
       {
-        label: `${this.treesEquivalent} trees equivalent this month`,
-        detail: 'Based on 21 kg CO2 absorbed per mature tree per year',
-        score: 100,
-        tone: 'eco',
-        icon: 'Tree',
+        label: `${urgent} high-priority booking(s)`,
+        detail: 'Priority is based on reservation date proximity and duration.',
+        score: urgent ? 92 : 78,
+        tone: urgent ? 'warn' : 'info',
+        icon: 'Clock',
       },
       {
-        label: 'Peer ranking: top 12% of your sector',
-        detail: 'Circular economy index based on active bookings',
-        score: 88,
-        tone: 'info',
-        icon: 'Chart',
+        label: `${solarRate}% of active bookings use solar support`,
+        detail: 'Solar-backed reservations improve the eco score using backend solar flags.',
+        score: Math.max(35, solarRate),
+        tone: solarRate >= 50 ? 'eco' : 'info',
+        icon: 'Sun',
       },
       {
-        label: 'Weekend slots remain cleaner',
-        detail: 'Night and solar-aligned bookings improve your score fastest',
-        score: 81,
-        tone: 'savings',
+        label: `${avgSaved} kg average CO2 saved`,
+        detail: 'Computed from backend CO2 values when available, otherwise reservation hours and solar fields.',
+        score: Math.min(98, 40 + avgSaved),
+        tone: avgSaved >= 20 ? 'savings' : 'info',
         icon: 'Leaf',
       },
       {
-        label: 'Reserve earlier for better optimization',
-        detail: 'More lead time lets AI shift usage toward lower-carbon windows',
-        score: 84,
+        label: `${medium} medium-priority booking(s) to review`,
+        detail: 'Longer bookings or near-term reservations are surfaced first.',
+        score: medium ? 84 : 70,
         tone: 'warn',
-        icon: 'Clock',
+        icon: 'Chart',
       },
     ];
   }
@@ -332,6 +342,7 @@ export class ReservationList implements OnInit {
       ai: [],
       slotId: null,
       enterpriseId: null,
+      co2SavedValue: null,
     };
   }
 
@@ -402,5 +413,45 @@ export class ReservationList implements OnInit {
 
   trunkScale(): number {
     return 0.4 + this.treeStage * 0.12;
+  }
+
+  private buildReservationAi(r: Reservation): { label: string; score?: number }[] {
+    const priority = this.priorityFor(r);
+    const saved = this.co2Saved(r);
+    const days = this.daysUntil(r.date);
+
+    return [
+      {
+        label: priority === 'high'
+          ? `Priority: confirm within ${Math.max(0, days)} day(s)`
+          : priority === 'medium'
+            ? 'Priority: review this week'
+            : 'Priority: low scheduling pressure',
+        score: priority === 'high' ? 94 : priority === 'medium' ? 82 : 72,
+      },
+      {
+        label: r.solar ? 'Solar-backed reservation' : 'Standard grid-backed reservation',
+        score: r.solar ? 88 : 61,
+      },
+      {
+        label: `${saved} kg CO2 saved on current booking`,
+        score: Math.min(99, 45 + saved),
+      },
+    ];
+  }
+
+  private priorityFor(r: Reservation): 'high' | 'medium' | 'low' {
+    const days = this.daysUntil(r.date);
+    if (days <= 2 || r.hours >= 6) return 'high';
+    if (days <= 7 || r.hours >= 3) return 'medium';
+    return 'low';
+  }
+
+  private daysUntil(date: string): number {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+    return Math.round((target.getTime() - today.getTime()) / 86400000);
   }
 }
