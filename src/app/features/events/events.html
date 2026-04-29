@@ -10,27 +10,26 @@
       <p *ngIf="!isAdmin">Browse and participate in B2B events and circular economy campaigns</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <div *ngIf="!isAdmin" class="nearby-controls" style="display:flex;gap:8px;align-items:center">
-        <select class="form-select" [(ngModel)]="radius" style="width:auto">
-          <option *ngFor="let r of radiusOptions" [ngValue]="r">{{r}} km</option>
-        </select>
-        <button 
-          class="btn btn-outline btn-sm" 
-          type="button" 
-          (click)="loadNearbyEvents()" 
-          [disabled]="nearbyLoading">
-          {{ nearbyLoading ? '…' : 'Near me' }}
-        </button>
+      <div *ngIf="!isAdmin" class="nearby-controls modern-radius-wrapper" style="display:flex;gap:12px;align-items:center">
+        <div class="modern-radius-control">
+          <select [(ngModel)]="radius">
+            <option *ngFor="let r of radiusOptions" [ngValue]="r">{{r}} km</option>
+          </select>
+          <button type="button" (click)="loadNearbyEvents()" [disabled]="nearbyLoading">
+            <i class="fas fa-location-arrow" style="margin-right:4px;"></i> {{ nearbyLoading ? 'Locating…' : 'Near me' }}
+          </button>
+        </div>
         <button 
           *ngIf="showNearbyEvents" 
-          class="btn btn-outline btn-sm" 
+          class="btn btn-outline btn-sm btn-clear-nearby" 
           type="button" 
-          (click)="showAllEvents()">
-          All Events
+          (click)="showAllEvents()"
+          style="border-radius: 20px; padding: 4px 12px; font-weight: 600;">
+          <i class="fas fa-times"></i> Clear
         </button>
       </div>
       <a class="btn btn-outline btn-sm btn-map-link" routerLink="./events-map">
-        🗺️ Dynamic Map
+        <i class="fas fa-map-marked-alt"></i> Dynamic Map
       </a>
       <button 
         class="btn btn-outline btn-sm" 
@@ -47,10 +46,10 @@
   <p *ngIf="searchError" style="color:#ef4444;font-size:13px;margin-bottom:12px">{{searchError}}</p>
   <p *ngIf="loading || nearbyLoading || searchLoading" style="font-size:13px;color:var(--text3)">Loading…</p>
   <div *ngIf="showNearbyEvents" class="badge badge-info" style="margin-bottom:12px;display:inline-block">
-    📍 Showing events within {{radius}} km
+    <i class="fas fa-map-marker-alt"></i> Showing events within {{radius}} km
   </div>
   <div *ngIf="showSearch && totalElements > 0" class="badge badge-info" style="margin-bottom:12px;display:inline-block">
-    🔍 Found {{totalElements}} events
+    <i class="fas fa-search"></i> Found {{totalElements}} events
   </div>
 
   <div class="card" *ngIf="showSearch" style="margin-bottom:20px;padding:20px">
@@ -144,35 +143,38 @@
           {{e.status}}
         </span>
       </div>
-      <div style="display:flex; gap:16px; align-items:center; margin-bottom:10px">
-        <img *ngIf="e.coverImageDocId" [src]="getDownloadUrl(e.coverImageDocId)" alt="Cover" style="width: 50px; height: 50px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0;">
-        <h3 style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin:0">
-          {{e.title}}
-        </h3>
+      <h3 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin:0 0 10px 0">
+        {{e.title}}
+      </h3>
+      <div *ngIf="e.coverImageDocId" style="margin-bottom:14px">
+        <img [src]="getDownloadUrl(e.coverImageDocId)" alt="Cover" style="width: 120px; height: 120px; object-fit: cover; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
       </div>
       <p *ngIf="e.description" class="card-description">{{e.description | slice:0:120}}{{e.description.length > 120 ? '…' : ''}}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text3);margin-bottom:14px">
-        <span>&#128197; {{e.eventDate | date:'mediumDate'}}</span>
-        <span>&#128205; {{e.location}}</span>
-        <span>&#128101; {{e.participants}} participants</span>
-        <span *ngIf="e.distance != null" style="color:var(--primary)">📍 {{formatDistance(e.distance)}}</span>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text3);margin-bottom:18px">
+        <span><i class="fas fa-calendar-alt" style="width:18px;text-align:center;margin-right:8px;color:var(--text2)"></i> {{e.eventDate | date:'mediumDate'}}</span>
+        <span><i class="fas fa-map-marker-alt" style="width:18px;text-align:center;margin-right:8px;color:var(--text2)"></i> {{e.location}}</span>
+        <span><i class="fas fa-users" style="width:18px;text-align:center;margin-right:8px;color:var(--text2)"></i> {{e.participants}} participants</span>
+        <span *ngIf="e.distance != null" style="color:var(--primary);font-weight:600;background:rgba(var(--primary-rgb), 0.1);padding:4px 10px;border-radius:6px;display:inline-block;width:fit-content;margin-top:2px;">
+          <i class="fas fa-location-arrow" style="margin-right:6px;"></i> {{formatDistance(e.distance)}} away
+        </span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="isAdmin">
         <button class="btn btn-outline btn-sm" type="button" (click)="openEditModal(e)">Edit</button>
         <button class="btn btn-outline btn-sm" type="button" (click)="deleteEvent(e)">Delete</button>
-        <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(e)" title="Add to Google Calendar">📅 Google Cal</button>
+        <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(e)" title="Add to Google Calendar"><i class="fas fa-calendar-plus"></i> Google Cal</button>
         <button 
           class="btn btn-sm btn-facebook" 
           type="button" 
           (click)="publishToFacebook(e)" 
           [disabled]="publishingFacebook"
           title="Publish to Facebook">
-          {{ publishingFacebook ? '…' : '📘 Publish FB' }}
+          <ng-container *ngIf="publishingFacebook">…</ng-container>
+          <ng-container *ngIf="!publishingFacebook"><i class="fab fa-facebook"></i> Publish FB</ng-container>
         </button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="!isAdmin">
         <button class="btn btn-outline btn-sm" type="button" (click)="openDetailModal(e)">View Details</button>
-        <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(e)" title="Add to Google Calendar">📅 Google Cal</button>
+        <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(e)" title="Add to Google Calendar"><i class="fas fa-calendar-plus"></i> Google Cal</button>
         <button
           *ngIf="canShowJoin(e)"
           class="btn btn-primary btn-sm"
@@ -211,7 +213,7 @@
           [class.mic-btn--active]="isListening && listenField === 'title'"
           (click)="toggleSpeechToText('title')"
           title="Speech to text">
-          <span class="mic-icon">🎙️</span>
+          <span class="mic-icon"><i class="fas fa-microphone"></i></span>
           <span class="mic-pulse" *ngIf="isListening && listenField === 'title'"></span>
         </button>
       </div>
@@ -225,7 +227,8 @@
           (click)="generateDescription()"
           [disabled]="generatingDescription"
           title="Generate with AI">
-          {{ generatingDescription ? '⏳ Generating…' : '✨ Generate with AI' }}
+          <ng-container *ngIf="generatingDescription"><i class="fas fa-hourglass-half"></i> Generating…</ng-container>
+          <ng-container *ngIf="!generatingDescription"><i class="fas fa-magic"></i> Generate with AI</ng-container>
         </button>
       </div>
       <div class="input-with-mic">
@@ -241,7 +244,7 @@
           [class.mic-btn--active]="isListening && listenField === 'description'"
           (click)="toggleSpeechToText('description')"
           title="Speech to text">
-          <span class="mic-icon">🎙️</span>
+          <span class="mic-icon"><i class="fas fa-microphone"></i></span>
           <span class="mic-pulse" *ngIf="isListening && listenField === 'description'"></span>
         </button>
       </div>
@@ -257,7 +260,7 @@
         <label>Location Search</label>
         <div style="display:flex;gap:8px">
           <input type="text" name="searchQuery" [(ngModel)]="searchQuery" placeholder="Search City, Street...">
-          <button class="btn btn-primary" type="button" (click)="searchLocation()" style="padding: 10px 16px;">🔍</button>
+          <button class="btn btn-primary" type="button" (click)="searchLocation()" style="padding: 10px 16px;"><i class="fas fa-search"></i></button>
         </div>
       </div>
       <div class="form-group" style="flex:1">
@@ -336,7 +339,7 @@
         <ul style="padding-left: 20px; margin: 0; font-size: 14px;">
           <li *ngFor="let doc of existingDocuments" style="margin-bottom: 4px;">
             <a [href]="getDownloadUrl(doc.id)" target="_blank" style="color: var(--primary); text-decoration: none;">
-              &#128196; {{doc.fileName}} ({{(doc.fileSize / 1024 / 1024).toFixed(2)}} MB)
+              <i class="fas fa-file-alt"></i> {{doc.fileName}} ({{(doc.fileSize / 1024 / 1024).toFixed(2)}} MB)
             </a>
           </li>
         </ul>
@@ -344,7 +347,7 @@
       <p *ngIf="documentsLoading" style="font-size:12px; color:var(--text3); margin-top:8px;">Loading documents...</p>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(d)">📅 Add to Google Calendar</button>
+      <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(d)"><i class="fas fa-calendar-plus"></i> Add to Google Calendar</button>
       <button class="btn btn-primary" type="button" (click)="closeDetailModal()">Close</button>
     </div>
   </div>
@@ -374,11 +377,11 @@
 
       <div style="display: flex; gap: 40px; justify-content: center; width: 100%;">
         <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 20px 40px; border-radius: 15px; flex: 1;">
-          <span style="font-size: 20px; opacity: 0.8; margin-bottom: 8px;">📍 Location</span>
+          <span style="font-size: 20px; opacity: 0.8; margin-bottom: 8px;"><i class="fas fa-map-marker-alt"></i> Location</span>
           <span style="font-size: 28px; font-weight: bold;">{{ posterEvent.location }}</span>
         </div>
         <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 20px 40px; border-radius: 15px; flex: 1;">
-          <span style="font-size: 20px; opacity: 0.8; margin-bottom: 8px;">👥 Participants</span>
+          <span style="font-size: 20px; opacity: 0.8; margin-bottom: 8px;"><i class="fas fa-users"></i> Participants</span>
           <span style="font-size: 28px; font-weight: bold;">{{ posterEvent.participants }} Expected</span>
         </div>
       </div>

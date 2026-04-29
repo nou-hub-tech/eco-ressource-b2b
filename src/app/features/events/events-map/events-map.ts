@@ -23,8 +23,8 @@ type EventRow = PlatformEventDto & {
   templateUrl: './events-map.html',
   styleUrls: ['./events-map.css'],
   host: {
-    '[class.map-light-mode]': '!isDark',
-    '[class.map-dark-mode]': 'isDark'
+    '[class.map-light-mode]': '!isVisuallyDark',
+    '[class.map-dark-mode]': 'isVisuallyDark'
   }
 })
 export class EventsMapComponent implements OnInit, OnDestroy {
@@ -53,6 +53,10 @@ export class EventsMapComponent implements OnInit, OnDestroy {
 
   get isAdmin(): boolean {
     return this.auth.currentUser?.role === 'admin';
+  }
+
+  get isVisuallyDark(): boolean {
+    return this.isAdmin ? !this.isDark : this.isDark;
   }
 
   get totalEvents(): number {
@@ -204,7 +208,7 @@ export class EventsMapComponent implements OnInit, OnDestroy {
     L.control.zoom({ position: 'topright' }).addTo(this.map);
 
     // Tile layer based on current theme
-    this.tileLayer = this.createTileLayer(this.isDark);
+    this.tileLayer = this.createTileLayer(this.isVisuallyDark);
     this.tileLayer.addTo(this.map);
 
     // User location marker
@@ -227,8 +231,8 @@ export class EventsMapComponent implements OnInit, OnDestroy {
     setTimeout(() => this.map?.invalidateSize(), 200);
   }
 
-  private createTileLayer(dark: boolean): L.TileLayer {
-    const url = dark
+  private createTileLayer(visuallyDark: boolean): L.TileLayer {
+    const url = visuallyDark
       ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
       : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
     return L.tileLayer(url, {
@@ -243,7 +247,7 @@ export class EventsMapComponent implements OnInit, OnDestroy {
     if (this.tileLayer) {
       this.map.removeLayer(this.tileLayer);
     }
-    this.tileLayer = this.createTileLayer(this.isDark);
+    this.tileLayer = this.createTileLayer(this.isVisuallyDark);
     this.tileLayer.addTo(this.map);
   }
 
