@@ -1,0 +1,143 @@
+<div class="page-wrapper">
+  <!-- Loading -->
+  <div class="ld-loading" *ngIf="loading">
+    <div class="spinner-lg"></div>
+    <p>Chargement de l'annonce...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="empty-state" *ngIf="!loading && error && !listing">
+    <span class="empty-icon">⚠️</span>
+    <h3>{{error}}</h3>
+    <a class="btn btn-primary" routerLink="/enterprise/annonces">Retour aux annonces</a>
+  </div>
+
+  <div class="ld-page" *ngIf="listing && !loading">
+    <a routerLink="/enterprise/annonces" class="btn btn-ghost btn-sm ld-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Retour
+    </a>
+
+    <div class="ld-grid">
+      <!-- Left column: main content -->
+      <div class="ld-main">
+        <!-- Image gallery -->
+        <div class="ld-gallery" *ngIf="listing.attachmentUrls?.length">
+          <div class="ld-gallery-main">
+            <img [src]="listing.attachmentUrls[currentImageIndex]" [alt]="listing.title">
+            <button class="ld-gallery-nav ld-nav-prev" *ngIf="listing.attachmentUrls.length > 1" (click)="prevImage()">‹</button>
+            <button class="ld-gallery-nav ld-nav-next" *ngIf="listing.attachmentUrls.length > 1" (click)="nextImage()">›</button>
+            <div class="ld-gallery-dots" *ngIf="listing.attachmentUrls.length > 1">
+              <span *ngFor="let url of listing.attachmentUrls; let i = index"
+                    class="ld-dot" [class.active]="i === currentImageIndex" (click)="currentImageIndex = i"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Header -->
+        <div class="ld-header">
+          <div class="ld-badges">
+            <span class="lc-type" [ngClass]="typeClass">{{typeLabel}}</span>
+            <span class="badge" [ngClass]="statusBadge">{{listing.status}}</span>
+          </div>
+          <h1 class="ld-title">{{listing.title}}</h1>
+          <div class="ld-meta">
+            <span class="ld-meta-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              {{listing.productName}} ({{listing.productCategory}})
+            </span>
+            <span class="ld-meta-item" *ngIf="listing.location">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {{listing.location}}
+            </span>
+            <span class="ld-meta-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {{timeAgo(listing.createdAt)}}
+            </span>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="ld-section">
+          <h3>Description</h3>
+          <p class="ld-desc">{{listing.description}}</p>
+        </div>
+
+        <!-- Info cards -->
+        <div class="ld-info-grid">
+          <div class="ld-info-card">
+            <span class="ld-info-label">Quantité</span>
+            <span class="ld-info-value">{{listing.quantity}} {{listing.unit}}</span>
+          </div>
+          <div class="ld-info-card">
+            <span class="ld-info-label">Prix</span>
+            <span class="ld-info-value" *ngIf="listing.price !== null">{{listing.price | number:'1.0-2'}} TND</span>
+            <span class="ld-info-value ld-negotiable" *ngIf="listing.price === null">Négociable</span>
+          </div>
+          <div class="ld-info-card">
+            <span class="ld-info-label">Favoris</span>
+            <span class="ld-info-value">❤ {{listing.favoriteCount}}</span>
+          </div>
+          <div class="ld-info-card">
+            <span class="ld-info-label">Commentaires</span>
+            <span class="ld-info-value">💬 {{listing.commentCount}}</span>
+          </div>
+        </div>
+
+        <!-- Group Purchase Panel -->
+        <app-group-purchase-panel
+          *ngIf="listing.type === 'GROUP_BUYING' && listing.groupPurchase"
+          [listing]="listing"
+          [group]="listing.groupPurchase">
+        </app-group-purchase-panel>
+
+        <!-- Comments -->
+        <app-comment-thread [listingId]="listing.id"></app-comment-thread>
+      </div>
+
+      <!-- Right sidebar -->
+      <div class="ld-sidebar">
+        <!-- Owner actions -->
+        <div class="ld-actions-card" *ngIf="isOwner">
+          <h4>Actions</h4>
+          <a class="btn btn-primary ld-action-btn" *ngIf="canEdit" [routerLink]="['/enterprise/annonces', listing.id, 'edit']">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Modifier
+          </a>
+          <button class="btn btn-outline ld-action-btn" (click)="duplicate()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Dupliquer
+          </button>
+          <button class="btn btn-danger ld-action-btn" *ngIf="canCancel" (click)="confirmCancel()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            Annuler l'annonce
+          </button>
+        </div>
+
+        <!-- Favorite -->
+        <div class="ld-fav-card">
+          <app-favorite-button
+            [listingId]="listing.id"
+            [isFavorite]="isFavorite"
+            [count]="listing.favoriteCount"
+            [showCount]="true">
+          </app-favorite-button>
+        </div>
+
+        <!-- Error display -->
+        <div class="alert alert-danger" *ngIf="error" style="margin-top:12px">{{error}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancel confirmation -->
+  <app-confirm-dialog
+    [visible]="showCancelConfirm"
+    title="Annuler cette annonce ?"
+    message="Cette action est irréversible. L'annonce sera marquée comme annulée et ne sera plus visible."
+    confirmLabel="Oui, annuler"
+    [danger]="true"
+    (confirmed)="cancelListing()"
+    (cancelled)="showCancelConfirm = false">
+  </app-confirm-dialog>
+</div>

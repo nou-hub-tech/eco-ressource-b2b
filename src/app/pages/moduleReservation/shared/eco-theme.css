@@ -1,0 +1,879 @@
+/* ============================================================
+   ECO-RESSOURCE B2B — RESERVATION MODULE THEME
+   ------------------------------------------------------------
+   This module is fully themed by inheriting the active app
+   theme's variables (--bg, --card, --primary, --text, etc.)
+   defined in src/styles.css under .theme-enterprise / .theme-admin.
+
+   On top of those, we layer "ecologic" accents:
+     • Eco green (forest)        for sustainability signals
+     • Solar amber / yellow      for solar-aligned content
+     • Demand traffic-light       for heatmap cells
+     • Eco grade A→E gradient    for material/booking grades
+
+   Fonts come from the parent shell:
+     • Syne          — display headings
+     • Space Grotesk — body text
+     • DM Mono       — labels, numbers, metadata
+
+   IMPORTANT: nothing here overrides shell-level surfaces/text.
+   The module reads natively in light (enterprise) and dark
+   (admin / transporter) themes.
+============================================================ */
+
+/* All eco/reservation pages share this root scope */
+.eco-page {
+  /* ——— Eco signals (work on any background) ——— */
+  --eco-50:  #ecfdf5;
+  --eco-100: #d1fae5;
+  --eco-200: #a7f3d0;
+  --eco-300: #6ee7b7;
+  --eco-400: #34d399;
+  --eco-500: #10b981;
+  --eco-600: #059669;
+  --eco-700: #047857;
+  --eco-800: #065f46;
+  --eco-900: #064e3b;
+
+  /* ——— Solar amber ——— */
+  --solar-300: #fcd34d;
+  --solar-400: #fbbf24;
+  --solar-500: #f59e0b;
+  --solar-600: #d97706;
+
+  /* ——— Demand heatmap (traffic-light) ——— */
+  --demand-low:  #10b981;
+  --demand-med:  #f59e0b;
+  --demand-high: #ef4444;
+
+  /* ——— Eco-grade A→E gradient ——— */
+  --score-a: #10b981;
+  --score-b: #84cc16;
+  --score-c: #eab308;
+  --score-d: #f97316;
+  --score-e: #ef4444;
+
+  /* ——— Theme bridge: alias shell tokens for module use ——— */
+  --eco-bg:        var(--bg, #eeeeee);
+  --eco-bg2:       var(--bg2, #f6f6f6);
+  --eco-bg3:       var(--bg3, #e2e2e2);
+  --eco-card:      var(--card, #ffffff);
+  --eco-card2:     var(--card2, #f4f4f4);
+  --eco-border:    var(--border, #d9d9d9);
+  --eco-border2:   var(--border2, #c2c2c2);
+  --eco-text:      var(--text, #222831);
+  --eco-text2:     var(--text2, #393E46);
+  --eco-text3:     var(--text3, #6b727d);
+  --eco-muted:     var(--muted, #9aa0a8);
+  --eco-primary:   var(--primary, #00ADB5);
+  --eco-primary-2: var(--primary2, #009199);
+  --eco-accent:    var(--accent, #33c9d0);
+  --eco-success:   var(--success, #059669);
+  --eco-warning:   var(--warning, #d97706);
+  --eco-danger:    var(--danger, #dc2626);
+  --eco-info:      var(--info, #00ADB5);
+
+  /* ——— Module geometry ——— */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+
+  --e-1: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --e-2: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --e-3: 0 12px 32px rgba(0, 0, 0, 0.10);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* fonts inherit from shell */
+  --font-display: 'Syne', sans-serif;
+  --font-sans:    'Space Grotesk', sans-serif;
+  --font-mono:    'DM Mono', 'IBM Plex Mono', monospace;
+
+  /* glow + leaf SVG for backgrounds */
+  --eco-glow: 0 0 0 1px rgba(16, 185, 129, 0.18), 0 8px 24px rgba(16, 185, 129, 0.12);
+  --solar-glow: 0 0 0 1px rgba(245, 158, 11, 0.22), 0 8px 24px rgba(245, 158, 11, 0.14);
+}
+
+/* ----- DARK THEME ADJUSTMENTS -----
+   When a dark-mode shell theme is active (admin / transporter / dark-mode body),
+   tweak the eco accents so they don't look washed-out on dark surfaces. */
+body.theme-admin .eco-page,
+body.theme-transporter .eco-page,
+body.dark-mode .eco-page {
+  --eco-glow:   0 0 0 1px rgba(16, 185, 129, 0.30), 0 0 24px rgba(16, 185, 129, 0.18);
+  --solar-glow: 0 0 0 1px rgba(245, 158, 11, 0.32), 0 0 24px rgba(245, 158, 11, 0.20);
+}
+
+/* ============================================================
+   SHARED PRIMITIVES — used across every reservation page
+============================================================ */
+
+/* Page entry animation */
+.eco-page.rise { animation: eco-rise 380ms var(--ease) both; }
+@keyframes eco-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Section label — small monospace caption with pulsing dot */
+.eco-page .section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--eco-primary);
+  font-weight: 600;
+}
+
+.eco-page .section-label.danger-label { color: var(--eco-danger); }
+
+.eco-page .ai-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--eco-500);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
+  animation: eco-pulse 2s var(--ease) infinite;
+  display: inline-block;
+}
+
+.eco-page .section-label.danger-label .ai-dot {
+  background: var(--eco-danger);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+@keyframes eco-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(0.85); opacity: 0.7; }
+}
+
+/* Page header */
+.eco-page .eco-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.eco-page .eco-page-head h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  margin: 6px 0 4px;
+  color: var(--eco-text);
+}
+
+.eco-page .eco-page-head .sub {
+  color: var(--eco-text2);
+  max-width: 620px;
+  line-height: 1.55;
+  font-size: 13px;
+}
+
+.eco-page .eco-page-head .sub strong { color: var(--eco-text); font-weight: 600; }
+
+.eco-page .head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ===== Buttons ===== */
+.eco-page .btn,
+.eco-page button.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 180ms var(--ease);
+  border: 1px solid transparent;
+  background: var(--eco-card);
+  color: var(--eco-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.eco-page .btn:hover { transform: translateY(-1px); }
+
+/* Primary = teal (matches enterprise primary), with subtle eco accent on hover */
+.eco-page .btn.primary {
+  background: var(--eco-primary);
+  color: #fff;
+  border-color: var(--eco-primary);
+}
+
+.eco-page .btn.primary:hover {
+  background: var(--eco-primary-2);
+  box-shadow: 0 6px 20px -6px rgba(0, 173, 181, 0.4);
+}
+
+/* "btn-eco" alias used by order page for green-flavoured CTAs */
+.eco-page .btn.btn-eco,
+.eco-page .btn-eco {
+  background: var(--eco-500);
+  color: #fff;
+  border-color: var(--eco-500);
+}
+
+.eco-page .btn.btn-eco:hover,
+.eco-page .btn-eco:hover {
+  background: var(--eco-600);
+  box-shadow: var(--eco-glow);
+}
+
+.eco-page .btn.ghost,
+.eco-page .btn.btn-ghost {
+  background: var(--eco-card);
+  border-color: var(--eco-border);
+  color: var(--eco-text2);
+}
+
+.eco-page .btn.ghost:hover,
+.eco-page .btn.btn-ghost:hover {
+  border-color: var(--eco-primary);
+  color: var(--eco-primary);
+  background: var(--eco-card2);
+}
+
+.eco-page .btn.danger,
+.eco-page .btn.btn-danger {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--eco-danger);
+  border-color: rgba(220, 38, 38, 0.20);
+}
+
+.eco-page .btn.danger:hover,
+.eco-page .btn.btn-danger:hover {
+  background: rgba(220, 38, 38, 0.14);
+  border-color: var(--eco-danger);
+}
+
+.eco-page .btn.sm,
+.eco-page .btn.btn-sm,
+.eco-page .btn.btn-mini {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.eco-page .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.eco-page .btn.full { width: 100%; }
+
+/* ===== Inputs ===== */
+.eco-page .input,
+.eco-page input.input,
+.eco-page select,
+.eco-page textarea,
+.eco-page select.input,
+.eco-page textarea.input {
+  background: var(--eco-card);
+  border: 1px solid var(--eco-border);
+  border-radius: var(--r-sm);
+  color: var(--eco-text);
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 180ms var(--ease), box-shadow 180ms var(--ease);
+  width: 100%;
+}
+
+.eco-page .input:focus,
+.eco-page input.input:focus,
+.eco-page select:focus,
+.eco-page textarea:focus {
+  border-color: var(--eco-primary);
+  box-shadow: 0 0 0 3px rgba(0, 173, 181, 0.12);
+}
+
+.eco-page .input.input-error { border-color: var(--eco-danger); }
+.eco-page .field-error {
+  margin-top: 6px;
+  color: var(--eco-danger);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.eco-page textarea.input { resize: vertical; min-height: 64px; }
+
+.eco-page .field-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--eco-text3);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* ===== Cards ===== */
+.eco-page .card {
+  background: var(--eco-card);
+  border: 1px solid var(--eco-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--e-1);
+  transition: box-shadow 240ms var(--ease), border-color 240ms var(--ease);
+}
+
+.eco-page .card:hover { box-shadow: var(--e-2); }
+
+/* ===== KPI strip ===== */
+.eco-page .kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.eco-page .kpi {
+  background: var(--eco-card);
+  border: 1px solid var(--eco-border);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  transition: transform 240ms var(--ease), border-color 240ms var(--ease), box-shadow 240ms var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.eco-page .kpi::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 100% 0%, rgba(16, 185, 129, 0.05), transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 240ms var(--ease);
+}
+
+.eco-page .kpi:hover {
+  transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: var(--e-2);
+}
+
+.eco-page .kpi:hover::before { opacity: 1; }
+
+.eco-page .kpi.accent {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(0, 173, 181, 0.04));
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.eco-page .kpi .label,
+.eco-page .kpi .kpi-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--eco-text3);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.eco-page .kpi .value,
+.eco-page .kpi .kpi-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--eco-text);
+}
+
+.eco-page .kpi .value .unit,
+.eco-page .kpi .kpi-value .unit {
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--eco-text3);
+  margin-left: 4px;
+}
+
+.eco-page .kpi .trend,
+.eco-page .kpi .kpi-foot {
+  font-size: 11.5px;
+  color: var(--eco-text2);
+  margin-top: 6px;
+}
+
+/* ===== Chips ===== */
+.eco-page .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  background: var(--eco-card2);
+  color: var(--eco-text2);
+  border: 1px solid var(--eco-border);
+  white-space: nowrap;
+}
+
+.eco-page .chip.eco {
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(16, 185, 129, 0.30);
+  color: var(--eco-700);
+}
+
+body.theme-admin .eco-page .chip.eco,
+body.theme-transporter .eco-page .chip.eco,
+body.dark-mode .eco-page .chip.eco { color: var(--eco-300); }
+
+.eco-page .chip.solar,
+.eco-page .chip.savings {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.30);
+  color: var(--solar-600);
+}
+
+body.theme-admin .eco-page .chip.solar,
+body.theme-admin .eco-page .chip.savings,
+body.theme-transporter .eco-page .chip.solar,
+body.theme-transporter .eco-page .chip.savings,
+body.dark-mode .eco-page .chip.solar,
+body.dark-mode .eco-page .chip.savings { color: var(--solar-400); }
+
+.eco-page .chip.warn {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.30);
+  color: var(--solar-600);
+}
+
+.eco-page .chip.danger {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.30);
+  color: var(--eco-danger);
+}
+
+.eco-page .chip.info {
+  background: rgba(0, 173, 181, 0.08);
+  border-color: rgba(0, 173, 181, 0.30);
+  color: var(--eco-primary);
+}
+
+/* ===== Status pills ===== */
+.eco-page .status {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.eco-page .status.confirmed,
+.eco-page .status-confirmed,
+.eco-page .status.open,
+.eco-page .status-open,
+.eco-page .status.delivered,
+.eco-page .status-delivered { background: rgba(16, 185, 129, 0.12); color: var(--eco-700); }
+
+.eco-page .status.pending,
+.eco-page .status-pending,
+.eco-page .status.draft,
+.eco-page .status-draft { background: rgba(245, 158, 11, 0.12); color: var(--solar-600); }
+
+.eco-page .status.shipped,
+.eco-page .status-shipped,
+.eco-page .status.booked,
+.eco-page .status-booked { background: rgba(0, 173, 181, 0.10); color: var(--eco-primary); }
+
+.eco-page .status.cancelled,
+.eco-page .status-cancelled,
+.eco-page .status.blocked,
+.eco-page .status-blocked { background: rgba(220, 38, 38, 0.10); color: var(--eco-danger); }
+
+body.theme-admin .eco-page .status.confirmed,
+body.theme-admin .eco-page .status-confirmed,
+body.theme-admin .eco-page .status.open,
+body.theme-admin .eco-page .status-open,
+body.theme-admin .eco-page .status.delivered,
+body.theme-admin .eco-page .status-delivered,
+body.theme-transporter .eco-page .status.confirmed,
+body.theme-transporter .eco-page .status-confirmed,
+body.theme-transporter .eco-page .status.open,
+body.theme-transporter .eco-page .status-open,
+body.theme-transporter .eco-page .status.delivered,
+body.theme-transporter .eco-page .status-delivered,
+body.dark-mode .eco-page .status.confirmed,
+body.dark-mode .eco-page .status-confirmed,
+body.dark-mode .eco-page .status.open,
+body.dark-mode .eco-page .status-open,
+body.dark-mode .eco-page .status.delivered,
+body.dark-mode .eco-page .status-delivered { color: var(--eco-300); }
+
+body.theme-admin .eco-page .status.pending,
+body.theme-admin .eco-page .status-pending,
+body.theme-admin .eco-page .status.draft,
+body.theme-admin .eco-page .status-draft,
+body.theme-transporter .eco-page .status.pending,
+body.theme-transporter .eco-page .status-pending,
+body.theme-transporter .eco-page .status.draft,
+body.theme-transporter .eco-page .status-draft,
+body.dark-mode .eco-page .status.pending,
+body.dark-mode .eco-page .status-pending,
+body.dark-mode .eco-page .status.draft,
+body.dark-mode .eco-page .status-draft { color: var(--solar-400); }
+
+body.theme-admin .eco-page .status.shipped,
+body.theme-admin .eco-page .status-shipped,
+body.theme-admin .eco-page .status.booked,
+body.theme-admin .eco-page .status-booked,
+body.theme-transporter .eco-page .status.shipped,
+body.theme-transporter .eco-page .status-shipped,
+body.theme-transporter .eco-page .status.booked,
+body.theme-transporter .eco-page .status-booked,
+body.dark-mode .eco-page .status.shipped,
+body.dark-mode .eco-page .status-shipped,
+body.dark-mode .eco-page .status.booked,
+body.dark-mode .eco-page .status-booked { color: var(--eco-accent); }
+
+/* ===== Eco grade badges (A→E) ===== */
+.eco-page .eco-grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.eco-page .eco-grade.a, .eco-page .eco-grade.grade-A { background: var(--score-a); }
+.eco-page .eco-grade.b, .eco-page .eco-grade.grade-B { background: var(--score-b); }
+.eco-page .eco-grade.c, .eco-page .eco-grade.grade-C { background: var(--score-c); color: #1a1a1a; }
+.eco-page .eco-grade.d, .eco-page .eco-grade.grade-D { background: var(--score-d); }
+.eco-page .eco-grade.e, .eco-page .eco-grade.grade-E { background: var(--score-e); }
+
+/* ===== AI rail (live recommendations card list) ===== */
+.eco-page .ai-rail,
+.eco-page .ai-panel {
+  background: var(--eco-card);
+  border: 1px solid var(--eco-border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* subtle leaf SVG watermark — gives the panel its eco signature */
+.eco-page .ai-rail::before,
+.eco-page .ai-panel::before {
+  content: '';
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 140px; height: 140px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 8c-22 12-32 30-32 48 0 14 8 28 22 36 0-22 6-44 22-58-4 16-10 36-10 56 14-2 28-12 32-30 4-22-12-44-34-52z' fill='%2310b981' fill-opacity='0.05'/></svg>") no-repeat center / contain;
+  pointer-events: none;
+}
+
+.eco-page .ai-rail .rail-head,
+.eco-page .ai-panel .ai-panel-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--eco-border);
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.eco-page .rail-title,
+.eco-page .ai-panel-title {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 700;
+  color: var(--eco-text);
+  font-size: 13px;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.eco-page .rail-sub,
+.eco-page .ai-panel-sub {
+  color: var(--eco-text3);
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  margin-top: 4px;
+  letter-spacing: 0.06em;
+}
+
+.eco-page .rail-card,
+.eco-page .insight {
+  padding: 11px 12px;
+  border-radius: var(--r-sm);
+  background: var(--eco-card2);
+  border: 1px solid var(--eco-border);
+  transition: all 200ms var(--ease);
+  position: relative;
+  z-index: 1;
+}
+
+.eco-page .rail-card:hover,
+.eco-page .insight:hover {
+  border-color: rgba(16, 185, 129, 0.30);
+  background: var(--eco-card);
+  box-shadow: var(--e-1);
+}
+
+.eco-page .rail-card.tone-eco     { border-left: 3px solid var(--eco-500); }
+.eco-page .rail-card.tone-warn    { border-left: 3px solid var(--solar-500); }
+.eco-page .rail-card.tone-savings { border-left: 3px solid var(--solar-400); }
+.eco-page .rail-card.tone-danger  { border-left: 3px solid var(--eco-danger); }
+.eco-page .rail-card.tone-info    { border-left: 3px solid var(--eco-primary); }
+
+.eco-page .rail-card-head,
+.eco-page .insight-head {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.eco-page .rail-icon,
+.eco-page .insight-icon { font-size: 16px; line-height: 1.2; }
+
+.eco-page .rail-label,
+.eco-page .insight-label {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--eco-text);
+  margin-bottom: 3px;
+  line-height: 1.35;
+}
+
+.eco-page .rail-detail,
+.eco-page .insight-detail {
+  font-size: 11px;
+  color: var(--eco-text2);
+  line-height: 1.5;
+}
+
+.eco-page .rail-foot,
+.eco-page .insight-foot { margin-top: 8px; }
+
+.eco-page .rail-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--eco-text3);
+  background: var(--eco-card2);
+  border: 1px dashed var(--eco-border);
+  border-radius: var(--r-sm);
+}
+
+/* Confidence meter */
+.eco-page .confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--eco-text3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.eco-page .confidence .meter {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--eco-bg3);
+  position: relative;
+  overflow: hidden;
+}
+
+.eco-page .confidence .meter::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: var(--pct, 0%);
+  background: linear-gradient(90deg, var(--eco-500), var(--eco-300));
+  border-radius: 999px;
+  transition: width 320ms var(--ease);
+}
+
+/* ===== Modal ===== */
+.eco-page .modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 25, 22, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+  animation: eco-fade 200ms var(--ease);
+  padding: 20px;
+}
+
+@keyframes eco-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.eco-page .modal-box,
+.eco-page .pdf-sheet,
+.eco-page .modal-box.small {
+  background: var(--eco-card);
+  border: 1px solid var(--eco-border);
+  border-radius: var(--r-md);
+  padding: 24px;
+  width: min(540px, 92vw);
+  box-shadow: var(--e-3);
+  animation: eco-lift 240ms var(--ease);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.eco-page .modal-box.small { width: min(460px, 92vw); }
+
+@keyframes eco-lift {
+  from { transform: translateY(8px) scale(0.98); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+.eco-page .modal-box h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+  color: var(--eco-text);
+  letter-spacing: -0.01em;
+}
+
+.eco-page .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--eco-border);
+}
+
+.eco-page .modal-hint {
+  font-size: 12px;
+  color: var(--eco-text2);
+  margin: 12px 0;
+  padding: 10px 12px;
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.eco-page .modal-hint a { color: var(--eco-primary); font-weight: 600; }
+
+.eco-page .modal-foot-note {
+  font-size: 11px;
+  color: var(--eco-text3);
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+.eco-page .modal-lead {
+  color: var(--eco-text2);
+  font-size: 13px;
+  margin: 8px 0 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--eco-border);
+}
+
+/* ===== Form grid ===== */
+.eco-page .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 16px;
+}
+
+.eco-page .form-grid.two-col   { grid-template-columns: 1fr 1fr; }
+.eco-page .form-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
+
+.eco-page .check-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--eco-text2);
+  font-size: 13px;
+}
+
+.eco-page .check-row input[type="checkbox"] { accent-color: var(--eco-500); }
+
+/* ===== Toast ===== */
+.eco-page .toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 11px 20px;
+  background: var(--eco-text);
+  color: var(--eco-card);
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--e-3);
+  z-index: 300;
+  animation: eco-toast-in 240ms var(--ease);
+  border-left: 3px solid var(--eco-500);
+}
+
+.eco-page .toast-icon {
+  background: var(--eco-500);
+  color: #fff;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+@keyframes eco-toast-in {
+  from { transform: translateX(-50%) translateY(8px); opacity: 0; }
+  to   { transform: translateX(-50%); opacity: 1; }
+}
+
+/* ===== Empty states ===== */
+.eco-page .empty {
+  padding: 50px 30px;
+  text-align: center;
+  color: var(--eco-text3);
+}
+
+.eco-page .empty-icon { font-size: 38px; margin-bottom: 12px; opacity: 0.7; }
+.eco-page .empty h3 { color: var(--eco-text); margin-bottom: 6px; font-weight: 700; font-family: var(--font-display); }
+.eco-page .empty p { color: var(--eco-text2); margin-bottom: 16px; font-size: 13px; }
+
+/* ===== Utility: page padding ===== */
+.eco-page {
+  padding: 24px 28px 50px;
+  max-width: 1440px;
+  margin: 0 auto;
+  color: var(--eco-text);
+  background: var(--eco-bg);
+  min-height: 100%;
+  font-family: var(--font-sans);
+  font-size: 13px;
+}

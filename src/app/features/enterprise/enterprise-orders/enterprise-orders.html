@@ -1,0 +1,61 @@
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Enterprise Orders</h1>
+    <p>Orders related to reservations made on your enterprise slots.</p>
+  </div>
+
+  <div class="card" style="padding:0">
+    <div class="table-header">
+      <h2>Related Orders</h2>
+      <span>{{ visibleOrders.length }} order(s)</span>
+    </div>
+
+    <div class="table-state error" *ngIf="error">{{ error }}</div>
+    <div class="table-state" *ngIf="loading">Loading orders...</div>
+
+    <table class="data-table" *ngIf="!loading && visibleOrders.length">
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Company</th>
+          <th>Material</th>
+          <th>Qty (kg)</th>
+          <th>Supplier</th>
+          <th>Status</th>
+          <th>Grade</th>
+          <th>Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of visibleOrders">
+          <td>{{ order.ref }}</td>
+          <td>{{ order.companyName }}</td>
+          <td>{{ order.material }}</td>
+          <td>{{ order.qtyKg }}</td>
+          <td>{{ order.supplier }}</td>
+          <td><span class="badge badge-neutral">{{ order.status }}</span></td>
+          <td>{{ order.grade }}</td>
+          <td>
+            <div class="status-actions">
+              <select [(ngModel)]="statusDrafts[order.id]" [name]="'status-' + order.id">
+                <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
+              </select>
+              <button
+                class="btn btn-primary btn-sm"
+                type="button"
+                (click)="saveStatus(order)"
+                [disabled]="savingId === order.id"
+              >
+                Save
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="table-state" *ngIf="!loading && !visibleOrders.length">
+      No related orders found for your enterprise.
+    </div>
+  </div>
+</div>

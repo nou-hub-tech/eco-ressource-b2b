@@ -1,0 +1,186 @@
+<div class="eco-page rise">
+
+  <!-- HEADER -->
+  <header class="eco-page-head">
+    <div>
+      <div class="section-label"><span class="ai-dot"></span> EcoSlotAI · Slot inventory</div>
+      <h1>Reservation slots</h1>
+      <p class="sub">
+        Every slot is graded by <strong>demand</strong>, <strong>cancellation risk</strong>,
+        and <strong>solar alignment</strong>. Open slots can be shared across peers.
+      </p>
+    </div>
+    <div class="head-actions">
+      <a routerLink="/enterprise/slots" class="btn ghost">📅 Open heatmap →</a>
+      <button class="btn primary" (click)="goCreate()">+ New slot</button>
+    </div>
+  </header>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi accent">
+      <div class="label">Slot utilisation</div>
+      <div class="value">{{ utilisationPct }}<span class="unit">%</span></div>
+      <div class="trend">{{ bookedSlots }} booked / {{ totalSlots }} total</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Open right now</div>
+      <div class="value">{{ openSlots }}</div>
+      <div class="trend">↗ available for booking</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Solar-aligned</div>
+      <div class="value">{{ solarSlots }}<span class="unit">☀</span></div>
+      <div class="trend">discount-eligible windows</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Avg solar discount</div>
+      <div class="value">{{ avgDiscount }}<span class="unit">%</span></div>
+      <div class="trend">applied on solar slots</div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <input class="input" [(ngModel)]="searchTerm" placeholder="Search machine, owner, or peer..." />
+    <select class="input" [(ngModel)]="filterStatus">
+      <option value="">All statuses</option>
+      <option value="OPEN">Open</option>
+      <option value="BOOKED">Booked</option>
+      <option value="BLOCKED">Blocked</option>
+    </select>
+    <select class="input" [(ngModel)]="filterMachine">
+      <option value="">All machines</option>
+      <option *ngFor="let m of ai.machines" [value]="m.name">{{ m.name }}</option>
+    </select>
+    <label class="check-pill">
+      <input type="checkbox" [(ngModel)]="showSolarOnly" />
+      <span>☀ Solar only</span>
+    </label>
+    <select class="input" [(ngModel)]="sortBy">
+      <option value="date">Sort · by date</option>
+      <option value="discount">Sort · by discount</option>
+      <option value="demand">Sort · by demand</option>
+    </select>
+  </div>
+
+  <!-- TABLE -->
+  <section class="slot-table-wrap card">
+    <div class="slot-row slot-head">
+      <span>Slot</span>
+      <span>Machine · Owner</span>
+      <span>Window</span>
+      <span>Status</span>
+      <span>Demand · Cancel</span>
+      <span>AI tip</span>
+      <span>Actions</span>
+    </div>
+
+    <div class="slot-row" *ngFor="let s of filtered" [class.row-deleted]="s.deleted" [class.row-past]="isPast(s)">
+      <!-- date + solar -->
+      <span class="slot-date-col">
+        <div class="slot-date">{{ s.date }}</div>
+        <div class="slot-meta">
+          <span class="chip eco" *ngIf="s.solar">☀ Solar · -{{ s.discountPct }}%</span>
+          <span class="chip" *ngIf="!s.solar && s.discountPct > 0">-{{ s.discountPct }}%</span>
+        </div>
+      </span>
+
+      <!-- machine + owner -->
+      <span>
+        <div class="slot-machine">{{ s.machine }}</div>
+        <div class="slot-owner">by {{ s.owner }}<span *ngIf="s.reservedBy"> · for {{ s.reservedBy }}</span></div>
+      </span>
+
+      <!-- window -->
+      <span>
+        <div class="slot-window">{{ windowLabel(s) }}</div>
+        <div class="slot-duration">{{ durationHours(s) }} h</div>
+      </span>
+
+      <!-- status -->
+      <span>
+        <span class="status status-{{ s.status.toLowerCase() }}">{{ s.status }}</span>
+      </span>
+
+      <!-- AI gauges -->
+      <span class="slot-gauges">
+        <div class="gauge">
+          <div class="gauge-label">demand</div>
+          <div class="gauge-bar">
+            <div class="gauge-fill {{ demandClass(aiFor(s).demandPct) }}"
+                 [style.width.%]="aiFor(s).demandPct"></div>
+          </div>
+          <div class="gauge-val">{{ aiFor(s).demandPct }}%</div>
+        </div>
+        <div class="gauge">
+          <div class="gauge-label">cancel</div>
+          <div class="gauge-bar">
+            <div class="gauge-fill cancel-fill" [style.width.%]="aiFor(s).cancelPct"></div>
+          </div>
+          <div class="gauge-val">{{ aiFor(s).cancelPct }}%</div>
+        </div>
+      </span>
+
+      <!-- AI tip -->
+      <span>
+        <div class="ai-tip" [ngClass]="'tone-' + aiFor(s).tone">
+          <span class="ai-dot"></span>
+          {{ aiFor(s).shareTip }}
+        </div>
+      </span>
+
+      <!-- Actions -->
+      <span class="slot-actions">
+        <button class="btn sm ghost" (click)="goEdit(s)" title="Edit slot">Edit</button>
+        <button class="btn sm ghost" (click)="toggleStatus(s)"
+                [title]="s.status === 'OPEN' ? 'Block this slot' : 'Reopen this slot'"
+                *ngIf="s.status !== 'BOOKED'">
+          {{ s.status === 'OPEN' ? 'Block' : 'Reopen' }}
+        </button>
+        <button class="btn sm danger" (click)="askDelete(s)" title="Soft delete">Delete</button>
+      </span>
+    </div>
+
+    <div class="empty" *ngIf="filtered.length === 0">
+      <div class="empty-icon">📭</div>
+      <h3>No slots match your filter</h3>
+      <p>Try clearing filters, or publish a new slot for your machine.</p>
+      <button class="btn primary" (click)="goCreate()">+ Publish a slot</button>
+    </div>
+  </section>
+
+  <!-- DELETE CONFIRMATION MODAL -->
+  <div class="modal" *ngIf="deleteModal" (click)="cancelDelete()">
+    <div class="modal-box small" (click)="$event.stopPropagation()">
+      <div class="section-label danger-label"><span class="ai-dot"></span> Confirm deletion</div>
+      <h3>Soft-delete this slot?</h3>
+      <p class="modal-lead" *ngIf="pendingDelete">
+        <strong>{{ pendingDelete.machine }}</strong> · {{ pendingDelete.date }} ·
+        {{ windowLabel(pendingDelete) }}
+      </p>
+
+      <p class="modal-hint" *ngIf="pendingDelete?.status === 'BOOKED'">
+        ⚠ This slot is booked by <strong>{{ pendingDelete?.reservedBy }}</strong>.
+        Deleting will release the reservation.
+      </p>
+
+      <label class="field-label">Reason (kept for audit)</label>
+      <textarea class="input"
+                rows="3"
+                [(ngModel)]="deleteReason"
+                placeholder="e.g. machine maintenance, schedule conflict, owner withdrew..."></textarea>
+
+      <p class="modal-foot-note">
+        💡 Soft-deleted slots are hidden from booking but kept in the audit trail
+        — you can restore them via the slot management API.
+      </p>
+
+      <div class="modal-actions">
+        <button class="btn ghost" (click)="cancelDelete()">Cancel</button>
+        <button class="btn danger" (click)="confirmDelete()">Confirm delete</button>
+      </div>
+    </div>
+  </div>
+
+</div>

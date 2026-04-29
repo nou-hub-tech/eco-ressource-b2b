@@ -1,0 +1,55 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { API_URL } from '../constants/api-url';
+
+export interface DeliveryDto {
+  id: string;
+  product?: string;
+  client?: string;
+  from?: string;
+  to?: string;
+  transporter?: string;
+  status?: string;
+  co2?: string;
+  date?: string;
+  amount?: string;
+  earn?: number;
+  pickup?: string;
+  delivery?: string;
+  route?: string;
+  eta?: string;
+  cargo?: string;
+  weight?: string;
+}
+
+export interface TransportOfferPayload {
+  fromLocation: string;
+  toLocation: string;
+  cargoDescription: string;
+  weightLabel: string;
+  proposedEarn: number;
+}
+
+@Injectable({ providedIn: 'root' })
+export class TransportService {
+  private readonly apiUrl = API_URL;
+
+  constructor(private readonly http: HttpClient) {}
+
+  getEnterpriseDeliveries(): Observable<DeliveryDto[]> {
+    return this.http.get<DeliveryDto[]>(
+      `${this.apiUrl}/deliveries`
+    );
+  }
+
+  getTransporterDeliveries(): Observable<DeliveryDto[]> {
+    return this.http.get<DeliveryDto[]>(
+      `${this.apiUrl}/deliveries`
+    );
+  }
+
+  createOffer(body: TransportOfferPayload): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/transport-offers`, body);
+  }
+}

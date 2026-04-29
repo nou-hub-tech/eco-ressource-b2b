@@ -1,0 +1,119 @@
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="brand-logo">♻</div>
+      <span class="brand-name">Eco-Ressource <strong>B2B</strong></span>
+    </div>
+    <div class="auth-hero">
+      <h1>Join the circular economy ecosystem</h1>
+      <p>Hundreds of Tunisian companies already optimize their resources on our platform.</p>
+      <div class="steps-progress">
+        <div class="step-prog" [class.done]="step >= 1">
+          <div class="step-num">1</div>
+          <span>Company Info</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-prog" [class.done]="step >= 2">
+          <div class="step-num">2</div>
+          <span>Your Account</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-head">
+        <h2>Create an account</h2>
+        <div class="step-dots">
+          <span [class.active]="step >= 1" [class.current]="step === 1">1</span>
+          <div class="dot-line"></div>
+          <span [class.active]="step >= 2" [class.current]="step === 2">2</span>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <!-- STEP 1 -->
+        <div *ngIf="step === 1">
+          <p class="step-label">Company information</p>
+
+          <div class="role-selector">
+            <div class="role-opt" *ngFor="let r of roles"
+                 [class.selected]="form.get('role')?.value === r.value"
+                 (click)="form.get('role')?.setValue(r.value)">
+              <span>{{ r.icon }}</span>
+              <strong>{{ r.label }}</strong>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Company name *</label>
+            <input type="text" formControlName="companyName" placeholder="Ex: Industrie XYZ SARL">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sector *</label>
+              <select formControlName="sector">
+                <option value="">Select...</option>
+                <option *ngFor="let s of sectors" [value]="s">{{ s }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tax ID (Matricule) *</label>
+              <input type="text" formControlName="taxId" placeholder="Ex: 12345678/A">
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary submit-btn" (click)="nextStep()" [disabled]="!isStep1Valid()">
+            Continue →
+          </button>
+        </div>
+
+        <!-- STEP 2 -->
+        <div *ngIf="step === 2">
+          <p class="step-label">Your account details</p>
+
+          <div class="form-group">
+            <label>Full name *</label>
+            <input type="text" formControlName="name" placeholder="First and last name">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Professional email *</label>
+              <input type="email" formControlName="email" placeholder="email@company.tn">
+            </div>
+            <div class="form-group">
+              <label>Phone *</label>
+              <input type="tel" formControlName="phone" placeholder="+216 XX XXX XXX">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Password * (min. 8 characters)</label>
+            <input type="password" formControlName="password" placeholder="••••••••">
+          </div>
+
+          <label class="checkbox-row">
+            <input type="checkbox" formControlName="terms">
+            <span>I accept the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
+          </label>
+
+          <div class="btn-row">
+            <button type="button" class="btn btn-outline" (click)="prevStep()">← Back</button>
+            <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center" [disabled]="loading || form.invalid">
+              <span *ngIf="!loading">Create account ✓</span>
+              <span *ngIf="loading">Creating...</span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a routerLink="/auth/login">Sign in</a>
+      </div>
+    </div>
+  </div>
+</div>

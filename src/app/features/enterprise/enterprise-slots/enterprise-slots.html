@@ -1,0 +1,146 @@
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Enterprise Slots</h1>
+    <p>Create and manage the slots published by your enterprise.</p>
+  </div>
+
+  <div class="card">
+    <form (ngSubmit)="save()">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Machine</label>
+          <input
+            type="text"
+            name="machine"
+            [(ngModel)]="form.machine"
+            placeholder="e.g. CNC Press"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Date</label>
+          <input
+            type="date"
+            name="date"
+            [(ngModel)]="form.date"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start Hour</label>
+          <input
+            type="number"
+            name="startHour"
+            [(ngModel)]="form.startHour"
+            min="0"
+            max="23"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>End Hour</label>
+          <input
+            type="number"
+            name="endHour"
+            [(ngModel)]="form.endHour"
+            min="1"
+            max="24"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Hours</label>
+          <input type="text" [value]="durationHours" disabled />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Discount (%)</label>
+          <input
+            type="number"
+            name="discountPct"
+            [(ngModel)]="form.discountPct"
+            min="0"
+            max="100"
+          />
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label>Solar Slot</label>
+          <label class="toggle-row">
+            <input
+              type="checkbox"
+              name="solar"
+              [(ngModel)]="form.solar"
+            />
+            <span>Uses solar energy</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="message error" *ngIf="error">{{ error }}</div>
+      <div class="message success" *ngIf="success">{{ success }}</div>
+
+      <div class="actions-row">
+        <button class="btn btn-primary" type="submit" [disabled]="saving">
+          {{ editingId ? 'Update Slot' : 'Create Slot' }}
+        </button>
+        <button class="btn btn-outline" type="button" (click)="resetForm()" [disabled]="saving">
+          Clear
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card" style="padding:0">
+    <div class="table-header">
+      <h2>My Slots</h2>
+      <span>{{ mine.length }} slot(s)</span>
+    </div>
+
+    <div class="table-state" *ngIf="loading">Loading slots...</div>
+
+    <table class="data-table" *ngIf="!loading && mine.length">
+      <thead>
+        <tr>
+          <th>Machine</th>
+          <th>Date</th>
+          <th>Hours</th>
+          <th>Solar</th>
+          <th>Discount</th>
+          <th>Status</th>
+          <th>Reserved By</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let slot of mine">
+          <td>{{ slot.machine }}</td>
+          <td>{{ slot.date }}</td>
+          <td>{{ slot.startHour }}:00 - {{ slot.endHour }}:00</td>
+          <td>{{ slot.solar ? 'Yes' : 'No' }}</td>
+          <td>{{ slot.discountPct || 0 }}%</td>
+          <td><span class="badge badge-neutral">{{ slot.status }}</span></td>
+          <td>{{ slot.reservedBy || '-' }}</td>
+          <td>
+            <div class="row-actions">
+              <button class="btn btn-outline btn-sm" type="button" (click)="edit(slot)">Edit</button>
+              <button class="btn btn-outline btn-sm danger" type="button" (click)="remove(slot)">Delete</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="table-state" *ngIf="!loading && !mine.length">
+      No slots found for your enterprise.
+    </div>
+  </div>
+</div>

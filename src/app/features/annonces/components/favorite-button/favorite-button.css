@@ -1,0 +1,8 @@
+.fav-btn{display:inline-flex;align-items:center;gap:5px;padding:6px;border-radius:50%;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:all .2s;font-size:12px;font-weight:500}
+.fav-btn:hover{color:#ef4444;background:rgba(239,68,68,.06);transform:scale(1.1)}
+.fav-btn.active{color:#ef4444}
+.fav-btn.active svg{animation:heartPop .35s cubic-bezier(.17,.89,.32,1.28)}
+.fav-btn.loading{opacity:.4;pointer-events:none}
+.fav-count{font-size:12px;font-weight:600;color:var(--text3)}
+.fav-btn.active .fav-count{color:#ef4444}
+@keyframes heartPop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}

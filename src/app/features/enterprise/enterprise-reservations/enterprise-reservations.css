@@ -1,0 +1,15 @@
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 0;
+}
+
+.table-state {
+  padding: 20px;
+  color: var(--text2);
+}
+
+.error {
+  color: #b42318;
+}

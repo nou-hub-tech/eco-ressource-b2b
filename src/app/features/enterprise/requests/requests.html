@@ -1,0 +1,79 @@
+<div class="req-shell">
+
+  <!-- HEADER -->
+  <div class="req-header">
+    <div>
+      <h1>Incoming Requests</h1>
+      <p>Review and respond to reservation and purchase requests from other companies</p>
+    </div>
+    <div class="req-pending-badge" *ngIf="pendingCount > 0">
+      {{pendingCount}} pending response
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="req-filters">
+    <button class="req-filter-btn" [class.active]="filter==='all'"     (click)="filter='all'">All ({{requests.length}})</button>
+    <button class="req-filter-btn" [class.active]="filter==='pending'"  (click)="filter='pending'">Pending ({{pendingCount}})</button>
+    <button class="req-filter-btn" [class.active]="filter==='accepted'" (click)="filter='accepted'">Accepted</button>
+    <button class="req-filter-btn" [class.active]="filter==='declined'" (click)="filter='declined'">Declined</button>
+  </div>
+
+  <!-- REQUEST CARDS -->
+  <div class="req-list">
+    <div class="req-card" *ngFor="let r of filtered" [class.urgent]="r.urgent && r.status==='pending'">
+
+      <!-- URGENT BANNER -->
+      <div class="req-urgent-bar" *ngIf="r.urgent && r.status==='pending'">
+        ⚡ New request — waiting for your response
+      </div>
+
+      <div class="req-card-body">
+
+        <!-- LEFT: Company info -->
+        <div class="req-from">
+          <div class="req-avatar">{{r.avatar}}</div>
+          <div>
+            <div class="req-company">{{r.from}}</div>
+            <div class="req-received">{{r.received}}</div>
+          </div>
+        </div>
+
+        <!-- CENTER: Request details -->
+        <div class="req-details">
+          <div class="req-item-name">{{r.item}}</div>
+          <div class="req-meta-row">
+            <span class="req-type-badge">{{r.type}}</span>
+            <span class="req-meta-item">📅 {{r.from_date}} → {{r.to_date}}</span>
+            <span class="req-meta-item">⏱ {{r.duration}}</span>
+            <span class="req-meta-item">💰 <strong>{{r.price}} TND</strong></span>
+          </div>
+          <div class="req-message">"{{r.message}}"</div>
+        </div>
+
+        <!-- RIGHT: Status + Actions -->
+        <div class="req-actions">
+          <div *ngIf="r.status === 'pending'" class="req-action-btns">
+            <button class="req-accept-btn" (click)="accept(r)">✓ Accept</button>
+            <button class="req-decline-btn" (click)="decline(r)">✕ Decline</button>
+          </div>
+          <div *ngIf="r.status !== 'pending'">
+            <span class="req-status-badge" [ngClass]="r.status === 'accepted' ? 'accepted' : 'declined'">
+              {{ r.status === 'accepted' ? '✓ Accepted' : '✕ Declined' }}
+            </span>
+          </div>
+          <div class="req-id">{{r.id}}</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div class="req-empty" *ngIf="filtered.length === 0">
+      <span>📭</span>
+      <h3>No requests here</h3>
+      <p>When companies request your resources, they'll appear here</p>
+    </div>
+  </div>
+
+</div>

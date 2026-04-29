@@ -1,0 +1,233 @@
+<div class="eco-page rise">
+
+  <!-- HEADER -->
+  <header class="eco-page-head">
+    <div>
+      <div class="section-label"><span class="ai-dot"></span> Slot designer · EcoSlotAI</div>
+      <h1>{{ isEdit ? 'Edit slot' : 'Publish a new slot' }}</h1>
+      <p class="sub">
+        Define when your machine is shareable. The assistant scores demand,
+        solar alignment, and cancellation risk in real time.
+      </p>
+    </div>
+    <a routerLink="/enterprise/slot-management" class="btn ghost">← Back to slots</a>
+  </header>
+
+  <!-- SUCCESS TOAST -->
+  <div class="toast" *ngIf="saved">
+    <span class="toast-icon">✓</span>
+    Slot {{ isEdit ? 'updated' : 'published' }} — redirecting...
+  </div>
+
+  <div class="form-split">
+
+    <!-- ===== LEFT: form ===== -->
+    <form #f="ngForm" (ngSubmit)="submit(f)" class="form-panel" novalidate>
+
+      <!-- ----- Machine + owner ----- -->
+      <section class="card">
+        <div class="card-head">
+          <h3>What &amp; who</h3>
+          <span class="chip eco" *ngIf="form.machine">selected</span>
+        </div>
+
+        <div class="form-grid two-col">
+          <div>
+            <label class="field-label">Machine *</label>
+            <select class="input" name="machine" [(ngModel)]="form.machine"
+                    [class.input-error]="errors.machine"
+                    (change)="recompute()">
+              <option value="">Pick a machine...</option>
+              <option *ngFor="let m of ai.machines" [value]="m.name">
+                {{ m.name }} — {{ m.kwhPerHour }} kWh/h
+              </option>
+            </select>
+            <p class="field-error" *ngIf="errors.machine">{{ errors.machine }}</p>
+          </div>
+
+          <div>
+            <label class="field-label">Owner / company *</label>
+            <input class="input" name="owner" [(ngModel)]="form.owner"
+                   [class.input-error]="errors.owner"
+                   placeholder="e.g. EcoPlast" (input)="recompute()" />
+            <p class="field-error" *ngIf="errors.owner">{{ errors.owner }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ----- Date + hour strip ----- -->
+      <section class="card">
+        <div class="card-head">
+          <h3>When</h3>
+          <div class="presets">
+            <button type="button" class="preset" (click)="applyPreset('morning')">Morning</button>
+            <button type="button" class="preset" (click)="applyPreset('afternoon')">Afternoon</button>
+            <button type="button" class="preset solar" (click)="applyPreset('solar-peak')">☀ Solar peak</button>
+            <button type="button" class="preset" (click)="applyPreset('night')">Night</button>
+          </div>
+        </div>
+
+        <div class="form-grid three-col">
+          <div>
+            <label class="field-label">Date *</label>
+            <input class="input" type="date" name="date" [(ngModel)]="form.date"
+                   [class.input-error]="errors.date"
+                   (change)="recompute()" />
+            <p class="field-error" *ngIf="errors.date">{{ errors.date }}</p>
+          </div>
+          <div>
+            <label class="field-label">Start hour</label>
+            <input class="input" type="number" min="0" max="23" name="startHour"
+                   [(ngModel)]="form.startHour"
+                   [class.input-error]="errors.startHour"
+                   (change)="recompute()" />
+            <p class="field-error" *ngIf="errors.startHour">{{ errors.startHour }}</p>
+          </div>
+          <div>
+            <label class="field-label">End hour</label>
+            <input class="input" type="number" min="1" max="24" name="endHour"
+                   [(ngModel)]="form.endHour"
+                   [class.input-error]="errors.endHour"
+                   (change)="recompute()" />
+            <p class="field-error" *ngIf="errors.endHour">{{ errors.endHour }}</p>
+          </div>
+        </div>
+
+        <p class="field-error" *ngIf="errors.range">{{ errors.range }}</p>
+
+        <!-- Hour strip -->
+        <label class="field-label" *ngIf="form.date">Hour preview · click any hour to set start</label>
+        <div class="hour-strip" *ngIf="form.date">
+          <button type="button" class="hr"
+                  *ngFor="let s of hourStrip"
+                  [class.demand-low]="s.demand === 'low'"
+                  [class.demand-med]="s.demand === 'medium'"
+                  [class.demand-high]="s.demand === 'high'"
+                  [class.solar]="s.solar"
+                  [class.in-range]="s.inRange"
+                  [disabled]="s.h + duration() > 24"
+                  (click)="pickHour(s.h)"
+                  [title]="s.h + ':00 · ' + s.demand + ' demand' + (s.solar ? ' · ☀ solar' : '')">
+            <span class="hr-hour">{{ s.h }}</span>
+          </button>
+        </div>
+
+        <div class="legend" *ngIf="form.date">
+          <span><i class="sq low"></i> Low</span>
+          <span><i class="sq med"></i> Medium</span>
+          <span><i class="sq high"></i> High</span>
+          <span><i class="sq solar-i"></i> Solar</span>
+          <span><i class="sq sel"></i> Selected window</span>
+        </div>
+
+        <div class="duration-line">
+          Slot window:
+          <strong>
+            {{ form.startHour | number:'2.0-0' }}:00 → {{ form.endHour | number:'2.0-0' }}:00
+          </strong>
+          · <strong>{{ duration() }} h</strong>
+        </div>
+      </section>
+
+      <!-- ----- Status + discount ----- -->
+      <section class="card">
+        <div class="card-head">
+          <h3>Status &amp; pricing</h3>
+          <span class="chip" [ngClass]="{
+                    'eco': form.status === 'OPEN',
+                    'info': form.status === 'BOOKED',
+                    'danger': form.status === 'BLOCKED'
+                  }">
+            {{ form.status }}
+          </span>
+        </div>
+
+        <div class="form-grid two-col">
+          <div>
+            <label class="field-label">Status</label>
+            <select class="input" name="status" [(ngModel)]="form.status">
+              <option value="OPEN">Open · bookable</option>
+              <option value="BOOKED">Booked · already taken</option>
+              <option value="BLOCKED">Blocked · maintenance</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Reserved by (optional)</label>
+            <input class="input" name="reservedBy" [(ngModel)]="form.reservedBy"
+                   placeholder="e.g. GreenSteel"
+                   [disabled]="form.status !== 'BOOKED'" />
+          </div>
+        </div>
+
+        <!-- Solar / discount panel -->
+        <div class="solar-panel" [class.is-solar]="form.solar">
+          <div class="solar-head">
+            <div>
+              <div class="solar-title">
+                <span class="solar-icon">{{ form.solar ? '☀' : '🌙' }}</span>
+                {{ form.solar ? 'Solar-aligned slot' : 'Off-solar slot' }}
+              </div>
+              <div class="solar-sub" *ngIf="form.solar">
+                On-site PV can cover up to ~60% of machine draw — discount recommended.
+              </div>
+              <div class="solar-sub" *ngIf="!form.solar && recommendedDiscount > 0">
+                Off-peak window — small discount keeps the slot competitive.
+              </div>
+              <div class="solar-sub" *ngIf="!form.solar && recommendedDiscount === 0">
+                Peak window — typically no discount applied.
+              </div>
+            </div>
+            <button type="button" class="btn sm primary"
+                    *ngIf="recommendedDiscount > 0 && form.discountPct !== recommendedDiscount"
+                    (click)="applyRecommendedDiscount()">
+              Apply -{{ recommendedDiscount }}%
+            </button>
+          </div>
+
+          <div class="discount-row">
+            <label class="field-label">Discount applied</label>
+            <div class="discount-control">
+              <input type="range" min="0" max="40" name="discountPct"
+                     [(ngModel)]="form.discountPct" />
+              <div class="discount-val">-{{ form.discountPct }}%</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ----- Footer actions ----- -->
+      <div class="form-actions">
+        <button type="button" class="btn ghost" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn primary">
+          {{ isEdit ? 'Save changes' : 'Publish slot' }}
+        </button>
+      </div>
+    </form>
+
+    <!-- ===== RIGHT: AI rail ===== -->
+    <aside class="ai-rail">
+      <div class="rail-head">
+        <div class="rail-title"><span class="ai-dot"></span> Live recommendations</div>
+        <div class="rail-sub">EcoSlotAI · updates as you edit</div>
+      </div>
+
+      <div class="rail-card" *ngFor="let s of liveAi" [ngClass]="'tone-' + (s.tone || 'info')">
+        <div class="rail-card-head">
+          <span class="rail-icon">{{ s.icon || '✦' }}</span>
+          <div class="rail-card-body">
+            <div class="rail-label">{{ s.label }}</div>
+            <div class="rail-detail" *ngIf="s.detail">{{ s.detail }}</div>
+          </div>
+        </div>
+        <div class="rail-foot" *ngIf="s.score">
+          <div class="confidence">
+            <span class="meter" [style.--pct]="s.score + '%'"></span>
+            <span>{{ s.score }}% confidence</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+</div>

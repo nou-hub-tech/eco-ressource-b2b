@@ -1,0 +1,106 @@
+<aside class="sidebar" [class.collapsed]="collapsed">
+
+  <!-- BRAND -->
+  <div class="sb-top">
+    <div class="sb-logo-row">
+      <div class="sb-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/>
+          <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+        </svg>
+      </div>
+
+      <div class="sb-wordmark" *ngIf="!collapsed">
+        <span class="sb-word1">Eco</span>
+        <span class="sb-word2">Ressource</span>
+      </div>
+    </div>
+
+    <div class="sb-role-chip" *ngIf="!collapsed">
+      <span class="sb-role-dot"></span>
+      {{ role }}
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="sb-nav">
+
+    <ng-container *ngFor="let item of navItems">
+
+      <!-- SECTION -->
+      <div class="sb-section" *ngIf="item.section && !collapsed">
+        {{ item.section }}
+      </div>
+
+      <div class="sb-section-line" *ngIf="item.section && collapsed"></div>
+
+      <!-- NAV ITEM -->
+      <a
+        *ngIf="item.route"
+        class="sb-item"
+        [routerLink]="getRoute(item.route)"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [attr.title]="item.label || ''"
+      >
+
+        <!-- ICON -->
+        <div class="sb-ico-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path [attr.d]="getSvgPath(item.icon || 'dashboard')"></path>
+          </svg>
+        </div>
+
+        <!-- LABEL -->
+        <span class="sb-lbl" *ngIf="!collapsed">
+          {{ item.label }}
+        </span>
+
+        <!-- BADGE -->
+        <span class="sb-badge" *ngIf="item.badge && !collapsed">
+          {{ item.badge }}
+        </span>
+
+      </a>
+
+    </ng-container>
+
+  </nav>
+
+  <!-- FOOTER -->
+  <div class="sb-footer">
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-user-card" *ngIf="user && !collapsed">
+      <div class="sb-avatar">{{ user.avatar }}</div>
+
+      <div class="sb-user-info">
+        <div class="sb-username">{{ user.name }}</div>
+        <div class="sb-userrole">
+          {{ user.company || user.role }}
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-avatar sb-avatar-solo" *ngIf="user && collapsed">
+      {{ user.avatar }}
+    </div>
+
+    <button class="sb-logout-btn" (click)="logout()">
+      <svg width="14" height="14" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+      </svg>
+
+      <span *ngIf="!collapsed">Sign Out</span>
+    </button>
+
+  </div>
+
+</aside>
