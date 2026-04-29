@@ -20,6 +20,7 @@
 .ct-text{font-size:14px;color:var(--text2);line-height:1.55;word-break:break-word}
 .ct-masked .ct-text{color:#92400e;font-weight:650}
 .ct-blocked .ct-text{color:#991b1b;font-weight:700}
+.ct-click-edit{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
 .ct-mod-badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:100px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .ct-mod-masked{background:#fef3c7;color:#92400e;border:1px solid #f59e0b}
 .ct-mod-blocked{background:#fee2e2;color:#991b1b;border:1px solid #ef4444}

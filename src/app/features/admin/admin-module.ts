@@ -39,6 +39,11 @@ const routes: Routes = [
       { path: 'users', component: Users },
       { path: 'events', component: AdminEvents },
       { path: 'stock', component: Stock },
+      {
+        path: 'annonces',
+        loadChildren: () =>
+          import('../annonces/annonces-module').then((m) => m.AnnoncesModule)
+      },
       { path: 'deliveries', component: Deliveries },
       { path: 'listings', component: Listings },
       { path: 'reservations', component: Reservations },

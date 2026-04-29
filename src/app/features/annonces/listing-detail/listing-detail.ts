@@ -37,8 +37,8 @@ export class ListingDetail implements OnInit {
   isFavorite = false;
   currentCompanyId: number | null = null;
   currentImageIndex = 0;
-  showCancelConfirm = false;
-  cancelLoading = false;
+  showDeleteConfirm = false;
+  deleteLoading = false;
   realtimeNotices: string[] = [];
   matches: ListingMatchResponse[] = [];
   matchesLoading = false;
@@ -178,8 +178,13 @@ export class ListingDetail implements OnInit {
     return this.isOwner && this.listing?.status === 'ACTIVE';
   }
 
-  get canCancel(): boolean {
-    return this.isOwner && this.listing?.status === 'ACTIVE';
+  get isAdmin(): boolean {
+    return this.authService.getRole() === 'admin';
+  }
+
+  get deleteConfirmMessage(): string {
+    const title = this.listing?.title || 'cette annonce';
+    return `L'annonce "${title}" sera supprimee definitivement. Elle ne sera plus visible dans la marketplace.`;
   }
 
   /** Toujours au moins une URL pour la galerie (placeholder si l’API ne renvoie rien). */
@@ -218,6 +223,10 @@ export class ListingDetail implements OnInit {
   get ownerSubtitle(): string {
     const companyName = this.listing?.companyName?.trim();
     return companyName || "Auteur de l'annonce";
+  }
+
+  get listBackRoute(): string {
+    return this.authService.getRole() === 'admin' ? '/admin/listings' : '/enterprise/annonces';
   }
 
   get typeLabel(): string {
@@ -271,25 +280,39 @@ export class ListingDetail implements OnInit {
     });
   }
 
-  confirmCancel(): void {
-    this.showCancelConfirm = true;
+  deleteListing(): void {
+    if (!this.listing || (!this.isOwner && !this.isAdmin)) return;
+    this.error = '';
+    this.showDeleteConfirm = true;
+    this.refreshView();
   }
 
-  cancelListing(): void {
-    if (!this.listing || !this.currentCompanyId) return;
-    this.cancelLoading = true;
-    this.listingService.cancel(this.listing.id, this.currentCompanyId).subscribe({
+  confirmDeleteListing(): void {
+    if (!this.listing || (!this.isOwner && !this.isAdmin)) return;
+    const fallback = this.isAdmin ? '/admin/listings' : '/enterprise/annonces';
+    this.deleteLoading = true;
+    this.listingService.delete(this.listing.id).subscribe({
       next: () => {
-        this.showCancelConfirm = false;
-        this.cancelLoading = false;
-        this.loadListing(this.listing!.id);
+        this.showDeleteConfirm = false;
+        this.deleteLoading = false;
+        void this.router.navigate([fallback]);
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de l\'annulation';
-        this.cancelLoading = false;
-        this.showCancelConfirm = false;
+        this.error = err.error?.message || 'Erreur lors de la suppression';
+        this.deleteLoading = false;
+        this.refreshView();
       }
     });
+  }
+
+  cancelDeleteListing(): void {
+    this.showDeleteConfirm = false;
+    this.error = '';
+  }
+
+  deleteListingAsAdmin(): void {
+    if (!this.listing || !this.isAdmin) return;
+    this.deleteListing();
   }
 
   onCommentCountUpdated(total: number): void {

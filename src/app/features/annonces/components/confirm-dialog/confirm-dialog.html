@@ -10,9 +10,12 @@
     </div>
     <h3 class="confirm-title">{{title}}</h3>
     <p class="confirm-msg">{{message}}</p>
+    <p class="confirm-error" *ngIf="errorMessage">{{errorMessage}}</p>
     <div class="confirm-actions">
-      <button class="btn btn-outline" (click)="onCancel()">{{cancelLabel}}</button>
-      <button class="btn" [class.btn-danger]="danger" [class.btn-primary]="!danger" (click)="onConfirm()">{{confirmLabel}}</button>
+      <button type="button" class="btn btn-outline" [disabled]="loading" (click)="onCancel()">{{cancelLabel}}</button>
+      <button type="button" class="btn" [disabled]="loading" [class.btn-danger]="danger" [class.btn-primary]="!danger" (click)="onConfirm()">
+        {{loading ? 'Suppression...' : confirmLabel}}
+      </button>
     </div>
   </div>
 </div>

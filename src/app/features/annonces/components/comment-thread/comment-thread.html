@@ -34,6 +34,7 @@
       <span>Modification du commentaire</span>
       <button class="btn btn-ghost btn-sm" (click)="cancelReply()">✕ Annuler</button>
     </div>
+    <div class="form-error" *ngIf="editContentError">{{ editContentError }}</div>
     <div class="ct-input-row">
       <textarea [formControl]="commentCtrl" placeholder="Écrire un commentaire..." rows="2" class="ct-textarea"></textarea>
       <button class="btn btn-primary ct-send"
@@ -68,17 +69,21 @@
           Modere
         </span>
       </div>
-      <p class="ct-text">{{c.content}}</p>
+      <p class="ct-text"
+         [class.ct-click-edit]="c.moderationStatus === 'MASKED' && canEdit(c)"
+         (click)="maybeEditMasked(c)">
+        {{c.content}}
+      </p>
       <div class="ct-mod-meta" *ngIf="c.moderationStatus && c.moderationStatus !== 'VISIBLE'">
         <span *ngIf="c.toxicityScore !== undefined">Score {{ c.toxicityScore | number:'1.2-2' }}</span>
         <span *ngIf="c.moderationReason">{{ c.moderationReason }}</span>
       </div>
       <div class="ct-actions">
-        <button class="btn btn-ghost btn-sm" (click)="startReply(c)">
+        <button class="btn btn-ghost btn-sm" *ngIf="canReply(c)" (click)="startReply(c)">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>
           Répondre
         </button>
-        <button class="btn btn-ghost btn-sm" *ngIf="isOwner(c)" (click)="startEdit(c)">Modifier</button>
+        <button class="btn btn-ghost btn-sm" *ngIf="canEdit(c)" (click)="startEdit(c)">Modifier</button>
         <button class="btn btn-ghost btn-sm ct-delete" *ngIf="canDelete(c)" (click)="deleteComment(c.id)">Supprimer</button>
       </div>
     </div>

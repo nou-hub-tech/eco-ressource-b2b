@@ -89,6 +89,7 @@ export interface CreateCommentRequest {
 export interface CommentResponse {
   id: number;
   content: string;
+  originalContent?: string | null;
   userId: number;
   userFullName: string;
   listingId: number;

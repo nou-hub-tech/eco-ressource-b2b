@@ -13,14 +13,18 @@ export class ConfirmDialog {
   @Input() confirmLabel = 'Confirmer';
   @Input() cancelLabel = 'Annuler';
   @Input() danger = true;
+  @Input() loading = false;
+  @Input() errorMessage: string | null = null;
   @Output() confirmed = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
   onConfirm(): void {
+    if (this.loading) return;
     this.confirmed.emit();
   }
 
   onCancel(): void {
+    if (this.loading) return;
     this.cancelled.emit();
   }
 }

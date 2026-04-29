@@ -41,6 +41,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   antiSpam = false;
   replyTo: CommentResponse | null = null;
   editingComment: CommentResponse | null = null;
+  editContentError = '';
   currentUserId: number | null = null;
   currentUserRole: string | null = null;
   currentCompanyId: number | null = null;
@@ -241,18 +242,36 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
   startReply(comment: CommentResponse): void {
     this.replyTo = comment;
     this.editingComment = null;
+    this.editContentError = '';
     this.commentCtrl.setValue('');
   }
 
   startEdit(comment: CommentResponse): void {
+    if (!this.canEdit(comment)) return;
     this.editingComment = comment;
     this.replyTo = null;
+    this.editContentError = '';
+
+    if (comment.moderationStatus === 'MASKED') {
+      const original = comment.originalContent?.trim();
+      const publicContent = comment.content?.trim();
+      if (original && original !== publicContent) {
+        this.commentCtrl.setValue(comment.originalContent || '');
+        return;
+      }
+
+      this.commentCtrl.setValue('');
+      this.reloadMaskedEditableContent(comment);
+      return;
+    }
+
     this.commentCtrl.setValue(comment.content);
   }
 
   cancelReply(): void {
     this.replyTo = null;
     this.editingComment = null;
+    this.editContentError = '';
     this.commentCtrl.setValue('');
   }
 
@@ -273,6 +292,20 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
     if (this.currentUserRole === 'admin') return true;
     if (this.isOwner(comment)) return true;
     return this.isListingOwner();
+  }
+
+  canEdit(comment: CommentResponse): boolean {
+    return this.isOwner(comment) && comment.moderationStatus !== 'BLOCKED';
+  }
+
+  canReply(comment: CommentResponse): boolean {
+    return comment.moderationStatus !== 'BLOCKED';
+  }
+
+  maybeEditMasked(comment: CommentResponse): void {
+    if (comment.moderationStatus === 'MASKED' && this.canEdit(comment)) {
+      this.startEdit(comment);
+    }
   }
 
   /** Vendeur de l’annonce (tous types : surplus, demande, achat groupé). */
@@ -300,6 +333,7 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
     this.commentCtrl.setValue('');
     this.replyTo = null;
     this.editingComment = null;
+    this.editContentError = '';
     this.sending = false;
   }
 
@@ -345,5 +379,39 @@ export class CommentThread implements OnInit, OnDestroy, OnChanges {
       if (node.replies?.length && this.containsComment(node.replies, id)) return true;
     }
     return false;
+  }
+
+  private reloadMaskedEditableContent(comment: CommentResponse): void {
+    this.commentService.findByListing(this.listingId).subscribe({
+      next: (comments) => {
+        const fresh = this.findCommentById(comments, comment.id);
+        const original = fresh?.originalContent?.trim();
+        const publicContent = fresh?.content?.trim();
+        if (original && original !== publicContent) {
+          this.commentCtrl.setValue(fresh!.originalContent || '');
+          this.editContentError = '';
+        } else {
+          this.editContentError =
+            'Le contenu original de ce commentaire masque est indisponible.';
+        }
+        this.refreshView();
+      },
+      error: () => {
+        this.editContentError =
+          'Le contenu original de ce commentaire masque est indisponible.';
+        this.refreshView();
+      }
+    });
+  }
+
+  private findCommentById(nodes: CommentResponse[], id: number): CommentResponse | null {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (node.replies?.length) {
+        const found = this.findCommentById(node.replies, id);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 }

@@ -41,6 +41,8 @@ export class ListingList implements OnInit {
   categories: string[] = [];
   mode: 'all' | 'mine' = 'all';
   deletingId: number | null = null;
+  listingToDelete: ListingResponse | null = null;
+  showDeleteConfirm = false;
   actionError: string | null = null;
   realtimeNotices: string[] = [];
   private readonly notificationUserIds = new Set<number>();
@@ -204,6 +206,11 @@ export class ListingList implements OnInit {
     return this.authService.getCompanyProfileId();
   }
 
+  get deleteConfirmMessage(): string {
+    const title = this.listingToDelete?.title || 'cette annonce';
+    return `L'annonce "${title}" sera supprimee definitivement. Cette action ne peut pas etre annulee.`;
+  }
+
   get mappedCount(): number {
     return this.filtered.filter(
       (listing) => typeof listing.latitude === 'number' && typeof listing.longitude === 'number'
@@ -225,15 +232,23 @@ export class ListingList implements OnInit {
   }
 
   deleteListing(listing: ListingResponse): void {
-    const ok = window.confirm(`Supprimer l'annonce "${listing.title}" ?`);
-    if (!ok) return;
+    this.listingToDelete = listing;
+    this.actionError = null;
+    this.showDeleteConfirm = true;
+    this.refreshView();
+  }
+
+  confirmDeleteListing(): void {
+    const listing = this.listingToDelete;
+    if (!listing) return;
     this.deletingId = listing.id;
     this.actionError = null;
     this.listingService.delete(listing.id).subscribe({
       next: () => {
-        this.listings = this.listings.filter((item) => item.id !== listing.id);
-        this.applyFilters();
+        this.showDeleteConfirm = false;
+        this.listingToDelete = null;
         this.deletingId = null;
+        this.loadData(false);
         this.refreshView();
       },
       error: (err: unknown) => {
@@ -242,6 +257,12 @@ export class ListingList implements OnInit {
         this.refreshView();
       }
     });
+  }
+
+  cancelDeleteListing(): void {
+    this.showDeleteConfirm = false;
+    this.listingToDelete = null;
+    this.actionError = null;
   }
 
   dismissNotice(index: number): void {
