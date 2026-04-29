@@ -13,7 +13,7 @@ import { MyReservations } from './my-reservations/my-reservations';
 import { Transactions } from './transactions/transactions';
 import { Reports } from './reports/reports';
 import { Requests } from './requests/requests';
-import { Events } from './events/events';
+import { Events } from '../events/events';
 import { Treasury } from './treasury/treasury';
 import { Invoices } from './invoices/invoices';
 import { InvoiceChatComponent } from './invoices/invoice-chat.component';
@@ -23,31 +23,34 @@ import { ProductFinder } from './product-finder/product-finder';
 import { MarketChatbot } from './market-chatbot/market-chatbot';
 import { MyReclamations } from './my-reclamations/my-reclamations';
 import { Solidarity } from './solidarity/solidarity';
+import { EventsMapComponent } from '../events/events-map/events-map';
+import { FeaturesEventsModule } from '../events/events-module';
 
 const routes: Routes = [
   {
     path: '',
     component: Layout,
     children: [
-      { path: '',                redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard',       component: Dashboard },
-      { path: 'marketplace',     component: Marketplace },
-      { path: 'my-products',     component: MyProducts },
-      { path: 'my-inventory',    component: MyInventory },
-      { path: 'my-stock',        component: MyStock },
-      { path: 'my-deliveries',   component: MyDeliveries },
-      { path: 'my-listings',     component: MyListings },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard', component: Dashboard },
+      { path: 'marketplace', component: Marketplace },
+      { path: 'my-products', component: MyProducts },
+      { path: 'my-inventory', component: MyInventory },
+      { path: 'my-stock', component: MyStock },
+      { path: 'my-deliveries', component: MyDeliveries },
+      { path: 'my-listings', component: MyListings },
       { path: 'my-reservations', component: MyReservations },
-      { path: 'transactions',    component: Transactions },
-      { path: 'reports',         component: Reports },
-      { path: 'requests',        component: Requests },
-      { path: 'events',          component: Events },
-      { path: 'treasury',        component: Treasury },
-      { path: 'invoices',        component: Invoices },
-      { path: 'product-finder',  component: ProductFinder },
-      { path: 'market-chatbot',  component: MarketChatbot },
+      { path: 'transactions', component: Transactions },
+      { path: 'reports', component: Reports },
+      { path: 'requests', component: Requests },
+      { path: 'events', component: Events },
+      { path: 'events/events-map', component: EventsMapComponent },
+      { path: 'treasury', component: Treasury },
+      { path: 'invoices', component: Invoices },
+      { path: 'product-finder', component: ProductFinder },
+      { path: 'market-chatbot', component: MarketChatbot },
       { path: 'my-reclamations', component: MyReclamations },
-      { path: 'solidarity',      component: Solidarity },
+      { path: 'solidarity', component: Solidarity },
       {
         path: 'annonces',
         loadChildren: () =>
@@ -64,7 +67,7 @@ const routes: Routes = [
     Transactions, Reports, Requests, Events, Treasury, Invoices,
     InvoiceChatComponent, ProductFinder, MarketChatbot, MyReclamations, Solidarity
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, FeaturesEventsModule, RouterModule.forChild(routes)],
   providers: [DatePipe, DecimalPipe]
 })
-export class EnterpriseModule {}
+export class EnterpriseModule { }

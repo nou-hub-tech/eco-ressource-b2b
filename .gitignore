@@ -53,3 +53,4 @@ Thumbs.db
 # Local runtime artifacts
 *.log
 *.lnk
+.env

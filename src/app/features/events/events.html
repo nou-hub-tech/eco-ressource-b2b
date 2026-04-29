@@ -1,0 +1,391 @@
+<div class="toast-banner" *ngIf="toastMessage" [class.toast-banner--error]="toastKind === 'error'">
+  {{ toastMessage }}
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>Events &amp; Campaigns</h1>
+      <p *ngIf="isAdmin">Manage platform events (admin API)</p>
+      <p *ngIf="!isAdmin">Browse and participate in B2B events and circular economy campaigns</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div *ngIf="!isAdmin" class="nearby-controls modern-radius-wrapper" style="display:flex;gap:12px;align-items:center">
+        <div class="modern-radius-control">
+          <select [(ngModel)]="radius">
+            <option *ngFor="let r of radiusOptions" [ngValue]="r">{{r}} km</option>
+          </select>
+          <button type="button" (click)="loadNearbyEvents()" [disabled]="nearbyLoading">
+            <i class="fas fa-location-arrow" style="margin-right:4px;"></i> {{ nearbyLoading ? 'Locating…' : 'Near me' }}
+          </button>
+        </div>
+        <button 
+          *ngIf="showNearbyEvents" 
+          class="btn btn-outline btn-sm btn-clear-nearby" 
+          type="button" 
+          (click)="showAllEvents()"
+          style="border-radius: 20px; padding: 4px 12px; font-weight: 600;">
+          <i class="fas fa-times"></i> Clear
+        </button>
+      </div>
+      <a class="btn btn-outline btn-sm btn-map-link" routerLink="./events-map">
+        <i class="fas fa-map-marked-alt"></i> Dynamic Map
+      </a>
+      <button 
+        class="btn btn-outline btn-sm" 
+        type="button" 
+        (click)="toggleSearch()">
+        {{ showSearch ? 'Hide Search' : 'Search' }}
+      </button>
+      <button *ngIf="isAdmin" class="btn btn-primary" type="button" (click)="openCreateModal()">+ Create Event</button>
+    </div>
+  </div>
+
+  <p *ngIf="listError" style="color:#ef4444;font-size:13px;margin-bottom:12px">{{listError}}</p>
+  <p *ngIf="geolocationError" style="color:#f59e0b;font-size:13px;margin-bottom:12px">{{geolocationError}}</p>
+  <p *ngIf="searchError" style="color:#ef4444;font-size:13px;margin-bottom:12px">{{searchError}}</p>
+  <p *ngIf="loading || nearbyLoading || searchLoading" style="font-size:13px;color:var(--text3)">Loading…</p>
+  <div *ngIf="showNearbyEvents" class="badge badge-info" style="margin-bottom:12px;display:inline-block">
+    <i class="fas fa-map-marker-alt"></i> Showing events within {{radius}} km
+  </div>
+  <div *ngIf="showSearch && totalElements > 0" class="badge badge-info" style="margin-bottom:12px;display:inline-block">
+    <i class="fas fa-search"></i> Found {{totalElements}} events
+  </div>
+
+  <div class="card" *ngIf="showSearch" style="margin-bottom:20px;padding:20px">
+    <h3 style="margin:0 0 16px 0;font-size:16px">Search &amp; Filter Events</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Search Term</label>
+        <input type="text" name="searchTerm" [(ngModel)]="searchForm.searchTerm" placeholder="Search title, location, or type...">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="statuses" [(ngModel)]="searchForm.statuses" multiple style="height:80px">
+          <option *ngFor="let status of searchStatusOptions" [ngValue]="status">{{status}}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date From</label>
+        <input type="date" name="dateFrom" [(ngModel)]="searchForm.dateFrom">
+      </div>
+      <div class="form-group">
+        <label>Date To</label>
+        <input type="date" name="dateTo" [(ngModel)]="searchForm.dateTo">
+      </div>
+      <div class="form-group">
+        <label>Min Participants</label>
+        <input type="number" name="minParticipants" [(ngModel)]="searchForm.minParticipants" min="0">
+      </div>
+      <div class="form-group">
+        <label>Max Participants</label>
+        <input type="number" name="maxParticipants" [(ngModel)]="searchForm.maxParticipants" min="0">
+      </div>
+      <div class="form-group">
+        <label>Sort By</label>
+        <select name="sortBy" [(ngModel)]="searchForm.sortBy" (change)="onSortChange()">
+          <option *ngFor="let option of sortOptions" [ngValue]="option.value">{{option.label}}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Sort Direction</label>
+        <select name="sortDirection" [(ngModel)]="searchForm.sortDirection" (change)="onSortChange()">
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary" type="button" (click)="performSearch()" [disabled]="searchLoading">
+        {{ searchLoading ? '…' : 'Search' }}
+      </button>
+      <button class="btn btn-outline" type="button" (click)="resetSearch()">Reset</button>
+    </div>
+  </div>
+
+  <div *ngIf="showSearch && totalPages > 1" style="display:flex;justify-content:center;gap:8px;margin-bottom:20px">
+    <button 
+      class="btn btn-outline btn-sm" 
+      type="button" 
+      (click)="onPageChange(0)" 
+      [disabled]="searchForm.page === 0">
+      First
+    </button>
+    <button 
+      class="btn btn-outline btn-sm" 
+      type="button" 
+      (click)="onPageChange(searchForm.page - 1)" 
+      [disabled]="searchForm.page === 0">
+      Previous
+    </button>
+    <span style="padding:8px">Page {{searchForm.page + 1}} of {{totalPages}}</span>
+    <button 
+      class="btn btn-outline btn-sm" 
+      type="button" 
+      (click)="onPageChange(searchForm.page + 1)" 
+      [disabled]="searchForm.page === totalPages - 1">
+      Next
+    </button>
+    <button 
+      class="btn btn-outline btn-sm" 
+      type="button" 
+      (click)="onPageChange(totalPages - 1)" 
+      [disabled]="searchForm.page === totalPages - 1">
+      Last
+    </button>
+  </div>
+
+  <div class="grid-2" *ngIf="!loading && !searchLoading">
+    <div class="card" *ngFor="let e of displayRows; trackBy: trackById" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <span class="badge badge-info">{{e.typeLabel}}</span>
+        <span class="badge" [ngClass]="statusBadgeClass(e.status)">
+          {{e.status}}
+        </span>
+      </div>
+      <h3 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin:0 0 10px 0">
+        {{e.title}}
+      </h3>
+      <div *ngIf="e.coverImageDocId" style="margin-bottom:14px">
+        <img [src]="getDownloadUrl(e.coverImageDocId)" alt="Cover" style="width: 120px; height: 120px; object-fit: cover; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      </div>
+      <p *ngIf="e.description" class="card-description">{{e.description | slice:0:120}}{{e.description.length > 120 ? '…' : ''}}</p>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text3);margin-bottom:18px">
+        <span><i class="fas fa-calendar-alt" style="width:18px;text-align:center;margin-right:8px;color:var(--text2)"></i> {{e.eventDate | date:'mediumDate'}}</span>
+        <span><i class="fas fa-map-marker-alt" style="width:18px;text-align:center;margin-right:8px;color:var(--text2)"></i> {{e.location}}</span>
+        <span><i class="fas fa-users" style="width:18px;text-align:center;margin-right:8px;color:var(--text2)"></i> {{e.participants}} participants</span>
+        <span *ngIf="e.distance != null" style="color:var(--primary);font-weight:600;background:rgba(var(--primary-rgb), 0.1);padding:4px 10px;border-radius:6px;display:inline-block;width:fit-content;margin-top:2px;">
+          <i class="fas fa-location-arrow" style="margin-right:6px;"></i> {{formatDistance(e.distance)}} away
+        </span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="isAdmin">
+        <button class="btn btn-outline btn-sm" type="button" (click)="openEditModal(e)">Edit</button>
+        <button class="btn btn-outline btn-sm" type="button" (click)="deleteEvent(e)">Delete</button>
+        <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(e)" title="Add to Google Calendar"><i class="fas fa-calendar-plus"></i> Google Cal</button>
+        <button 
+          class="btn btn-sm btn-facebook" 
+          type="button" 
+          (click)="publishToFacebook(e)" 
+          [disabled]="publishingFacebook"
+          title="Publish to Facebook">
+          <ng-container *ngIf="publishingFacebook">…</ng-container>
+          <ng-container *ngIf="!publishingFacebook"><i class="fab fa-facebook"></i> Publish FB</ng-container>
+        </button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" *ngIf="!isAdmin">
+        <button class="btn btn-outline btn-sm" type="button" (click)="openDetailModal(e)">View Details</button>
+        <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(e)" title="Add to Google Calendar"><i class="fas fa-calendar-plus"></i> Google Cal</button>
+        <button
+          *ngIf="canShowJoin(e)"
+          class="btn btn-primary btn-sm"
+          type="button"
+          (click)="joinEvent(e)"
+          [disabled]="actionBusyForId === e.id">
+          {{ actionBusyForId === e.id ? '…' : 'Join Event' }}
+        </button>
+        <button
+          *ngIf="canShowLeave(e)"
+          class="btn btn-sm btn-danger-outline"
+          type="button"
+          (click)="leaveEvent(e)"
+          [disabled]="actionBusyForId === e.id">
+          {{ actionBusyForId === e.id ? '…' : 'Cancel participation' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editingId != null ? 'Edit Event' : 'Create Event' }}</h2>
+      <button class="btn btn-icon" type="button" (click)="closeModal()">&times;</button>
+    </div>
+    <p *ngIf="saveError" style="color:#ef4444;font-size:12px;margin:0 0 12px">{{saveError}}</p>
+    <div class="form-group">
+      <label>Event Title</label>
+      <div class="input-with-mic">
+        <input type="text" name="title" [(ngModel)]="form.title" placeholder="Event name">
+        <button
+          type="button"
+          class="mic-btn"
+          [class.mic-btn--active]="isListening && listenField === 'title'"
+          (click)="toggleSpeechToText('title')"
+          title="Speech to text">
+          <span class="mic-icon"><i class="fas fa-microphone"></i></span>
+          <span class="mic-pulse" *ngIf="isListening && listenField === 'title'"></span>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="label-row">
+        <label>Description</label>
+        <button
+          type="button"
+          class="btn-ai-generate"
+          (click)="generateDescription()"
+          [disabled]="generatingDescription"
+          title="Generate with AI">
+          <ng-container *ngIf="generatingDescription"><i class="fas fa-hourglass-half"></i> Generating…</ng-container>
+          <ng-container *ngIf="!generatingDescription"><i class="fas fa-magic"></i> Generate with AI</ng-container>
+        </button>
+      </div>
+      <div class="input-with-mic">
+        <textarea
+          name="description"
+          [(ngModel)]="form.description"
+          placeholder="Describe your event..."
+          rows="4"
+          style="width:100%;resize:vertical;"></textarea>
+        <button
+          type="button"
+          class="mic-btn mic-btn--textarea"
+          [class.mic-btn--active]="isListening && listenField === 'description'"
+          (click)="toggleSpeechToText('description')"
+          title="Speech to text">
+          <span class="mic-icon"><i class="fas fa-microphone"></i></span>
+          <span class="mic-pulse" *ngIf="isListening && listenField === 'description'"></span>
+        </button>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" name="eventDate" [(ngModel)]="form.eventDate">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>Location Search</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" name="searchQuery" [(ngModel)]="searchQuery" placeholder="Search City, Street...">
+          <button class="btn btn-primary" type="button" (click)="searchLocation()" style="padding: 10px 16px;"><i class="fas fa-search"></i></button>
+        </div>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Location Name</label>
+        <input type="text" name="location" [(ngModel)]="form.location" placeholder="Determined automatically">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Pick exactly on map</label>
+      <div id="edit-map" style="height: 250px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 10;"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Participants</label>
+        <input type="number" name="participants" min="1" [(ngModel)]="form.participants">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status" [(ngModel)]="form.status">
+          <option *ngFor="let s of statusOptions" [ngValue]="s">{{s}}</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Type label</label>
+      <input type="text" name="typeLabel" [(ngModel)]="form.typeLabel" placeholder="e.g. Conference">
+    </div>
+    <div class="form-group">
+      <label>Attachments (PDF, DOCX, XLSX, PNG, JPG)</label>
+      <div class="file-upload-container">
+        <input type="file" multiple accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg" (change)="onFileSelected($event)" style="font-size: 13px;">
+      </div>
+      <div *ngIf="selectedFiles.length > 0" class="file-list">
+        <div class="file-item" *ngFor="let file of selectedFiles; let i = index">
+          <span class="file-name">{{file.name}}</span>
+          <button class="btn btn-icon btn-sm" type="button" (click)="removeSelectedFile(i)" style="color: #ef4444;">&times;</button>
+        </div>
+      </div>
+      <div *ngIf="existingDocuments.length > 0" class="file-list" style="margin-top: 12px;">
+        <label style="font-size: 12px; margin-bottom: 4px; display: block; color: var(--text3);">Existing Documents</label>
+        <div class="file-item" *ngFor="let doc of existingDocuments">
+          <a class="file-name" [href]="getDownloadUrl(doc.id)" target="_blank">{{doc.fileName}}</a>
+          <button class="btn btn-icon btn-sm" type="button" (click)="deleteDocument(doc.id)" style="color: #ef4444;">&times;</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" (click)="closeModal()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-primary" type="button" (click)="submitModal()" [disabled]="saving">
+        {{ saving ? 'Saving…' : (editingId != null ? 'Save' : 'Create') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showDetailModal" (click)="closeDetailModal()">
+  <div class="modal modal--detail" (click)="$event.stopPropagation()" *ngIf="detailEvent as d">
+    <div class="modal-header">
+      <h2>{{ d.title }}</h2>
+      <button class="btn btn-icon" type="button" (click)="closeDetailModal()">&times;</button>
+    </div>
+    <div class="detail-body">
+      <p><strong>Type</strong> {{ d.typeLabel }}</p>
+      <p><strong>Status</strong> {{ d.status }}</p>
+      <p><strong>Date</strong> {{ d.eventDate | date:'mediumDate' }}</p>
+      <p><strong>Location</strong> {{ d.location }}</p>
+      <p *ngIf="d.distance != null"><strong>Distance</strong> {{formatDistance(d.distance)}}</p>
+      <p><strong>Participants</strong> {{ d.participants }}</p>
+      <p><strong>Created</strong> {{ d.createdAt | date:'medium' }}</p>
+      <div *ngIf="d.description" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <p><strong>Description</strong></p>
+        <p style="white-space:pre-wrap;color:var(--text);font-size:13px;line-height:1.6;">{{ d.description }}</p>
+      </div>
+      <div class="detail-documents" *ngIf="existingDocuments.length > 0" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <p style="margin-bottom: 8px;"><strong>Attachments</strong></p>
+        <ul style="padding-left: 20px; margin: 0; font-size: 14px;">
+          <li *ngFor="let doc of existingDocuments" style="margin-bottom: 4px;">
+            <a [href]="getDownloadUrl(doc.id)" target="_blank" style="color: var(--primary); text-decoration: none;">
+              <i class="fas fa-file-alt"></i> {{doc.fileName}} ({{(doc.fileSize / 1024 / 1024).toFixed(2)}} MB)
+            </a>
+          </li>
+        </ul>
+      </div>
+      <p *ngIf="documentsLoading" style="font-size:12px; color:var(--text3); margin-top:8px;">Loading documents...</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm btn-gcal" type="button" (click)="openGoogleCalendar(d)"><i class="fas fa-calendar-plus"></i> Add to Google Calendar</button>
+      <button class="btn btn-primary" type="button" (click)="closeDetailModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden container for html2canvas Facebook Poster -->
+<div style="position: absolute; left: -9999px; top: -9999px;">
+  <div id="facebook-poster" *ngIf="posterEvent" 
+       style="width: 800px; height: 800px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 60px; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-sizing: border-box;">
+    
+    <div style="background: rgba(255,255,255,0.1); border-radius: 30px; padding: 60px; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; border: 2px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+      
+      <div>
+        <span style="background: #fbbf24; color: #1e1b4b; padding: 8px 24px; border-radius: 20px; font-weight: bold; font-size: 24px; text-transform: uppercase; letter-spacing: 2px;">
+          {{ posterEvent.typeLabel }}
+        </span>
+      </div>
+
+      <div style="margin-top: 40px; margin-bottom: 40px;">
+        <h1 style="font-size: 64px; font-weight: 800; margin: 0 0 20px 0; line-height: 1.2; text-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+          {{ posterEvent.title }}
+        </h1>
+        <p style="font-size: 32px; font-weight: 500; margin: 0; opacity: 0.9;">
+          {{ posterEvent.eventDate | date:'EEEE, MMMM d, yyyy' }}
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 40px; justify-content: center; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 20px 40px; border-radius: 15px; flex: 1;">
+          <span style="font-size: 20px; opacity: 0.8; margin-bottom: 8px;"><i class="fas fa-map-marker-alt"></i> Location</span>
+          <span style="font-size: 28px; font-weight: bold;">{{ posterEvent.location }}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 20px 40px; border-radius: 15px; flex: 1;">
+          <span style="font-size: 20px; opacity: 0.8; margin-bottom: 8px;"><i class="fas fa-users"></i> Participants</span>
+          <span style="font-size: 28px; font-weight: bold;">{{ posterEvent.participants }} Expected</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1,0 +1,173 @@
+<div class="toast-banner" *ngIf="toastMessage" [class.toast-banner--error]="toastKind === 'error'">
+  {{ toastMessage }}
+</div>
+
+<div class="app-layout">
+  <app-sidebar [collapsed]="sidebarCollapsed"></app-sidebar>
+  <div class="main-content">
+    <app-header [pageTitle]="'Events Calendar'" (toggleSidebar)="toggleSidebar()"></app-header>
+    
+    <div class="calendar-container">
+      <div class="calendar-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <h2>Events Overview</h2>
+          <p>Manage and view all your upcoming, ongoing, and completed events</p>
+        </div>
+        <button *ngIf="isAdmin" class="btn btn-primary" type="button" (click)="openCreateModal()">+ Create Event</button>
+      </div>
+
+      <div class="calendar-card">
+        <full-calendar [options]="calendarOptions"></full-calendar>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Overlay -->
+<div class="modal-overlay" *ngIf="selectedEvent" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ selectedEvent.title }}</h3>
+      <button class="close-btn" (click)="closeModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="detail-row">
+        <span class="detail-icon">📅</span>
+        <div class="detail-text">
+          <label>Date</label>
+          <p>{{ selectedEvent.eventDate | date:'mediumDate' }}</p>
+        </div>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-icon">📍</span>
+        <div class="detail-text" style="width:100%">
+          <label>Location</label>
+          <p>{{ selectedEvent.location || 'TBA' }}</p>
+          <div *ngIf="selectedEvent.latitude && selectedEvent.longitude" id="view-map" style="height: 180px; width: 100%; margin-top: 10px; border-radius: 8px; z-index: 10;"></div>
+        </div>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-icon">👥</span>
+        <div class="detail-text">
+          <label>Participants</label>
+          <p>{{ selectedEvent.participants || 0 }}</p>
+        </div>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-icon">🏷️</span>
+        <div class="detail-text">
+          <label>Type</label>
+          <p class="type-badge">{{ selectedEvent.typeLabel }}</p>
+        </div>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-icon">📌</span>
+        <div class="detail-text">
+          <label>Status</label>
+          <span class="status-badge" [ngClass]="selectedEvent.status.toLowerCase()">{{ selectedEvent.status }}</span>
+        </div>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-icon">🕒</span>
+        <div class="detail-text">
+          <label>Created At</label>
+          <p>{{ selectedEvent.createdAt | date:'short' }}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer" style="display:flex;gap:12px;justify-content:flex-end">
+      <div style="display:flex;gap:8px" *ngIf="isAdmin">
+        <button class="btn btn-outline" type="button" (click)="openEditModal(selectedEvent)">Edit</button>
+        <button class="btn btn-danger" type="button" (click)="deleteEvent(selectedEvent)">Delete</button>
+      </div>
+      <div style="display:flex;gap:8px" *ngIf="!isAdmin">
+        <button
+          *ngIf="canShowJoin(selectedEvent)"
+          class="btn btn-primary"
+          type="button"
+          (click)="joinEvent(selectedEvent)"
+          [disabled]="actionBusyForId === selectedEvent.id">
+          {{ actionBusyForId === selectedEvent.id ? '...' : 'Join Event' }}
+        </button>
+        <button
+          *ngIf="canShowLeave(selectedEvent)"
+          class="btn btn-danger-outline"
+          type="button"
+          (click)="leaveEvent(selectedEvent)"
+          [disabled]="actionBusyForId === selectedEvent.id">
+          {{ actionBusyForId === selectedEvent.id ? '...' : 'Cancel' }}
+        </button>
+      </div>
+      <button class="btn btn-primary" (click)="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ editingId != null ? 'Edit Event' : 'Create Event' }}</h3>
+      <button class="close-btn" type="button" (click)="closeEditModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p *ngIf="saveError" style="color:#ef4444;font-size:12px;margin:0 0 12px">{{saveError}}</p>
+      <div class="form-group">
+        <label>Event Title</label>
+        <input type="text" name="title" [(ngModel)]="form.title" placeholder="Event name">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" name="eventDate" [(ngModel)]="form.eventDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label>Location Search</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" name="searchQuery" [(ngModel)]="searchQuery" placeholder="Search City, Street...">
+            <button class="btn btn-primary" type="button" (click)="searchLocation()" style="padding: 10px 16px;">🔍</button>
+          </div>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Location Name</label>
+          <input type="text" name="location" [(ngModel)]="form.location" placeholder="Determined automatically">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Pick exactly on map</label>
+        <div id="edit-map" style="height: 250px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 10;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Participants</label>
+          <input type="number" name="participants" min="1" [(ngModel)]="form.participants">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status" [(ngModel)]="form.status">
+            <option *ngFor="let s of statusOptions" [ngValue]="s">{{s}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Type label</label>
+        <input type="text" name="typeLabel" [(ngModel)]="form.typeLabel" placeholder="e.g. Conference">
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:12px;justify-content:flex-end">
+      <button class="btn btn-outline" type="button" (click)="closeEditModal()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-primary" type="button" (click)="submitEditModal()" [disabled]="saving">
+        {{ saving ? 'Saving...' : 'Save' }}
+      </button>
+    </div>
+  </div>
+</div>

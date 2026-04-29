@@ -15,6 +15,7 @@ import { StockItemHistoryComponent } from './components/stock-item/stock-item-hi
 import { Chatbot } from './components/chatbot/chatbot';
 import { BrokenProductDetectComponent } from './components/broken-product-detect/broken-product-detect';
 import { InventoryScanComponent } from './components/inventory-scan/inventory-scan';
+import { EventCalendarComponent } from './features/event-calendar/event-calendar.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
@@ -54,6 +55,7 @@ const routes: Routes = [
   { path: 'chatbot', component: Chatbot, canActivate: [AuthGuard] },
   { path: 'broken-product', component: BrokenProductDetectComponent, canActivate: [AuthGuard] },
   { path: 'inventory', component: InventoryScanComponent, canActivate: [AuthGuard] },
+  { path: 'event-calendar', component: EventCalendarComponent },
   { path: '**', redirectTo: '/auth/login' }
 ];
 
@@ -66,4 +68,4 @@ const routes: Routes = [
   ],
   exports: [RouterModule]
 })
-export class AppRoutingModule {}
+export class AppRoutingModule { }

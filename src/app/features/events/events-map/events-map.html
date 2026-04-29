@@ -1,0 +1,80 @@
+<div class="map-view-container">
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-pill">
+      <span class="stat-pill-icon">📊</span>
+      <div class="stat-pill-content">
+        <span class="stat-pill-value">{{ totalEvents }}</span>
+        <span class="stat-pill-label">Total Events</span>
+      </div>
+    </div>
+    <div class="stat-pill" *ngIf="!isAdmin">
+      <span class="stat-pill-icon">✅</span>
+      <div class="stat-pill-content">
+        <span class="stat-pill-value">{{ joinedEvents }}/{{ totalEvents }}</span>
+        <span class="stat-pill-label">Joined</span>
+      </div>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-pill-icon">🔵</span>
+      <div class="stat-pill-content">
+        <span class="stat-pill-value">{{ upcomingEvents }}</span>
+        <span class="stat-pill-label">Upcoming</span>
+      </div>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-pill-icon">🟢</span>
+      <div class="stat-pill-content">
+        <span class="stat-pill-value">{{ ongoingEvents }}</span>
+        <span class="stat-pill-label">Ongoing</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Split Panel -->
+  <div class="split-panel">
+    <!-- Left Sidebar -->
+    <div class="sidebar-panel">
+      <div class="sidebar-header">
+        <button class="back-btn" (click)="goBack()">
+          ← Back
+        </button>
+        <h3 class="sidebar-title">Events</h3>
+      </div>
+
+      <div class="events-list" *ngIf="!loading">
+        <div class="event-card" *ngFor="let e of events" [class.event-card--active]="selectedEventId === e.id"
+          (click)="selectEvent(e)">
+          <div class="event-card-top">
+            <span class="event-status-dot" [ngClass]="statusClass(e.status)"></span>
+            <span class="event-type-tag">{{ e.typeLabel }}</span>
+          </div>
+          <h4 class="event-card-title">{{ e.title }}</h4>
+          <div class="event-card-meta">
+            <span>📅 {{ e.eventDate | date:'mediumDate' }}</span>
+            <span>📍 {{ e.location }}</span>
+          </div>
+          <div class="event-card-footer">
+            <span class="event-participants">👥 {{ e.participants }}</span>
+            <span class="event-joined-badge" *ngIf="e.isJoined">Joined</span>
+            <span class="event-no-coords" *ngIf="e.latitude == null || e.longitude == null">No coordinates</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-loading" *ngIf="loading">
+        <div class="loading-spinner"></div>
+        <span>Loading events...</span>
+      </div>
+    </div>
+
+    <!-- Right Map Panel -->
+    <div class="map-panel">
+      <div id="events-map-canvas" class="map-canvas"></div>
+      <div class="map-overlay-loading" *ngIf="loading">
+        <div class="loading-spinner loading-spinner--large"></div>
+      </div>
+    </div>
+  </div>
+</div>

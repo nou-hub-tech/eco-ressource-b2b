@@ -36,6 +36,68 @@ export interface EventDto {
   type: string;
 }
 
+/** Matches Spring `EventStatus` enum names (STRING persistence). */
+export type PlatformEventStatus = string;
+
+export interface PlatformEventDto {
+  id: number;
+  title: string;
+  eventDate: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+  participants: number;
+  status: PlatformEventStatus;
+  typeLabel: string;
+  description?: string;
+  createdAt: string;
+  distance?: number;
+}
+
+export interface EventDocumentDto {
+  id: number;
+  platformEventId: number;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+export interface PlatformEventRequestPayload {
+  title: string;
+  eventDate: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+  participants: number;
+  status: string;
+  typeLabel: string;
+  description?: string;
+}
+
+export interface EventSearchRequest {
+  searchTerm?: string;
+  statuses?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  minParticipants?: number;
+  maxParticipants?: number;
+  sortBy: string;
+  sortDirection: string;
+  page: number;
+  size: number;
+}
+
+export interface EventSearchResponse {
+  content: PlatformEventDto[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
 export interface SolidarityDto {
   id: number;
   name: string;
@@ -69,6 +131,13 @@ export interface DonationDto {
 }
 
 const REQUEST_TIMEOUT_MS = 10_000;
+export interface GenerateDescriptionRequest {
+  title: string;
+  typeLabel: string;
+  location: string;
+  eventDate: string;
+  currentDescription: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AdminApiService {
@@ -122,10 +191,164 @@ export class AdminApiService {
     return parseInt(n, 10);
   }
 
+
   getEvents(): Observable<EventDto[]> {
-    return this.withTimeout(
-      this.http.get<EventDto[]>(`${this.apiUrl}/platform-events`),
-      'GET /platform-events'
+    return this.http.get<EventDto[]>(`${this.apiUrl}/admin/events`);
+  }
+
+  getPlatformEvents(): Observable<PlatformEventDto[]> {
+    return this.http.get<PlatformEventDto[]>(`${this.apiUrl}/platform-events`);
+  }
+
+  getPlatformEvent(id: number): Observable<PlatformEventDto> {
+    return this.http.get<PlatformEventDto>(
+      `${this.apiUrl}/platform-events/${id}`
+    );
+  }
+
+  createPlatformEvent(
+    body: PlatformEventRequestPayload
+  ): Observable<PlatformEventDto> {
+    return this.http.post<PlatformEventDto>(
+      `${this.apiUrl}/platform-events`,
+      body
+    );
+  }
+
+  updatePlatformEvent(
+    id: number,
+    body: PlatformEventRequestPayload
+  ): Observable<PlatformEventDto> {
+    return this.http.put<PlatformEventDto>(
+      `${this.apiUrl}/platform-events/${id}`,
+      body
+    );
+  }
+
+  deletePlatformEvent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/platform-events/${id}`);
+  }
+
+  uploadEventDocument(eventId: number, file: File): Observable<EventDocumentDto> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<EventDocumentDto>(
+      `${this.apiUrl}/platform-events/${eventId}/documents`,
+      formData
+    );
+  }
+
+  getEventDocuments(eventId: number): Observable<EventDocumentDto[]> {
+    return this.http.get<EventDocumentDto[]>(
+      `${this.apiUrl}/platform-events/${eventId}/documents`
+    );
+  }
+
+  deleteEventDocument(documentId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/platform-events/documents/${documentId}`
+    );
+  }
+
+  getNearbyEvents(
+    latitude: number,
+    longitude: number,
+    radius: number = 50.0
+  ): Observable<PlatformEventDto[]> {
+    return this.http.get<PlatformEventDto[]>(
+      `${this.apiUrl}/platform-events/nearby`,
+      {
+        params: {
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          radius: radius.toString()
+        }
+      }
+    );
+  }
+
+  searchEvents(searchRequest: EventSearchRequest): Observable<EventSearchResponse> {
+    return this.http.post<EventSearchResponse>(
+      `${this.apiUrl}/platform-events/search`,
+      searchRequest
+    );
+  }
+
+  getPlatformEvents(): Observable<PlatformEventDto[]> {
+    return this.http.get<PlatformEventDto[]>(`${this.apiUrl}/platform-events`);
+  }
+
+  getPlatformEvent(id: number): Observable<PlatformEventDto> {
+    return this.http.get<PlatformEventDto>(
+      `${this.apiUrl}/platform-events/${id}`
+    );
+  }
+
+  createPlatformEvent(
+    body: PlatformEventRequestPayload
+  ): Observable<PlatformEventDto> {
+    return this.http.post<PlatformEventDto>(
+      `${this.apiUrl}/platform-events`,
+      body
+    );
+  }
+
+  updatePlatformEvent(
+    id: number,
+    body: PlatformEventRequestPayload
+  ): Observable<PlatformEventDto> {
+    return this.http.put<PlatformEventDto>(
+      `${this.apiUrl}/platform-events/${id}`,
+      body
+    );
+  }
+
+  deletePlatformEvent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/platform-events/${id}`);
+  }
+
+  uploadEventDocument(eventId: number, file: File): Observable<EventDocumentDto> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<EventDocumentDto>(
+      `${this.apiUrl}/platform-events/${eventId}/documents`,
+      formData
+    );
+  }
+
+  getEventDocuments(eventId: number): Observable<EventDocumentDto[]> {
+    return this.http.get<EventDocumentDto[]>(
+      `${this.apiUrl}/platform-events/${eventId}/documents`
+    );
+  }
+
+  deleteEventDocument(documentId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/platform-events/documents/${documentId}`
+    );
+  }
+
+  getNearbyEvents(
+    latitude: number,
+    longitude: number,
+    radius: number = 50.0
+  ): Observable<PlatformEventDto[]> {
+    return this.http.get<PlatformEventDto[]>(
+      `${this.apiUrl}/platform-events/nearby`,
+      {
+        params: {
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          radius: radius.toString()
+        }
+      }
+    );
+  }
+
+  searchEvents(searchRequest: EventSearchRequest): Observable<EventSearchResponse> {
+    return this.http.post<EventSearchResponse>(
+      `${this.apiUrl}/platform-events/search`,
+      searchRequest
     );
   }
 
@@ -197,5 +420,33 @@ export class AdminApiService {
       this.http.get<StockItemDto[]>(`${this.apiUrl}/stock-items`),
       'GET /stock-items'
     );
+  }
+
+  generateDescription(req: GenerateDescriptionRequest): Observable<{ description: string }> {
+    return this.http.post<{ description: string }>(
+      `${this.apiUrl}/ai/generate-description`,
+      req
+    );
+  }
+
+  publishToFacebook(eventId: number, imageBlob: Blob): Observable<string> {
+    const formData = new FormData();
+    formData.append('image', imageBlob, 'poster.png');
+    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, formData,
+      { responseType: 'text' });
+  }
+
+  generateDescription(req: GenerateDescriptionRequest): Observable<{ description: string }> {
+    return this.http.post<{ description: string }>(
+      `${this.apiUrl}/ai/generate-description`,
+      req
+    );
+  }
+
+  publishToFacebook(eventId: number, imageBlob: Blob): Observable<string> {
+    const formData = new FormData();
+    formData.append('image', imageBlob, 'poster.png');
+    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, formData,
+      { responseType: 'text' });
   }
 }

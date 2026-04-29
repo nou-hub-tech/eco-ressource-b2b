@@ -6,7 +6,9 @@ import { SharedModule } from '../../shared/shared-module';
 import { Layout } from '../../shared/components/layout/layout';
 import { Dashboard } from './dashboard/dashboard';
 import { Users } from './users/users';
-import { AdminEvents } from './events/events';
+import { Events } from '../events/events';
+import { EventsMapComponent } from '../events/events-map/events-map';
+import { FeaturesEventsModule } from '../events/events-module';
 import { Stock } from './stock/stock';
 import { Deliveries } from './deliveries/deliveries';
 import { Listings } from './listings/listings';
@@ -39,7 +41,7 @@ const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: Dashboard },
       { path: 'users', component: Users },
-      { path: 'events', component: AdminEvents },
+      { path: 'events/events-map', component: EventsMapComponent },
       { path: 'stock', component: Stock },
       {
         path: 'annonces',
@@ -103,8 +105,9 @@ const routes: Routes = [
     FormsModule,
     ReactiveFormsModule,
     SharedModule,
+    FeaturesEventsModule,
     RouterModule.forChild(routes)
   ],
   providers: [StockItemService, ProductService]
 })
-export class AdminModule {}
+export class AdminModule { }
