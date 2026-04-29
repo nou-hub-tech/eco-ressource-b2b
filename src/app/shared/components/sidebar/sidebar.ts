@@ -80,11 +80,9 @@ export class Sidebar implements OnInit {
     { label: 'My Deliveries', icon: 'deliveries', route: '/enterprise/my-deliveries' },
 
     { section: 'Circular Economy' },
-    { label: 'Reservations', icon: 'reservations', route: '/enterprise/my-reservations' },
-    { label: 'New Reservation', icon: 'reservations', route: '/enterprise/new-reservation' },
+    { label: 'Reservations', icon: 'reservations', route: '/enterprise/reservations' },
     { label: 'Orders', icon: 'transactions', route: '/enterprise/orders' },
-    { label: 'Slots Calendar', icon: 'reservations', route: '/enterprise/slots' },
-    { label: 'Slot Inventory', icon: 'reservations', route: '/enterprise/slot-management' },
+    { label: 'Slots', icon: 'reservations', route: '/enterprise/slots' },
 
     { section: 'Finance' },
     { label: 'Transactions', icon: 'transactions', route: '/enterprise/transactions' },
