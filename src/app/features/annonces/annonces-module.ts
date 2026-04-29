@@ -9,6 +9,7 @@ import { ListingCard } from './components/listing-card/listing-card';
 import { FavoriteButton } from './components/favorite-button/favorite-button';
 import { CommentThread } from './components/comment-thread/comment-thread';
 import { GroupPurchasePanel } from './components/group-purchase-panel/group-purchase-panel';
+import { ListingMap } from './components/listing-map/listing-map';
 
 import { ListingList } from './listing-list/listing-list';
 import { ListingDetail } from './listing-detail/listing-detail';
@@ -46,6 +47,7 @@ const routes: Routes = [
 
   { path: 'create', component: ListingCreate },
   { path: 'search', component: ListingSearch },
+  { path: 'mine', component: ListingList, data: { mode: 'mine' } },
   { path: 'favorites', component: FavoriteList },
   { path: ':id/edit', component: ListingEdit },
   { path: ':id', component: ListingDetail },
@@ -60,6 +62,7 @@ const routes: Routes = [
     FavoriteButton,
     CommentThread,
     GroupPurchasePanel,
+    ListingMap,
 
     ListingList,
     ListingDetail,

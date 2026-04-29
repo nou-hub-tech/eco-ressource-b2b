@@ -1,6 +1,7 @@
 export type ListingType = 'SURPLUS' | 'DEMANDE' | 'GROUP_BUYING';
 export type ResourceListingStatus = 'ACTIVE' | 'CLOSED' | 'EXPIRED' | 'CANCELLED';
 export type GroupPurchaseStatus = 'OPEN' | 'FULL' | 'SUCCESS' | 'FAILED' | 'CLOSED';
+export type CommentModerationStatus = 'VISIBLE' | 'MASKED' | 'BLOCKED';
 
 export interface CreateListingRequest {
   title: string;
@@ -36,11 +37,48 @@ export interface ListingResponse {
   productCategory: string;
   companyId: number;
   companyName?: string | null;
+  ownerFullName?: string | null;
   createdAt: string;
   attachmentUrls: string[];
   groupPurchase: GroupPurchaseResponse | null;
   favoriteCount: number;
   commentCount: number;
+}
+
+export interface ListingMarketingRequest {
+  title: string;
+  description: string;
+  type?: ListingType | string;
+  quantity?: number;
+  unit?: string;
+  productName?: string;
+  productCategory?: string;
+  location?: string;
+  price?: number | null;
+}
+
+export interface ListingMarketingSuggestion {
+  improvedTitle: string;
+  improvedDescription: string;
+  callToAction?: string;
+  tags: string[];
+  materialType?: string;
+  suggestedPrice?: number | null;
+  priceExplanation?: string;
+  qualityScore?: number;
+}
+
+export interface ListingMatchResponse {
+  listing: ListingResponse;
+  score: number;
+  reason: string;
+}
+
+export interface GeocodingResponse {
+  label: string;
+  latitude: number;
+  longitude: number;
+  provider: string;
 }
 
 export interface CreateCommentRequest {
@@ -51,12 +89,26 @@ export interface CreateCommentRequest {
 export interface CommentResponse {
   id: number;
   content: string;
+  originalContent?: string | null;
   userId: number;
   userFullName: string;
   listingId: number;
   parentId: number | null;
   createdAt: string;
+  moderationStatus?: CommentModerationStatus;
+  toxicityScore?: number;
+  moderationReason?: string | null;
   replies: CommentResponse[];
+}
+
+export interface RealtimeEvent<T = unknown> {
+  type: string;
+  listingId?: number | null;
+  groupId?: number | null;
+  userId?: number | null;
+  message?: string | null;
+  payload?: T;
+  occurredAt: string;
 }
 
 export interface JoinGroupRequest {

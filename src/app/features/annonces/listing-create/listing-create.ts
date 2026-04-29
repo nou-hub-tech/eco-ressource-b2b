@@ -4,7 +4,12 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ResourceListingService } from '../services/resource-listing.service';
 import { ProductAnnoncesService } from '../services/product-annonces.service';
-import { Product, ListingType } from '../../../core/models/annonces.interfaces';
+import {
+  ListingMarketingSuggestion,
+  ListingResponse,
+  Product,
+  ListingType
+} from '../../../core/models/annonces.interfaces';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProductService } from '../../../core/services/product';
 import { httpErrorMessage, normalizeProduct, unwrapApiArray } from '../services/api-normalize';
@@ -16,6 +21,8 @@ import {
   resolveListingAttachmentUrls
 } from '../constants/listing-images';
 import { ListingImageUploadService } from '../services/listing-image-upload.service';
+import { GeocodingService } from '../services/geocoding.service';
+import { ListingAiService } from '../services/listing-ai.service';
 import { concatMap, finalize, toArray } from 'rxjs/operators';
 import { from } from 'rxjs';
 
@@ -40,6 +47,14 @@ export class ListingCreate implements OnInit {
   imageError: string | null = null;
   /** Upload multipart vers {@code POST /api/listing-images} en cours. */
   uploadingImage = false;
+  geocodingLocation = false;
+  locationStatus: string | null = null;
+  aiLoading = false;
+  aiError: string | null = null;
+  aiSuggestion: ListingMarketingSuggestion | null = null;
+  priceSuggestionLoading = false;
+  priceSuggestionStatus: string | null = null;
+  locationPreviewListings: ListingResponse[] = [];
   /** Index de la grande vignette à l’étape photos. */
   previewMainIndex = 0;
   readonly maxListingPhotos = MAX_LISTING_PHOTOS;
@@ -61,6 +76,8 @@ export class ListingCreate implements OnInit {
     private readonly catalogProductService: ProductService,
     private readonly authService: AuthService,
     private readonly listingImageUpload: ListingImageUploadService,
+    private readonly geocodingService: GeocodingService,
+    private readonly listingAiService: ListingAiService,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone
   ) {}
@@ -284,6 +301,182 @@ export class ListingCreate implements OnInit {
     this.refreshView();
   }
 
+  geocodeLocation(): void {
+    const location = String(this.form.get('location')?.value || '').trim();
+    if (!location || this.geocodingLocation) return;
+    this.geocodingLocation = true;
+    this.locationStatus = 'Recherche des coordonnees...';
+    this.refreshView();
+
+    this.geocodingService.geocode(location).subscribe({
+      next: (geo) => {
+        this.form.patchValue({
+          location: geo.label || location,
+          latitude: geo.latitude,
+          longitude: geo.longitude
+        });
+        this.locationStatus = `Coordonnees trouvees via ${geo.provider}.`;
+        this.updateLocationPreview();
+        this.geocodingLocation = false;
+        this.refreshView();
+      },
+      error: (err: unknown) => {
+        this.locationStatus = httpErrorMessage(err);
+        this.geocodingLocation = false;
+        this.refreshView();
+      }
+    });
+  }
+
+  applyDescriptionPreset(kind: 'clarity' | 'quality' | 'logistics' | 'cta'): void {
+    const current = String(this.form.get('description')?.value || '').trim();
+    const product = this.selectedProduct?.name || 'ce lot';
+    const quantity = this.form.get('quantity')?.value;
+    const unit = this.form.get('unit')?.value;
+    const location = String(this.form.get('location')?.value || '').trim();
+    const parts = current ? [current] : [];
+
+    switch (kind) {
+      case 'clarity':
+        parts.push(`Produit: ${product}. Quantite disponible: ${quantity || 'a preciser'} ${unit || ''}.`);
+        break;
+      case 'quality':
+        parts.push('Etat, qualite et conditions de stockage a preciser pour rassurer les acheteurs professionnels.');
+        break;
+      case 'logistics':
+        parts.push(`Enlevement ou livraison a organiser${location ? ` depuis ${location}` : ''}. Delai et modalites negociables.`);
+        break;
+      case 'cta':
+        parts.push('Contactez-nous pour confirmer la disponibilite, demander des photos supplementaires ou proposer une offre.');
+        break;
+    }
+
+    this.form.patchValue({ description: parts.join('\n\n') });
+    this.form.get('description')?.markAsDirty();
+    this.refreshView();
+  }
+
+  generateMarketingSuggestion(): void {
+    if (!this.selectedType) {
+      this.aiError = "Choisissez d'abord un type d'annonce.";
+      this.refreshView();
+      return;
+    }
+
+    const product = this.selectedProduct;
+    this.aiLoading = true;
+    this.aiError = null;
+    this.aiSuggestion = null;
+    this.listingAiService.suggestMarketing({
+      title: String(this.form.get('title')?.value || ''),
+      description: String(this.form.get('description')?.value || ''),
+      type: this.selectedType,
+      quantity: Number(this.form.get('quantity')?.value || 0) || undefined,
+      unit: String(this.form.get('unit')?.value || ''),
+      productName: product?.name,
+      productCategory: product?.category || undefined,
+      location: String(this.form.get('location')?.value || ''),
+      price: this.form.get('price')?.value ?? null
+    }).subscribe({
+      next: (suggestion) => {
+        this.aiSuggestion = suggestion;
+        this.aiLoading = false;
+        this.refreshView();
+      },
+      error: (err: unknown) => {
+        this.aiError = httpErrorMessage(err);
+        this.aiLoading = false;
+        this.refreshView();
+      }
+    });
+  }
+
+  applyAiTitle(): void {
+    if (!this.aiSuggestion?.improvedTitle) return;
+    this.form.patchValue({ title: this.aiSuggestion.improvedTitle });
+    this.form.get('title')?.markAsDirty();
+    this.refreshView();
+  }
+
+  applyAiDescription(): void {
+    if (!this.aiSuggestion?.improvedDescription) return;
+    this.form.patchValue({ description: this.aiSuggestion.improvedDescription });
+    this.form.get('description')?.markAsDirty();
+    this.refreshView();
+  }
+
+  applyAiAll(): void {
+    this.applyAiTitle();
+    this.applyAiDescription();
+    if (this.aiSuggestion?.suggestedPrice && this.aiSuggestion.suggestedPrice > 0) {
+      this.form.patchValue({ price: this.aiSuggestion.suggestedPrice });
+      this.form.get('price')?.markAsDirty();
+    }
+    this.refreshView();
+  }
+
+  suggestMarketPrice(): void {
+    const product = this.selectedProduct;
+    this.priceSuggestionLoading = true;
+    this.priceSuggestionStatus = null;
+    this.listingService.suggestPrice({
+      productId: this.form.get('productId')?.value,
+      category: product?.category,
+      location: String(this.form.get('location')?.value || '')
+    }).subscribe({
+      next: (price) => {
+        this.priceSuggestionLoading = false;
+        if (price && price > 0) {
+          this.form.patchValue({ price });
+          this.priceSuggestionStatus = `Prix marche suggere: ${price} TND.`;
+        } else {
+          this.priceSuggestionStatus = 'Pas assez de donnees similaires pour proposer un prix.';
+        }
+        this.refreshView();
+      },
+      error: (err: unknown) => {
+        this.priceSuggestionLoading = false;
+        this.priceSuggestionStatus = httpErrorMessage(err);
+        this.refreshView();
+      }
+    });
+  }
+
+  private updateLocationPreview(): void {
+    const lat = this.form.get('latitude')?.value;
+    const lng = this.form.get('longitude')?.value;
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      this.locationPreviewListings = [];
+      return;
+    }
+
+    const product = this.selectedProduct;
+    this.locationPreviewListings = [{
+      id: 0,
+      title: String(this.form.get('title')?.value || 'Nouvelle annonce'),
+      description: String(this.form.get('description')?.value || ''),
+      type: this.selectedType || 'SURPLUS',
+      status: 'ACTIVE',
+      quantity: Number(this.form.get('quantity')?.value || 0),
+      unit: String(this.form.get('unit')?.value || ''),
+      price: this.form.get('price')?.value ?? null,
+      location: String(this.form.get('location')?.value || ''),
+      latitude: lat,
+      longitude: lng,
+      productId: Number(this.form.get('productId')?.value || 0),
+      productName: product?.name || 'Produit',
+      productCategory: product?.category || '',
+      companyId: this.companyId || 0,
+      companyName: null,
+      ownerFullName: null,
+      createdAt: new Date().toISOString(),
+      attachmentUrls: [],
+      groupPurchase: null,
+      favoriteCount: 0,
+      commentCount: 0
+    }];
+  }
+
   get canGoNext(): boolean {
     if (this.uploadingImage) return false;
     switch (this.step) {
@@ -329,6 +522,33 @@ export class ListingCreate implements OnInit {
     this.submitting = true;
     this.error = '';
 
+    const hasLocation = !!String(this.form.value.location || '').trim();
+    const missingCoordinates = this.form.value.latitude == null || this.form.value.longitude == null;
+    if (hasLocation && missingCoordinates) {
+      this.geocodingLocation = true;
+      this.locationStatus = 'Recherche des coordonnees avant publication...';
+      this.geocodingService.geocode(this.form.value.location).subscribe({
+        next: (geo) => {
+          this.form.patchValue({
+            location: geo.label || this.form.value.location,
+            latitude: geo.latitude,
+            longitude: geo.longitude
+          });
+          this.geocodingLocation = false;
+          this.createListing();
+        },
+        error: () => {
+          this.geocodingLocation = false;
+          this.createListing();
+        }
+      });
+      return;
+    }
+
+    this.createListing();
+  }
+
+  private createListing(): void {
     const val = this.form.value;
     const body = {
       ...val,

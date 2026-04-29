@@ -102,7 +102,7 @@
       <!-- Demo pills -->
       <div class="login-demo">
         <span>DEMO ACCESS</span>
-        <button *ngFor="let d of demoAccounts" class="demo-pill" type="button" (click)="fillDemo(d.email, d.password)">
+        <button *ngFor="let d of demoAccounts" class="demo-pill" type="button" (click)="fillDemo(d)">
           {{d.label}}
         </button>
       </div>

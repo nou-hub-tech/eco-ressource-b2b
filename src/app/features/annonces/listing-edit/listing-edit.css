@@ -5,6 +5,9 @@
 .le-type-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg3,#f8fafc);border-radius:12px;margin-bottom:18px}
 .le-type-badge{font-size:14px;color:var(--text);font-weight:600}
 .le-type-hint{font-size:12px;color:var(--text3)}
+.le-location-control{display:flex;gap:8px;align-items:center}
+.le-location-control input{flex:1;min-width:0}
+.le-location-status{margin:6px 0 0;font-size:12px;color:var(--text3)}
 .le-hint{font-size:13px;color:var(--text3);margin:0 0 12px;line-height:1.45}
 .le-photo-block{margin-top:18px;padding-top:18px;border-top:1px solid var(--bg3,#f1f5f9)}
 .le-photo-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:10px}
