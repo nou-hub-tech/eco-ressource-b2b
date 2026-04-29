@@ -17,6 +17,15 @@ type SlotFormModel = {
   discountPct: number;
 };
 
+type SmartSlotSuggestion = {
+  date: string;
+  startHour: number;
+  endHour: number;
+  recommendedDiscountPct: number;
+  solarLikely: boolean;
+  reason: string;
+};
+
 @Component({
   selector: 'app-enterprise-slots',
   standalone: true,
@@ -58,6 +67,81 @@ export class EnterpriseSlots implements OnInit {
 
   get mine(): BackendReservationSlot[] {
     return this.slots.filter(slot => this.isMine(slot));
+  }
+
+  get bookedSlotsCount(): number {
+    return this.mine.filter(slot => slot.status === 'booked').length;
+  }
+
+  get availableSlotsCount(): number {
+    return this.mine.filter(slot => slot.status === 'open').length;
+  }
+
+  get usagePercent(): number {
+    const total = this.bookedSlotsCount + this.availableSlotsCount;
+    return total ? Math.round((this.bookedSlotsCount / total) * 100) : 0;
+  }
+
+  get smartSuggestion(): SmartSlotSuggestion | null {
+    const futureSlots = this.mine
+      .filter(slot => slot.date >= new Date().toISOString().slice(0, 10))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.startHour - b.startHour);
+
+    if (!futureSlots.length) {
+      return null;
+    }
+
+    const grouped = new Map<string, BackendReservationSlot[]>();
+    for (const slot of futureSlots) {
+      const list = grouped.get(slot.date) ?? [];
+      list.push(slot);
+      grouped.set(slot.date, list);
+    }
+
+    let bestGap: { date: string; startHour: number; endHour: number } | null = null;
+
+    for (const [date, slots] of grouped) {
+      const ordered = [...slots].sort((a, b) => a.startHour - b.startHour);
+      let cursor = 8;
+      for (const slot of ordered) {
+        if (slot.startHour - cursor >= 2) {
+          const endHour = Math.min(cursor + 4, slot.startHour);
+          const candidate = { date, startHour: cursor, endHour };
+          if (!bestGap || (candidate.endHour - candidate.startHour) > (bestGap.endHour - bestGap.startHour)) {
+            bestGap = candidate;
+          }
+        }
+        cursor = Math.max(cursor, slot.endHour);
+      }
+
+      if (18 - cursor >= 2) {
+        const candidate = { date, startHour: cursor, endHour: Math.min(cursor + 4, 18) };
+        if (!bestGap || (candidate.endHour - candidate.startHour) > (bestGap.endHour - bestGap.startHour)) {
+          bestGap = candidate;
+        }
+      }
+    }
+
+    if (!bestGap) {
+      return null;
+    }
+
+    const density = futureSlots.filter(slot =>
+      slot.date === bestGap?.date &&
+      slot.startHour < bestGap.endHour &&
+      slot.endHour > bestGap.startHour,
+    ).length;
+    const solarLikely = bestGap.startHour >= 10 && bestGap.endHour <= 16;
+    const recommendedDiscountPct = Math.min(30, Math.max(5, 12 + (solarLikely ? 6 : 0) - density * 2));
+
+    return {
+      ...bestGap,
+      recommendedDiscountPct,
+      solarLikely,
+      reason: density === 0
+        ? 'Large availability gap detected in your schedule.'
+        : 'This window keeps your slot plan balanced and easier to fill.',
+    };
   }
 
   save(): void {
@@ -108,6 +192,21 @@ export class EnterpriseSlots implements OnInit {
         this.saving = false;
       },
     });
+  }
+
+  optimizeMySchedule(): void {
+    if (!this.smartSuggestion) {
+      this.error = 'No schedule suggestion available from your current slot history.';
+      return;
+    }
+
+    this.form.date = this.smartSuggestion.date;
+    this.form.startHour = this.smartSuggestion.startHour;
+    this.form.endHour = this.smartSuggestion.endHour;
+    this.form.discountPct = this.smartSuggestion.recommendedDiscountPct;
+    this.form.solar = this.smartSuggestion.solarLikely;
+    this.success = 'Schedule optimized from your current availability pattern.';
+    this.error = '';
   }
 
   edit(slot: BackendReservationSlot): void {

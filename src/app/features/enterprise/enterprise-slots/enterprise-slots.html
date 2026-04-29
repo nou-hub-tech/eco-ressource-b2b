@@ -5,7 +5,42 @@
   </div>
 
   <div class="card">
-    <form (ngSubmit)="save()">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+      <div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>Usage Indicator</strong>
+          <span class="badge badge-neutral">{{ usagePercent }}% booked</span>
+        </div>
+        <div style="height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden">
+          <div
+            [style.width.%]="usagePercent"
+            style="height:100%;background:linear-gradient(90deg,#f59e0b,#16a34a)"
+          ></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:10px;color:var(--text2)">
+          <span>Booked: {{ bookedSlotsCount }}</span>
+          <span>Available: {{ availableSlotsCount }}</span>
+        </div>
+      </div>
+
+      <div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc" *ngIf="smartSuggestion">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>Smart Slot Suggestion</strong>
+          <span class="badge badge-neutral">{{ smartSuggestion.recommendedDiscountPct }}% discount</span>
+        </div>
+        <p style="margin:0 0 8px;color:var(--text2)">
+          Best time window: {{ smartSuggestion.date }} - {{ smartSuggestion.startHour }}:00 - {{ smartSuggestion.endHour }}:00
+        </p>
+        <p style="margin:0 0 12px;color:var(--text2)">
+          {{ smartSuggestion.reason }}
+        </p>
+        <p style="margin:0;color:var(--text2)">
+          Solar likely: <strong>{{ smartSuggestion.solarLikely ? 'Yes' : 'No' }}</strong>
+        </p>
+      </div>
+    </div>
+
+    <form (ngSubmit)="save()" style="margin-top:20px">
       <div class="form-row">
         <div class="form-group">
           <label>Machine</label>
@@ -91,6 +126,9 @@
       <div class="actions-row">
         <button class="btn btn-primary" type="submit" [disabled]="saving">
           {{ editingId ? 'Update Slot' : 'Create Slot' }}
+        </button>
+        <button class="btn btn-outline" type="button" (click)="optimizeMySchedule()" [disabled]="saving || !smartSuggestion">
+          Optimize My Schedule
         </button>
         <button class="btn btn-outline" type="button" (click)="resetForm()" [disabled]="saving">
           Clear

@@ -5,14 +5,69 @@
   </div>
 
   <div class="card">
-    <div class="form-group">
-      <label>Search</label>
-      <input
-        type="text"
-        name="query"
-        [(ngModel)]="query"
-        placeholder="Search by company, machine, or status"
-      />
+    <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
+      <div class="form-group">
+        <label>Search</label>
+        <input
+          type="text"
+          name="query"
+          [(ngModel)]="query"
+          placeholder="Search by company, machine, or status"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Status</label>
+        <select name="statusFilter" [(ngModel)]="statusFilter">
+          <option value="">All</option>
+          <option value="pending">pending</option>
+          <option value="active">active</option>
+          <option value="confirmed">confirmed</option>
+          <option value="completed">completed</option>
+          <option value="cancelled">cancelled</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Machine</label>
+        <select name="machineFilter" [(ngModel)]="machineFilter">
+          <option value="">All</option>
+          <option *ngFor="let machine of machineOptions" [ngValue]="machine">{{ machine }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>From</label>
+        <input type="date" name="dateFrom" [(ngModel)]="dateFrom" />
+      </div>
+
+      <div class="form-group">
+        <label>To</label>
+        <input type="date" name="dateTo" [(ngModel)]="dateTo" />
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-outline" type="button" (click)="exportPdf()">Export PDF</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0 0 8px">Booking Intelligence Panel</h2>
+        <p style="margin:0;color:var(--text2)">Urgency and recommendation computed from reservation date proximity and booking duration.</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span class="badge badge-neutral">High: {{ intelligenceSummary.high }}</span>
+        <span class="badge badge-neutral">Medium: {{ intelligenceSummary.medium }}</span>
+        <span class="badge badge-neutral">Low: {{ intelligenceSummary.low }}</span>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;padding:14px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb">
+      <strong style="display:block;margin-bottom:6px">Recommendation</strong>
+      <span class="badge badge-neutral">{{ intelligenceSummary.recommendation }}</span>
     </div>
   </div>
 
@@ -33,6 +88,8 @@
           <th>Date</th>
           <th>Hours</th>
           <th>Status</th>
+          <th>Urgency</th>
+          <th>Recommendation</th>
           <th>Price</th>
           <th>Solar</th>
           <th>Actions</th>
@@ -41,13 +98,22 @@
       <tbody>
         <tr *ngFor="let reservation of visibleReservations">
           <td>{{ reservation.companyName }}</td>
-          <td>{{ reservation.machine || reservation.item }}</td>
+          <td>{{ machineName(reservation) }}</td>
           <td>{{ reservation.fromDate }}</td>
           <td>
             {{ reservation.startHour ?? 0 }}:00 -
-            {{ (reservation.startHour ?? 0) + (reservation.hours ?? 1) }}:00
+            {{ (reservation.startHour ?? 0) + durationHours(reservation) }}:00
           </td>
           <td><span class="badge badge-neutral">{{ reservation.status }}</span></td>
+          <td>
+            <span
+              class="badge"
+              [ngStyle]="{ 'background-color': urgencyColor(reservation) + '22', color: urgencyColor(reservation) }"
+            >
+              {{ urgencyFor(reservation) }}
+            </span>
+          </td>
+          <td>{{ recommendationFor(reservation) }}</td>
           <td>{{ reservation.price }}</td>
           <td>{{ reservation.solar ? 'Yes' : 'No' }}</td>
           <td>

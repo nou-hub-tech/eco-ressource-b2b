@@ -51,6 +51,51 @@ export class EnterpriseOrders implements OnInit {
     return this.orders.filter(order => !order.deleted && this.isRelatedOrder(order));
   }
 
+  get totalCo2Saved(): number {
+    return this.visibleOrders.reduce((sum, order) => sum + this.co2Value(order), 0);
+  }
+
+  get averageCo2Saved(): number {
+    return this.visibleOrders.length ? Math.round(this.totalCo2Saved / this.visibleOrders.length) : 0;
+  }
+
+  get lifecycleSummary(): { created: number; processing: number; completed: number } {
+    return this.visibleOrders.reduce(
+      (summary, order) => {
+        const stage = this.lifecycleStage(order);
+        summary[stage] += 1;
+        return summary;
+      },
+      { created: 0, processing: 0, completed: 0 },
+    );
+  }
+
+  get ecoImpactScore(): { grade: 'A' | 'B' | 'C'; averageCo2: number; message: string } {
+    if (!this.visibleOrders.length) {
+      return { grade: 'A', averageCo2: 0, message: 'No order impact to analyze yet.' };
+    }
+
+    const avgCo2 = this.averageCo2Saved;
+    const avgGradeScore =
+      this.visibleOrders.reduce((sum, order) => sum + this.gradeScore(order.grade), 0) / this.visibleOrders.length;
+
+    let grade: 'A' | 'B' | 'C' = 'C';
+    if (avgGradeScore >= 4) {
+      grade = 'A';
+    } else if (avgGradeScore >= 3) {
+      grade = 'B';
+    }
+
+    let message = 'Moderate impact';
+    if (avgCo2 >= 200 || grade === 'C') {
+      message = 'High environmental impact';
+    } else if (avgCo2 < 100 && grade === 'A') {
+      message = 'Low environmental impact';
+    }
+
+    return { grade, averageCo2: avgCo2, message };
+  }
+
   saveStatus(order: BackendEcoOrder): void {
     const nextStatus = this.statusDrafts[order.id];
     if (!nextStatus || nextStatus === order.status) {
@@ -83,6 +128,44 @@ export class EnterpriseOrders implements OnInit {
         this.savingId = null;
       },
     });
+  }
+
+  lifecycleStage(order: BackendEcoOrder): 'created' | 'processing' | 'completed' {
+    if (order.status === 'shipped') {
+      return 'processing';
+    }
+    if (order.status === 'delivered') {
+      return 'completed';
+    }
+    return 'created';
+  }
+
+  lifecycleProgress(order: BackendEcoOrder): number {
+    const stage = this.lifecycleStage(order);
+    if (stage === 'completed') {
+      return 100;
+    }
+    if (stage === 'processing') {
+      return 66;
+    }
+    return 33;
+  }
+
+  impactMessage(order: BackendEcoOrder): string {
+    const co2 = this.co2Value(order);
+    const grade = this.gradeScore(order.grade);
+
+    if (co2 >= 200 || grade <= 2) {
+      return 'High environmental impact';
+    }
+    if (co2 >= 100 || grade <= 3) {
+      return 'Moderate impact';
+    }
+    return 'Low environmental impact';
+  }
+
+  estimatedCo2(order: BackendEcoOrder): number {
+    return this.co2Value(order);
   }
 
   private loadData(): void {
@@ -121,6 +204,21 @@ export class EnterpriseOrders implements OnInit {
         this.savingId = null;
       },
     });
+  }
+
+  private co2Value(order: BackendEcoOrder): number {
+    if (order.co2Saved != null) {
+      return Math.round(Number(order.co2Saved));
+    }
+    return Math.max(0, Math.round(order.qtyKg * 0.4 - order.distanceKm * 0.08));
+  }
+
+  private gradeScore(grade: string): number {
+    if (grade === 'A') return 5;
+    if (grade === 'B') return 4;
+    if (grade === 'C') return 3;
+    if (grade === 'D') return 2;
+    return 1;
   }
 
   private isRelatedOrder(order: BackendEcoOrder): boolean {

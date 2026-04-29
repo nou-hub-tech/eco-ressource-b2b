@@ -4,6 +4,45 @@
     <p>Orders related to reservations made on your enterprise slots.</p>
   </div>
 
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:16px">
+    <div class="card">
+      <h2 style="margin:0 0 10px">CO2 Dashboard</h2>
+      <div style="display:flex;justify-content:space-between;color:var(--text2)">
+        <span>Total CO2 saved</span>
+        <strong>{{ totalCo2Saved }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;color:var(--text2);margin-top:8px">
+        <span>Average per order</span>
+        <strong>{{ averageCo2Saved }}</strong>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 10px">Eco Impact Score</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="badge badge-neutral">Grade {{ ecoImpactScore.grade }}</span>
+        <strong>{{ ecoImpactScore.averageCo2 }} CO2</strong>
+      </div>
+      <p style="margin:10px 0 0;color:var(--text2)">{{ ecoImpactScore.message }}</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 10px">Lifecycle Tracker</h2>
+      <div style="display:flex;justify-content:space-between;color:var(--text2)">
+        <span>Created</span>
+        <strong>{{ lifecycleSummary.created }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;color:var(--text2);margin-top:8px">
+        <span>Processing</span>
+        <strong>{{ lifecycleSummary.processing }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;color:var(--text2);margin-top:8px">
+        <span>Completed</span>
+        <strong>{{ lifecycleSummary.completed }}</strong>
+      </div>
+    </div>
+  </div>
+
   <div class="card" style="padding:0">
     <div class="table-header">
       <h2>Related Orders</h2>
@@ -20,7 +59,8 @@
           <th>Company</th>
           <th>Material</th>
           <th>Qty (kg)</th>
-          <th>Supplier</th>
+          <th>Lifecycle</th>
+          <th>Impact</th>
           <th>Status</th>
           <th>Grade</th>
           <th>Update</th>
@@ -32,7 +72,23 @@
           <td>{{ order.companyName }}</td>
           <td>{{ order.material }}</td>
           <td>{{ order.qtyKg }}</td>
-          <td>{{ order.supplier }}</td>
+          <td style="min-width:170px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px">
+              <span>created</span>
+              <span>processing</span>
+              <span>completed</span>
+            </div>
+            <div style="height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden">
+              <div
+                [style.width.%]="lifecycleProgress(order)"
+                style="height:100%;background:linear-gradient(90deg,#0ea5e9,#16a34a)"
+              ></div>
+            </div>
+          </td>
+          <td>
+            <div>{{ impactMessage(order) }}</div>
+            <div style="font-size:12px;color:var(--text2)">CO2: {{ estimatedCo2(order) }}</div>
+          </td>
           <td><span class="badge badge-neutral">{{ order.status }}</span></td>
           <td>{{ order.grade }}</td>
           <td>
