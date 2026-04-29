@@ -34,31 +34,46 @@
   <!-- ====== HEADER + ONGLETS ====== -->
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1>🧾 Gestion des Factures</h1>
+      <h1>🧭 Gestion des Factures</h1>
       <p>Création, suivi, exports PDF/Excel — TVA calculée automatiquement</p>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <!-- 🔄 Indicateur de surveillance automatique -->
+      <div
+        style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;"
+        [style.background]="pollingActive ? 'rgba(5,150,105,0.12)' : 'rgba(107,114,128,0.1)'"
+        [style.color]="pollingActive ? '#059669' : 'var(--text3)'"
+        [title]="lastCheckTime ? 'Dernière vérification : ' + lastCheckTime.toLocaleTimeString() : 'En attente...'">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite;"
+          [style.background]="pollingActive ? '#059669' : '#9ca3af'"></span>
+        <span *ngIf="pollingActive">🔄 Surveillance livraisons active</span>
+        <span *ngIf="!pollingActive">⏸ Surveillance désactivée</span>
+        <span *ngIf="autoProcessedCount > 0"
+          style="margin-left:4px;background:#059669;color:white;border-radius:10px;padding:1px 6px;">
+          {{ autoProcessedCount }} auto
+        </span>
+      </div>
       <button class="btn btn-outline btn-sm" (click)="exportAllToExcel()">📊 Excel</button>
       <button class="btn btn-primary btn-sm" (click)="openForm()">➕ Nouvelle Facture</button>
     </div>
   </div>
 
-    <!-- Barre d'onglets -->
-    <div class="tab-bar">
-      <button class="tab-btn" [class.active]="activeInvTab==='list'" (click)="activeInvTab='list'">
-        <span class="tab-icon">🧾</span> Factures
-        <span class="tab-badge" *ngIf="overdueInvoices.length > 0">{{ overdueInvoices.length }}</span>
-      </button>
-      <button class="tab-btn" [class.active]="activeInvTab==='stats'" (click)="activeInvTab='stats'">
-        <span class="tab-icon">📊</span> Statistiques
-      </button>
-      <button class="tab-btn ai-tab-btn" [class.active]="activeInvTab==='ai'" (click)="switchToAiTab()">
-        <span class="tab-icon">🤖</span> Analyse IA
-        <span class="tab-badge ai-badge" *ngIf="riskReport && riskReport.summary.criticalCount > 0">
-          {{ riskReport.summary.criticalCount }}
-        </span>
-      </button>
-    </div>
+  <!-- Barre d'onglets -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeInvTab==='list'" (click)="activeInvTab='list'">
+      <span class="tab-icon">🧾</span> Factures
+      <span class="tab-badge" *ngIf="overdueInvoices.length > 0">{{ overdueInvoices.length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeInvTab==='stats'" (click)="activeInvTab='stats'">
+      <span class="tab-icon">📊</span> Statistiques
+    </button>
+    <button class="tab-btn ai-tab-btn" [class.active]="activeInvTab==='ai'" (click)="switchToAiTab()">
+      <span class="tab-icon">🤖</span> Analyse IA
+      <span class="tab-badge ai-badge" *ngIf="riskReport && riskReport.summary.criticalCount > 0">
+        {{ riskReport.summary.criticalCount }}
+      </span>
+    </button>
+  </div>
 
   <!-- ====== ONGLET STATISTIQUES ====== -->
   <div *ngIf="activeInvTab==='stats'" class="tab-content">
@@ -320,7 +335,17 @@
               </td>
               <td style="font-size:11px;color:var(--text3)">{{ inv.issueDate }}</td>
               <td class="action-cell">
-                <button class="btn btn-delivery btn-sm" style="margin-right:4px;" title="Livrée (Libérer Escrow)" (click)="confirmDelivery(inv)" *ngIf="inv.status !== 'PAID'">🚚 Livrer</button>
+                <!-- Badge livraison liée -->
+                <span *ngIf="inv.deliveryOrderId"
+                  style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;margin-right:4px;"
+                  [style.background]="inv.status === 'PAID' ? 'rgba(5,150,105,0.1)' : 'rgba(234,179,8,0.12)'"
+                  [style.color]="inv.status === 'PAID' ? '#059669' : '#b45309'" [title]="getDeliveryBadgeTitle(inv)">
+                  <span>{{ inv.status === 'PAID' ? '📦✓' : '📦⏳' }}</span>
+                  DEL-{{ inv.deliveryOrderId }}
+                </span>
+                <button class="btn btn-delivery btn-sm" style="margin-right:4px;"
+                  title="Livrée (Libérer Escrow) — Déclenchement manuel" (click)="confirmDelivery(inv)"
+                  *ngIf="inv.status !== 'PAID'">🚚 Livrer</button>
                 <button class="btn btn-ghost btn-sm" title="Aperçu"
                   (click)="openPreview(inv)">&#x1F441;&#xFE0F;</button>
                 <button class="btn btn-ghost btn-sm" title="PDF" (click)="exportInvoicePDF(inv)">&#x1F4C4;</button>
@@ -444,7 +469,17 @@
               </td>
               <td style="font-size:11px;color:var(--text3)">{{ inv.issueDate }}</td>
               <td class="action-cell">
-                <button class="btn btn-delivery btn-sm" style="margin-right:4px;" title="Livrée (Libérer Escrow)" (click)="confirmDelivery(inv)" *ngIf="inv.status !== 'PAID'">🚚 Livrer</button>
+                <!-- Badge livraison liée -->
+                <span *ngIf="inv.deliveryOrderId"
+                  style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;margin-right:4px;"
+                  [style.background]="inv.status === 'PAID' ? 'rgba(5,150,105,0.1)' : 'rgba(234,179,8,0.12)'"
+                  [style.color]="inv.status === 'PAID' ? '#059669' : '#b45309'" [title]="getDeliveryBadgeTitle(inv)">
+                  <span>{{ inv.status === 'PAID' ? '📦✓' : '📦⏳' }}</span>
+                  DEL-{{ inv.deliveryOrderId }}
+                </span>
+                <button class="btn btn-delivery btn-sm" style="margin-right:4px;"
+                  title="Livrée (Libérer Escrow) — Déclenchement manuel" (click)="confirmDelivery(inv)"
+                  *ngIf="inv.status !== 'PAID'">🚚 Livrer</button>
                 <button class="btn btn-ghost btn-sm" title="Aperçu"
                   (click)="openPreview(inv)">&#x1F441;&#xFE0F;</button>
                 <button class="btn btn-ghost btn-sm" title="PDF" (click)="exportInvoicePDF(inv)">&#x1F4C4;</button>
@@ -527,11 +562,14 @@
           <div class="form-row">
             <div class="form-group">
               <label>Raison sociale client</label>
-              <select formControlName="clientName" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-family:'Inter', sans-serif;">
+              <select formControlName="clientName"
+                style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-family:'Inter', sans-serif;">
                 <option value="" disabled selected>Sélectionnez un client...</option>
                 <option *ngFor="let ent of globalEnterprises" [value]="ent.companyName">{{ ent.companyName }}</option>
               </select>
-              <div class="error-msg" *ngIf="form.get('clientName')?.hasError('companyNotFound') && form.get('clientName')?.touched" style="color:#ef4444; font-size:11px; margin-top:4px;">
+              <div class="error-msg"
+                *ngIf="form.get('clientName')?.hasError('companyNotFound') && form.get('clientName')?.touched"
+                style="color:#ef4444; font-size:11px; margin-top:4px;">
                 Cette entreprise n'existe pas sur la plateforme. Veuillez sélectionner une entreprise existante.
               </div>
             </div>
@@ -563,11 +601,14 @@
           <div class="form-row">
             <div class="form-group">
               <label>Raison sociale fournisseur</label>
-              <select formControlName="sellerName" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-family:'Inter', sans-serif;">
+              <select formControlName="sellerName"
+                style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-family:'Inter', sans-serif;">
                 <option value="" disabled selected>Sélectionnez un fournisseur...</option>
                 <option *ngFor="let ent of globalEnterprises" [value]="ent.companyName">{{ ent.companyName }}</option>
               </select>
-              <div class="error-msg" *ngIf="form.get('sellerName')?.hasError('companyNotFound') && form.get('sellerName')?.touched" style="color:#ef4444; font-size:11px; margin-top:4px;">
+              <div class="error-msg"
+                *ngIf="form.get('sellerName')?.hasError('companyNotFound') && form.get('sellerName')?.touched"
+                style="color:#ef4444; font-size:11px; margin-top:4px;">
                 Cette entreprise n'existe pas sur la plateforme. Veuillez sélectionner une entreprise existante.
               </div>
             </div>

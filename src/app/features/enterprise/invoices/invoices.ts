@@ -9,6 +9,7 @@ import { FinanceService, EnterpriseDto } from '../../../core/services/finance';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserManagementService } from '../../../core/services/user';
 import { Invoice, InvoiceType, EscrowStatus } from '../../../core/models/finance.model';
+import { DeliveryOrderService } from '../../../core/services/delivery-order.service';
 
 Chart.register(...registerables);
 
@@ -104,11 +105,19 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
   // 🏢 Nom de l'entreprise connectée (issu du JWT stocké)
   companyName: string = '';
 
+  // 🔄 Polling — Détection automatique des livraisons
+  private pollingTimer: any = null;
+  private readonly POLLING_INTERVAL_MS = 30_000; // 30 secondes
+  pollingActive = false;  // affiché dans le UI
+  lastCheckTime: Date | null = null;  // heure du dernier polling
+  autoProcessedCount = 0;  // nombre de factures traitées automatiquement
+
   constructor(
     private invoiceService: InvoiceService,
     private financeService: FinanceService,
     private authService: AuthService,
     private userManagementService: UserManagementService,
+    private deliveryOrderService: DeliveryOrderService,
     private fb: FormBuilder,
     private cd: ChangeDetectorRef
   ) {
@@ -192,6 +201,8 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     this.companyName = this.authService.currentUser?.company ?? '';
     this.loadGlobalCompanies();
     this.loadInvoices();
+    // 🔄 Démarrage du polling automatique
+    this.startDeliveryPolling();
   }
 
   loadGlobalCompanies(): void {
@@ -222,7 +233,115 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     if (this.dataReady) setTimeout(() => this.initDoughnutChart(), 50);
   }
 
-  ngOnDestroy(): void { this.doughnutInstance?.destroy(); }
+  ngOnDestroy(): void {
+    this.doughnutInstance?.destroy();
+    this.stopDeliveryPolling();
+  }
+
+  // ==================== 🔄 POLLING — DÉTECTION AUTO LIVRAISONS ====================
+
+  /** Démarre la surveillance automatique des livraisons toutes les 30s */
+  startDeliveryPolling(): void {
+    if (this.pollingTimer) return; // déjà actif
+    this.pollingActive = true;
+    // Premier check immédiat après chargement
+    setTimeout(() => this.checkPendingDeliveries(), 5000);
+    // Puis toutes les 30s
+    this.pollingTimer = setInterval(() => this.checkPendingDeliveries(), this.POLLING_INTERVAL_MS);
+  }
+
+  /** Arrête le polling (appelé dans ngOnDestroy) */
+  stopDeliveryPolling(): void {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+    }
+    this.pollingActive = false;
+  }
+
+  /**
+   * ⚡ CŒUR DU FLUX AUTOMATIQUE
+   * Vérifie si des commandes de livraison ont été marquées LIVREE
+   * et déclenche la cascade financière si une facture UNPAID est liée.
+   */
+  checkPendingDeliveries(): void {
+    // Ne vérifier que si on a des factures UNPAID liées à des commandes
+    const unpaidLinked = [
+      ...this.salesInvoices,
+      ...this.purchaseInvoices
+    ].filter(inv => inv.status === 'UNPAID' && !!inv.deliveryOrderId);
+
+    if (unpaidLinked.length === 0) {
+      this.lastCheckTime = new Date();
+      return; // Rien à surveiller
+    }
+
+    this.deliveryOrderService.getByStatut('LIVREE').subscribe({
+      next: (livreedOrders) => {
+        this.lastCheckTime = new Date();
+
+        livreedOrders.forEach(order => {
+          // Cherche une facture UNPAID dont le deliveryOrderId correspond
+          const linkedInvoice = unpaidLinked.find(
+            inv => inv.deliveryOrderId === order.idDelivery
+          );
+
+          if (linkedInvoice) {
+            console.log(`🔔 Livraison DEL-${order.idDelivery} détectée ! Déclenchement cascade financière...`);
+            this.triggerFinancialCascade(linkedInvoice, order.idDelivery!);
+          }
+        });
+
+        setTimeout(() => this.cd.detectChanges(), 0);
+      },
+      error: () => {
+        // Silencieux — ne pas perturber l'UI si le backend est injoignable
+        this.lastCheckTime = new Date();
+      }
+    });
+  }
+
+  /**
+   * 💥 CASCADE FINANCIÈRE AUTOMATIQUE
+   * Déclenché quand une livraison est détectée comme LIVREE.
+   * 1. Facture → PAID
+   * 2. Escrow → RELEASED (l'email est envoyé automatiquement par le backend)
+   */
+  triggerFinancialCascade(invoice: Invoice, deliveryOrderId: number): void {
+    console.log(`⚡ Cascade pour facture ${invoice.invoiceNumber} (deliveryOrder #${deliveryOrderId})`);
+
+    const updated: Invoice = {
+      ...invoice,
+      status: 'PAID',
+      deliveredAt: new Date().toISOString().split('T')[0]
+    };
+
+    // Étape 1 : Marquer la facture PAID via markPaid, fallback via update
+    this.invoiceService.markPaid(invoice.id!).subscribe({
+      next: (res) => {
+        this.applyDeliverySuccess(invoice, res, updated);
+        this.autoProcessedCount++;
+        this.showToast(
+          `🚀 Livraison DEL-${deliveryOrderId} confirmée ! Facture ${invoice.invoiceNumber} → ✅ PAYÉE — 📧 Email envoyé automatiquement`,
+          'success'
+        );
+      },
+      error: () => {
+        // Fallback si markPaid non disponible
+        this.invoiceService.update(updated).subscribe({
+          next: () => {
+            this.applyDeliverySuccess(invoice, updated, updated);
+            this.autoProcessedCount++;
+            this.showToast(
+              `🚀 Livraison DEL-${deliveryOrderId} confirmée ! Facture ${invoice.invoiceNumber} → ✅ PAYÉE`,
+              'success'
+            );
+          },
+          error: () => this.showToast(`⚠️ Erreur lors de la mise à jour automatique de ${invoice.invoiceNumber}`, 'error')
+        });
+      }
+    });
+  }
 
   // ==================== 🏦 IA SOLVABILITÉ AVANCÉE ====================
 
@@ -450,6 +569,12 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     return this.invoices.filter(i => !!i.deliveryOrderId).length;
   }
 
+  /** Texte du tooltip du badge livraison (sans caractères speciaux problematiques) */
+  getDeliveryBadgeTitle(inv: Invoice): string {
+    const status = inv.status === 'PAID' ? 'Livree - Payee' : 'En attente de livraison';
+    return 'Commande #' + (inv.deliveryOrderId ?? '') + ' - ' + status;
+  }
+
   /**
    * ⚡ CASCADE : Confirmer la livraison d'une facture
    * 1️⃣ Facture UNPAID → PAID  (via markPaid ou update local)
@@ -510,20 +635,31 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     }, 0);
     this.showToast(`✅ Facture ${original.invoiceNumber} marquée PAYÉE — 📧 Email envoyé`, 'success');
 
-    // 🔒 Libération automatique de l'escrow associé (si présent)
-    this.financeService.getMyEscrow().subscribe(escrows => {
-      const linked = escrows.find(e =>
-        e.project === original.project &&
-        e.status === EscrowStatus.LOCKED &&
-        Math.abs(e.amount - original.amountTTC) < 1 // Tolérance pour les arrondis
-      );
-      if (linked && linked.id) {
-        this.financeService.releaseEscrow(linked.id).subscribe({
-          next: () => console.log('Escrow libéré automatiquement'),
-          error: (err) => console.error('Erreur libération escrow auto', err)
-        });
-      }
-    });
+    // 🔒 Libération automatique de l'escrow associé
+    // Priorité 1 : utiliser linkedEscrowId si renseigné sur la facture (exact)
+    if (original.linkedEscrowId) {
+      this.financeService.releaseEscrow(original.linkedEscrowId).subscribe({
+        next: () => console.log(`💰 Escrow #${original.linkedEscrowId} libéré directement via linkedEscrowId`),
+        error: (err) => console.warn('Erreur libération escrow (linkedEscrowId)', err)
+      });
+    } else {
+      // Priorité 2 : matching par projet + montant (fallback)
+      this.financeService.getMyEscrow().subscribe(escrows => {
+        const linked = escrows.find(e =>
+          e.project === original.project &&
+          e.status === EscrowStatus.LOCKED &&
+          Math.abs(e.amount - original.amountTTC) < 1 // Tolérance arrondis
+        );
+        if (linked && linked.id) {
+          this.financeService.releaseEscrow(linked.id).subscribe({
+            next: () => console.log(`💰 Escrow #${linked.id} libéré via matching projet/montant`),
+            error: (err) => console.error('Erreur libération escrow (matching)', err)
+          });
+        } else {
+          console.warn('⚠️ Aucun escrow LOCKED trouvé pour cette facture — libération manuelle peut être nécessaire');
+        }
+      });
+    }
   }
 
   // ==================== TTC PREVIEW ====================
