@@ -145,7 +145,10 @@ export class EnterpriseSlots implements OnInit {
   }
 
   get heatmapRows(): HeatmapBucket[][] {
-    const sourceDates = [...new Set(this.slots.map(slot => slot.date))].sort().slice(0, 7);
+    const sourceDates = [...new Set([
+      ...this.slots.map(slot => slot.date),
+      ...this.reservations.map(reservation => reservation.date),
+    ])].sort().slice(0, 7);
     const buckets = [
       { startHour: 0, endHour: 6, label: '00-06' },
       { startHour: 6, endHour: 12, label: '06-12' },

@@ -30,6 +30,7 @@ type OrderFormModel = {
   waterSaved: number | null;
   wasteAvoided: number | null;
   sourceSolar: boolean;
+  sourceDuration: number;
 };
 
 @Component({
@@ -125,12 +126,19 @@ export class EnterpriseOrders implements OnInit {
   }
 
   get formEcoScore(): { grade: BackendEcoGrade; message: string } {
-    const grade = this.gradeFromMetrics(this.form.co2Saved ?? 0, this.form.distanceKm, this.form.sourceSolar);
+    const grade = this.gradeFromMetrics(
+      this.form.co2Saved ?? 0,
+      this.form.distanceKm,
+      this.form.sourceSolar,
+      this.form.sourceDuration,
+    );
     let message = 'Moderate impact profile';
     if (grade === 'A' || grade === 'B') {
-      message = this.form.sourceSolar ? 'Strong eco profile with solar-backed source' : 'Strong eco profile';
+      message = this.form.sourceSolar
+        ? `Strong eco profile with solar-backed source over ${this.form.sourceDuration} hour(s)`
+        : `Strong eco profile over ${this.form.sourceDuration} hour(s)`;
     } else if (grade === 'D' || grade === 'E') {
-      message = 'Lower eco score due to limited CO2 savings or long distance';
+      message = 'Lower eco score due to limited CO2 savings, low duration, or long distance';
     }
 
     return { grade, message };
@@ -161,10 +169,11 @@ export class EnterpriseOrders implements OnInit {
       orderDate: order.orderDate,
       status: order.status,
       grade: order.grade,
-      co2Saved: order.co2Saved ?? this.derivedCo2Saved(order.qtyKg, order.distanceKm, false),
+      co2Saved: order.co2Saved ?? this.derivedCo2Saved(order.qtyKg, order.distanceKm, false, 1),
       waterSaved: order.waterSaved ?? null,
       wasteAvoided: order.wasteAvoided ?? null,
       sourceSolar: false,
+      sourceDuration: 1,
     };
   }
 
@@ -188,6 +197,7 @@ export class EnterpriseOrders implements OnInit {
       waterSaved: Math.max(0, Math.round(reservation.hours * 8)),
       wasteAvoided: Math.max(0, Math.round(reservation.hours * 4)),
       sourceSolar: reservation.solar,
+      sourceDuration: Math.max(1, reservation.hours),
     };
     this.recomputeOrderMetrics();
   }
@@ -200,7 +210,12 @@ export class EnterpriseOrders implements OnInit {
   }
 
   recomputeOrderMetrics(): void {
-    const co2Saved = this.form.co2Saved ?? this.derivedCo2Saved(this.form.qtyKg, this.form.distanceKm, this.form.sourceSolar);
+    const co2Saved = this.form.co2Saved ?? this.derivedCo2Saved(
+      this.form.qtyKg,
+      this.form.distanceKm,
+      this.form.sourceSolar,
+      this.form.sourceDuration,
+    );
     this.form.co2Saved = Math.max(0, Math.round(co2Saved));
 
     if (this.form.waterSaved == null) {
@@ -210,7 +225,12 @@ export class EnterpriseOrders implements OnInit {
       this.form.wasteAvoided = Math.max(0, Math.round(this.form.qtyKg * 0.45));
     }
 
-    this.form.grade = this.gradeFromMetrics(this.form.co2Saved, this.form.distanceKm, this.form.sourceSolar);
+    this.form.grade = this.gradeFromMetrics(
+      this.form.co2Saved,
+      this.form.distanceKm,
+      this.form.sourceSolar,
+      this.form.sourceDuration,
+    );
   }
 
   saveOrder(): void {
@@ -393,6 +413,7 @@ export class EnterpriseOrders implements OnInit {
       waterSaved: null,
       wasteAvoided: null,
       sourceSolar: false,
+      sourceDuration: 1,
     };
   }
 
@@ -411,15 +432,21 @@ export class EnterpriseOrders implements OnInit {
     return reservation.enterprise?.id ?? reservation.enterpriseId ?? null;
   }
 
-  private derivedCo2Saved(qtyKg: number, distanceKm: number, solar: boolean): number {
-    const base = qtyKg * 0.35 - distanceKm * 0.08;
+  private derivedCo2Saved(qtyKg: number, distanceKm: number, solar: boolean, duration: number): number {
+    const base = qtyKg * 0.35 - distanceKm * 0.08 + duration * 4;
     return Math.max(0, Math.round(solar ? base + qtyKg * 0.1 : base));
   }
 
-  private gradeFromMetrics(co2Saved: number | null, distanceKm: number, solar: boolean): BackendEcoGrade {
+  private gradeFromMetrics(
+    co2Saved: number | null,
+    distanceKm: number,
+    solar: boolean,
+    duration: number,
+  ): BackendEcoGrade {
     const saved = co2Saved ?? 0;
     const solarBoost = solar ? 20 : 0;
-    const score = saved + solarBoost - distanceKm * 0.03;
+    const durationBoost = duration * 4;
+    const score = saved + solarBoost + durationBoost - distanceKm * 0.03;
     if (score >= 180) return 'A';
     if (score >= 120) return 'B';
     if (score >= 70) return 'C';

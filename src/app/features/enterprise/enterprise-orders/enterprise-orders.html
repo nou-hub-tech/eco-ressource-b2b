@@ -123,6 +123,11 @@
         </div>
 
         <div class="form-group">
+          <label>Duration (hours)</label>
+          <input type="number" min="1" name="sourceDuration" [(ngModel)]="form.sourceDuration" (ngModelChange)="recomputeOrderMetrics()" />
+        </div>
+
+        <div class="form-group">
           <label>Grade</label>
           <input type="text" [value]="formEcoScore.grade" disabled />
         </div>

@@ -187,6 +187,10 @@
         </div>
       </div>
     </div>
+
+    <div class="table-state" *ngIf="!heatmapRows.length" style="margin-top:16px">
+      No backend slot or reservation data is available for the heatmap yet.
+    </div>
   </section>
 
   <section class="card">
