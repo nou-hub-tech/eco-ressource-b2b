@@ -1,8 +1,10 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { filter, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { Subscription, interval } from 'rxjs';
+import { filter } from 'rxjs/operators';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { DeliveryOrderService } from '../../../core/services/delivery-order.service';
 import { ShipmentService } from '../../../core/services/shipment.service';
 import { AlertService } from '../../../core/services/alert.service';
@@ -18,12 +20,12 @@ import { StatutCommande, StatutExpedition } from '../../../core/models/statut';
   styleUrls: ['./deliveries.css']
 })
 export class Deliveries implements OnInit, OnDestroy {
-  
+
   isLoading = false;
   errorMessage = '';
   successMessage = '';
   activeTab: string = 'orders';
-  
+
   deliveryOrders: DeliveryOrder[] = [];
   filteredOrders: DeliveryOrder[] = [];
   searchFormOrders: FormGroup;
@@ -33,12 +35,12 @@ export class Deliveries implements OnInit, OnDestroy {
   statistiquesOrders: any = null;
   showStatsOrders = false;
   rechercheActiveOrders = false;
-  
+
   currentPageOrders: number = 1;
   itemsPerPageOrders: number = 3;
   totalItemsOrders: number = 0;
   paginatedOrders: DeliveryOrder[] = [];
-  
+
   shipments: Shipment[] = [];
   filteredShipments: Shipment[] = [];
   deliveryOrdersMap: Map<number, DeliveryOrder> = new Map();
@@ -49,12 +51,12 @@ export class Deliveries implements OnInit, OnDestroy {
   statistiquesShipments: any = null;
   showStatsShipments = false;
   rechercheActiveShipments = false;
-  
+
   currentPageShipments: number = 1;
   itemsPerPageShipments: number = 3;
   totalItemsShipments: number = 0;
   paginatedShipments: Shipment[] = [];
-  
+
   private subscriptions: Subscription = new Subscription();
   private refreshInterval: any;
 
@@ -73,7 +75,7 @@ export class Deliveries implements OnInit, OnDestroy {
       statut: [''],
       datePrevue: ['']
     });
-    
+
     this.searchFormShipments = this.fb.group({
       produitId: [''],
       quantite: [''],
@@ -89,14 +91,14 @@ export class Deliveries implements OnInit, OnDestroy {
     this.loadStatistiquesShipments();
     this.setupDynamicSearchOrders();
     this.setupDynamicSearchShipments();
-    
+
     window.addEventListener('orderChanged', this.handleOrderChange.bind(this));
     window.addEventListener('shipmentChanged', this.handleShipmentChange.bind(this));
     window.addEventListener('focus', () => {
       this.loadDeliveryOrders();
       this.loadShipments();
     });
-    
+
     // Détecter le retour à cette page pour rafraîchir
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -108,7 +110,7 @@ export class Deliveries implements OnInit, OnDestroy {
         this.loadStatistiquesOrders();
         this.loadStatistiquesShipments();
         this.cd.detectChanges();
-        
+
         // Lire le paramètre tab depuis l'URL
         const urlParams = new URLSearchParams(event.url.split('?')[1]);
         const tab = urlParams.get('tab');
@@ -119,7 +121,7 @@ export class Deliveries implements OnInit, OnDestroy {
         }
       }
     });
-    
+
     // Lire le paramètre tab au chargement initial
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get('tab');
@@ -128,7 +130,7 @@ export class Deliveries implements OnInit, OnDestroy {
     } else if (initialTab === 'orders') {
       this.activeTab = 'orders';
     }
-    
+
     this.refreshInterval = setInterval(() => {
       this.refreshData();
     }, 5000);
@@ -157,7 +159,7 @@ export class Deliveries implements OnInit, OnDestroy {
   }
 
   // ==================== COMMANDES ====================
-  
+
   setupDynamicSearchOrders(): void {
     const nomClientSub = this.searchFormOrders.get('nomClient')?.valueChanges
       .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
@@ -185,7 +187,7 @@ export class Deliveries implements OnInit, OnDestroy {
         }
       });
     this.subscriptions.add(nomClientSub);
-    
+
     const adresseSub = this.searchFormOrders.get('adresseLivraison')?.valueChanges
       .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
         if (value && value.trim()) {
@@ -212,7 +214,7 @@ export class Deliveries implements OnInit, OnDestroy {
         }
       });
     this.subscriptions.add(adresseSub);
-    
+
     const statutSub = this.searchFormOrders.get('statut')?.valueChanges
       .pipe(distinctUntilChanged(), switchMap(value => {
         if (value) {
@@ -239,7 +241,7 @@ export class Deliveries implements OnInit, OnDestroy {
         }
       });
     this.subscriptions.add(statutSub);
-    
+
     const dateSub = this.searchFormOrders.get('datePrevue')?.valueChanges
       .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
         if (value) {
@@ -267,18 +269,18 @@ export class Deliveries implements OnInit, OnDestroy {
       });
     this.subscriptions.add(dateSub);
   }
-  
+
   hasActiveFiltersOrders(): boolean {
     const form = this.searchFormOrders.value;
     return !!(form.nomClient || form.adresseLivraison || form.statut || form.datePrevue);
   }
-  
+
   resetFiltersOrders(): void {
     this.searchFormOrders.reset();
     this.rechercheActiveOrders = false;
     this.loadDeliveryOrders();
   }
-  
+
   loadDeliveryOrders(): void {
     this.isLoading = true;
     const sub = this.deliveryOrderService.getAll().subscribe({
@@ -298,7 +300,7 @@ export class Deliveries implements OnInit, OnDestroy {
     });
     this.subscriptions.add(sub);
   }
-  
+
   filterOrders(): void {
     const statutFiltre = this.searchFormOrders.get('statut')?.value;
     if (statutFiltre && !this.rechercheActiveOrders) {
@@ -308,7 +310,7 @@ export class Deliveries implements OnInit, OnDestroy {
     }
     this.updatePaginationOrders();
   }
-  
+
   updatePaginationOrders(): void {
     this.totalItemsOrders = this.filteredOrders.length;
     const maxPage = this.getTotalPagesOrders();
@@ -319,37 +321,37 @@ export class Deliveries implements OnInit, OnDestroy {
     }
     this.setPaginatedOrders();
   }
-  
+
   setPaginatedOrders(): void {
     const startIndex = (this.currentPageOrders - 1) * this.itemsPerPageOrders;
     this.paginatedOrders = this.filteredOrders.slice(startIndex, startIndex + this.itemsPerPageOrders);
   }
-  
+
   nextPageOrders(): void {
     if (this.currentPageOrders < this.getTotalPagesOrders()) {
       this.currentPageOrders++;
       this.setPaginatedOrders();
     }
   }
-  
+
   previousPageOrders(): void {
     if (this.currentPageOrders > 1) {
       this.currentPageOrders--;
       this.setPaginatedOrders();
     }
   }
-  
+
   goToPageOrders(page: number): void {
     if (page >= 1 && page <= this.getTotalPagesOrders()) {
       this.currentPageOrders = page;
       this.setPaginatedOrders();
     }
   }
-  
+
   getTotalPagesOrders(): number {
     return Math.ceil(this.totalItemsOrders / this.itemsPerPageOrders);
   }
-  
+
   getPageNumbersOrders(): number[] {
     const pages: number[] = [];
     for (let i = 1; i <= this.getTotalPagesOrders(); i++) {
@@ -357,15 +359,15 @@ export class Deliveries implements OnInit, OnDestroy {
     }
     return pages;
   }
-  
+
   getStartIndexOrders(): number {
     return (this.currentPageOrders - 1) * this.itemsPerPageOrders + 1;
   }
-  
+
   getEndIndexOrders(): number {
     return Math.min(this.currentPageOrders * this.itemsPerPageOrders, this.totalItemsOrders);
   }
-  
+
   sortOrdersByField(field: string): void {
     if (this.sortByOrders === field) {
       this.sortOrderOrders = this.sortOrderOrders === 'asc' ? 'desc' : 'asc';
@@ -373,7 +375,7 @@ export class Deliveries implements OnInit, OnDestroy {
       this.sortByOrders = field;
       this.sortOrderOrders = 'asc';
     }
-    
+
     this.isLoading = true;
     const sub = this.deliveryOrderService.sortBy(field, this.sortOrderOrders).subscribe({
       next: (data: any) => {
@@ -390,25 +392,25 @@ export class Deliveries implements OnInit, OnDestroy {
     });
     this.subscriptions.add(sub);
   }
-  
+
   loadStatistiquesOrders(): void {
     const sub = this.deliveryOrderService.getStatistiques().subscribe({
       next: (data: any) => {
         this.statistiquesOrders = data;
         this.cd.detectChanges();
       },
-      error: () => {}
+      error: () => { }
     });
     this.subscriptions.add(sub);
   }
-  
+
   toggleStatsOrders(): void {
     this.showStatsOrders = !this.showStatsOrders;
     if (this.showStatsOrders && !this.statistiquesOrders) {
       this.loadStatistiquesOrders();
     }
   }
-  
+
   getProgressWidthOrders(statut: string): string {
     if (this.statistiquesOrders && this.statistiquesOrders.total > 0) {
       const count = this.statistiquesOrders.parStatut?.[statut] || 0;
@@ -416,26 +418,26 @@ export class Deliveries implements OnInit, OnDestroy {
     }
     return '0%';
   }
-  
+
   // ========== NAVIGATION COMMANDES ==========
   onViewOrderDetail(id: number): void {
     this.router.navigate(['/admin/delivery-orders/detail', id]);
   }
-  
+
   onEditOrder(id: number): void {
     this.router.navigate(['/admin/delivery-orders/edit', id]);
   }
-  
+
   onCreateOrder(): void {
     this.router.navigate(['/admin/delivery-orders/new']);
   }
-  
+
   onGenerateOrderPDF(order: DeliveryOrder): void {
     this.pdfGenerator.generateDeliveryOrderPDF(order);
     this.successMessage = `PDF généré pour la commande #${order.idDelivery}`;
     setTimeout(() => { this.successMessage = ''; }, 3000);
   }
-  
+
   onDeleteOrder(id: number): void {
     if (confirm('Supprimer cette commande ?')) {
       this.deliveryOrderService.delete(id).subscribe({
@@ -452,7 +454,7 @@ export class Deliveries implements OnInit, OnDestroy {
       });
     }
   }
-  
+
   generateAllOrdersPDFs(): void {
     if (this.filteredOrders.length === 0) {
       this.errorMessage = 'Aucune commande à exporter';
@@ -471,9 +473,9 @@ export class Deliveries implements OnInit, OnDestroy {
     setTimeout(() => { this.successMessage = ''; }, 3000);
     this.cd.detectChanges();
   }
-  
+
   getStatutClassOrder(statut: StatutCommande): string {
-    switch(statut) {
+    switch (statut) {
       case StatutCommande.EN_ATTENTE: return 'badge badge-warning';
       case StatutCommande.EN_COURS: return 'badge badge-info';
       case StatutCommande.LIVREE: return 'badge badge-success';
@@ -482,7 +484,7 @@ export class Deliveries implements OnInit, OnDestroy {
   }
 
   // ==================== EXPÉDITIONS ====================
-  
+
   setupDynamicSearchShipments(): void {
     const produitSub = this.searchFormShipments.get('produitId')?.valueChanges
       .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
@@ -510,7 +512,7 @@ export class Deliveries implements OnInit, OnDestroy {
         }
       });
     this.subscriptions.add(produitSub);
-    
+
     const quantiteSub = this.searchFormShipments.get('quantite')?.valueChanges
       .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
         if (value && value.toString().trim()) {
@@ -537,7 +539,7 @@ export class Deliveries implements OnInit, OnDestroy {
         }
       });
     this.subscriptions.add(quantiteSub);
-    
+
     const statutSub = this.searchFormShipments.get('statut')?.valueChanges
       .pipe(distinctUntilChanged(), switchMap(value => {
         if (value) {
@@ -564,7 +566,7 @@ export class Deliveries implements OnInit, OnDestroy {
         }
       });
     this.subscriptions.add(statutSub);
-    
+
     const dateSub = this.searchFormShipments.get('dateDepart')?.valueChanges
       .pipe(debounceTime(500), distinctUntilChanged(), switchMap(value => {
         if (value) {
@@ -592,18 +594,18 @@ export class Deliveries implements OnInit, OnDestroy {
       });
     this.subscriptions.add(dateSub);
   }
-  
+
   hasActiveFiltersShipments(): boolean {
     const form = this.searchFormShipments.value;
     return !!(form.produitId || form.quantite || form.statut || form.dateDepart);
   }
-  
+
   resetFiltersShipments(): void {
     this.searchFormShipments.reset();
     this.rechercheActiveShipments = false;
     this.loadShipments();
   }
-  
+
   loadShipments(): void {
     this.isLoading = true;
     const sub = this.shipmentService.getAll().subscribe({
@@ -622,7 +624,7 @@ export class Deliveries implements OnInit, OnDestroy {
     });
     this.subscriptions.add(sub);
   }
-  
+
   loadDeliveryOrdersMap(): void {
     const sub = this.deliveryOrderService.getAll().subscribe({
       next: (orders) => {
@@ -631,11 +633,11 @@ export class Deliveries implements OnInit, OnDestroy {
         });
         this.cd.detectChanges();
       },
-      error: () => {}
+      error: () => { }
     });
     this.subscriptions.add(sub);
   }
-  
+
   filterShipments(): void {
     const statutFiltre = this.searchFormShipments.get('statut')?.value;
     if (statutFiltre && !this.rechercheActiveShipments) {
@@ -645,7 +647,7 @@ export class Deliveries implements OnInit, OnDestroy {
     }
     this.updatePaginationShipments();
   }
-  
+
   updatePaginationShipments(): void {
     this.totalItemsShipments = this.filteredShipments.length;
     const maxPage = this.getTotalPagesShipments();
@@ -656,37 +658,37 @@ export class Deliveries implements OnInit, OnDestroy {
     }
     this.setPaginatedShipments();
   }
-  
+
   setPaginatedShipments(): void {
     const startIndex = (this.currentPageShipments - 1) * this.itemsPerPageShipments;
     this.paginatedShipments = this.filteredShipments.slice(startIndex, startIndex + this.itemsPerPageShipments);
   }
-  
+
   nextPageShipments(): void {
     if (this.currentPageShipments < this.getTotalPagesShipments()) {
       this.currentPageShipments++;
       this.setPaginatedShipments();
     }
   }
-  
+
   previousPageShipments(): void {
     if (this.currentPageShipments > 1) {
       this.currentPageShipments--;
       this.setPaginatedShipments();
     }
   }
-  
+
   goToPageShipments(page: number): void {
     if (page >= 1 && page <= this.getTotalPagesShipments()) {
       this.currentPageShipments = page;
       this.setPaginatedShipments();
     }
   }
-  
+
   getTotalPagesShipments(): number {
     return Math.ceil(this.totalItemsShipments / this.itemsPerPageShipments);
   }
-  
+
   getPageNumbersShipments(): number[] {
     const pages: number[] = [];
     for (let i = 1; i <= this.getTotalPagesShipments(); i++) {
@@ -694,15 +696,15 @@ export class Deliveries implements OnInit, OnDestroy {
     }
     return pages;
   }
-  
+
   getStartIndexShipments(): number {
     return (this.currentPageShipments - 1) * this.itemsPerPageShipments + 1;
   }
-  
+
   getEndIndexShipments(): number {
     return Math.min(this.currentPageShipments * this.itemsPerPageShipments, this.totalItemsShipments);
   }
-  
+
   sortShipmentsByField(field: string): void {
     if (this.sortByShipments === field) {
       this.sortOrderShipments = this.sortOrderShipments === 'asc' ? 'desc' : 'asc';
@@ -710,7 +712,7 @@ export class Deliveries implements OnInit, OnDestroy {
       this.sortByShipments = field;
       this.sortOrderShipments = 'asc';
     }
-    
+
     this.isLoading = true;
     const sub = this.shipmentService.sortBy(field, this.sortOrderShipments).subscribe({
       next: (data: any) => {
@@ -727,42 +729,42 @@ export class Deliveries implements OnInit, OnDestroy {
     });
     this.subscriptions.add(sub);
   }
-  
+
   loadStatistiquesShipments(): void {
     const sub = this.shipmentService.getStatistiques().subscribe({
       next: (data: any) => {
         this.statistiquesShipments = data;
         this.cd.detectChanges();
       },
-      error: () => {}
+      error: () => { }
     });
     this.subscriptions.add(sub);
   }
-  
+
   toggleStatsShipments(): void {
     this.showStatsShipments = !this.showStatsShipments;
     if (this.showStatsShipments && !this.statistiquesShipments) {
       this.loadStatistiquesShipments();
     }
   }
-  
+
   getClientName(deliveryOrderId: number): string {
     return this.deliveryOrdersMap.get(deliveryOrderId)?.nomClient || 'Inconnu';
   }
-  
+
   // ========== NAVIGATION EXPÉDITIONS ==========
   onViewShipmentDetail(id: number): void {
     this.router.navigate(['/admin/shipments/detail', id]);
   }
-  
+
   onEditShipment(id: number): void {
     this.router.navigate(['/admin/shipments/edit', id]);
   }
-  
+
   onCreateShipment(): void {
     this.router.navigate(['/admin/shipments/new']);
   }
-  
+
   onDeleteShipment(id: number): void {
     if (confirm('Supprimer cette expédition ?')) {
       this.shipmentService.delete(id).subscribe({
@@ -779,7 +781,7 @@ export class Deliveries implements OnInit, OnDestroy {
       });
     }
   }
-  
+
   onGenerateShipmentPDF(shipmentId: number): void {
     const shipment = this.shipments.find(s => s.id === shipmentId);
     if (!shipment) {
@@ -791,7 +793,7 @@ export class Deliveries implements OnInit, OnDestroy {
     this.successMessage = `PDF généré pour l'expédition #${shipment.id}`;
     setTimeout(() => { this.successMessage = ''; }, 3000);
   }
-  
+
   generateAllShipmentsPDFs(): void {
     if (this.filteredShipments.length === 0) {
       this.errorMessage = 'Aucune expédition à exporter';
@@ -811,16 +813,16 @@ export class Deliveries implements OnInit, OnDestroy {
     setTimeout(() => { this.successMessage = ''; }, 3000);
     this.cd.detectChanges();
   }
-  
+
   getStatutClassShipment(statut: StatutExpedition): string {
-    switch(statut) {
+    switch (statut) {
       case StatutExpedition.EN_ATTENTE: return 'badge badge-warning';
       case StatutExpedition.EN_COURS: return 'badge badge-info';
       case StatutExpedition.LIVREE: return 'badge badge-success';
       default: return 'badge badge-neutral';
     }
   }
-  
+
   getProgressWidthShipments(statut: string): string {
     if (this.statistiquesShipments && this.statistiquesShipments.total > 0) {
       const count = this.statistiquesShipments.parStatut?.[statut] || 0;
@@ -828,14 +830,14 @@ export class Deliveries implements OnInit, OnDestroy {
     }
     return '0%';
   }
-  
+
   handleOrderChange(): void {
     if (!this.rechercheActiveOrders) {
       this.loadDeliveryOrders();
     }
     this.loadStatistiquesOrders();
   }
-  
+
   handleShipmentChange(): void {
     if (!this.rechercheActiveShipments) {
       this.loadShipments();

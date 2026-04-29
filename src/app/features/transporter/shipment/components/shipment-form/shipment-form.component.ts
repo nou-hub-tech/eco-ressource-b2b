@@ -42,10 +42,10 @@ export class ShipmentFormComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadDeliveryOrders();
-        
+
         const id = this.route.snapshot.paramMap.get('id');
         const deliveryOrderId = this.route.snapshot.paramMap.get('deliveryOrderId');
-        
+
         if (id) {
             this.isEditMode = true;
             this.shipmentId = +id;
@@ -72,12 +72,12 @@ export class ShipmentFormComponent implements OnInit {
 
     validateDate(control: AbstractControl): { [key: string]: any } | null {
         if (!control.value) return { 'required': true };
-        
+
         const date = new Date(control.value);
         if (isNaN(date.getTime())) {
             return { 'invalidDate': true };
         }
-        
+
         return null;
     }
 
@@ -100,9 +100,9 @@ export class ShipmentFormComponent implements OnInit {
             next: (shipment) => {
                 const date = new Date(shipment.dateDepart);
                 const formattedDate = date.toISOString().slice(0, 16);
-                
+
                 this.shipmentForm.patchValue({
-                    deliveryOrderId: shipment.deliveryOrder.idDelivery,  
+                    deliveryOrderId: shipment.deliveryOrder.idDelivery,
                     produitId: shipment.produitId,
                     quantite: shipment.quantite,
                     idTransporter: shipment.idTransporter,
@@ -131,7 +131,7 @@ export class ShipmentFormComponent implements OnInit {
         console.log('=== SOUMISSION DU FORMULAIRE ===');
         console.log('Formulaire valide?', this.shipmentForm.valid);
         console.log('Valeurs:', this.shipmentForm.value);
-        
+
         if (this.shipmentForm.invalid) {
             // Afficher les erreurs de chaque champ
             Object.keys(this.shipmentForm.controls).forEach(key => {
@@ -146,7 +146,7 @@ export class ShipmentFormComponent implements OnInit {
 
         this.isLoading = true;
         const formValue = this.shipmentForm.value;
-        
+
         // Formater la date
         let formattedDate = formValue.dateDepart;
         if (formattedDate) {
@@ -155,7 +155,7 @@ export class ShipmentFormComponent implements OnInit {
                 formattedDate = date.toISOString();
             }
         }
-        
+
         //  Construction de l'objet shipment
         let shipment: any;
         if (this.isEditMode) {
@@ -181,7 +181,7 @@ export class ShipmentFormComponent implements OnInit {
 
         console.log('Envoi au backend:', shipment);  // Debug
 
-        const request = this.isEditMode 
+        const request = this.isEditMode
             ? this.shipmentService.update(this.shipmentId!, shipment)
             : this.shipmentService.create(shipment);
 

@@ -180,7 +180,7 @@ export class MyProducts implements OnInit {
       return '';
     }
     const str = String(imagePath).trim();
-    // Si c'est une URL complète (http://localhost:8080/files/...), extraire seulement le nom de fichier
+    // Si c'est une URL complète (http://localhost:9090/files/...), extraire seulement le nom de fichier
     if (str.startsWith('http://') || str.startsWith('https://')) {
       if (str.includes('/files/undefined') || str.includes('/files/null')) return '';
       if (str.includes('/files/')) {

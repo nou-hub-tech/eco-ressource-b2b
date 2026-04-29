@@ -83,7 +83,7 @@ export class ShipmentDetailComponent implements OnInit {
     }
 
     getStatutClass(statut: StatutExpedition): string {
-        switch(statut) {
+        switch (statut) {
             case StatutExpedition.EN_ATTENTE: return 'badge badge-warning';
             case StatutExpedition.EN_COURS: return 'badge badge-info';
             case StatutExpedition.LIVREE: return 'badge badge-success';

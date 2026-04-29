@@ -583,7 +583,7 @@ export class MyInventory implements OnInit, AfterViewChecked {
   getImageUrl(img: string | undefined): string {
     if (!img || img === 'default.png' || img === 'undefined' || img === 'null') return '';
     const str = img.trim();
-    // Si c'est une URL complète (http://localhost:8080/files/...), extraire le nom de fichier
+    // Si c'est une URL complète (http://localhost:9090/files/...), extraire le nom de fichier
     if (str.startsWith('http://') || str.startsWith('https://')) {
       if (str.includes('/files/undefined') || str.includes('/files/null')) return '';
       if (str.includes('/files/')) {

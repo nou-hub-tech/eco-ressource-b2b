@@ -1,21 +1,18 @@
-<<<<<<< HEAD
-<p>deliveries works!</p>
-=======
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1><i class="bi bi-box-seam"></i> Gestion des livraisons</h1>
-      <p>Commandes et expéditions - vue unifiée</p>
+      <h1><i class="bi bi-box-seam"></i> Delivery management</h1>
+      <p>Orders and shipments - unified view</p>
     </div>
   </div>
 
   <!-- Onglets -->
   <div class="tabs-container">
     <button class="tab-btn" [class.active]="activeTab === 'orders'" (click)="setActiveTab('orders')">
-      <i class="bi bi-box-seam"></i> Commandes
+      <i class="bi bi-box-seam"></i> Orders
     </button>
     <button class="tab-btn" [class.active]="activeTab === 'shipments'" (click)="setActiveTab('shipments')">
-      <i class="bi bi-truck"></i> Expéditions
+      <i class="bi bi-truck"></i> Shipments
     </button>
   </div>
 
@@ -28,32 +25,33 @@
     <div class="action-bar">
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button type="button" class="btn btn-outline" (click)="toggleStatsOrders()">
-          <i class="bi bi-graph-up"></i> Statistiques
+          <i class="bi bi-graph-up"></i> Statistics
         </button>
-        <button type="button" class="btn btn-danger" (click)="generateAllOrdersPDFs()" 
-                *ngIf="filteredOrders.length > 0" title="Exporter toutes les commandes filtrées">
-          <i class="bi bi-file-pdf"></i> Exporter tout
+        <button type="button" class="btn btn-danger" (click)="generateAllOrdersPDFs()" *ngIf="filteredOrders.length > 0"
+          title="Exporter toutes les commandes filtrées">
+          <i class="bi bi-file-pdf"></i> Export all
         </button>
         <button type="button" class="btn btn-primary" (click)="onCreateOrder()">
-          <i class="bi bi-plus-circle"></i> Nouvelle commande
+          <i class="bi bi-plus-circle"></i> New order
         </button>
       </div>
     </div>
 
     <div class="card" style="margin-bottom:18px">
-      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <h3><i class="bi bi-search"></i> Recherche</h3>
-        <span *ngIf="rechercheActiveOrders" class="badge badge-info">Recherche active</span>
+      <div class="card-header"
+        style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <h3><i class="bi bi-search"></i> Search</h3>
+        <span *ngIf="rechercheActiveOrders" class="badge badge-info">Search active</span>
       </div>
       <div class="card-body">
         <form [formGroup]="searchFormOrders">
           <div class="form-row">
             <div class="form-group">
-              <label>Nom client</label>
+              <label>Customer name</label>
               <input type="text" formControlName="nomClient" placeholder="Tapez pour rechercher…">
             </div>
             <div class="form-group">
-              <label>Adresse</label>
+              <label>Adress</label>
               <input type="text" formControlName="adresseLivraison" placeholder="Adresse de livraison…">
             </div>
           </div>
@@ -61,18 +59,18 @@
             <div class="form-group">
               <label>Statut</label>
               <select formControlName="statut">
-                <option value="">Tous</option>
+                <option value="">All</option>
                 <option *ngFor="let statut of statutsOrders" [value]="statut">{{ statut }}</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Date prévue</label>
+              <label>Planned date</label>
               <input type="date" formControlName="datePrevue">
             </div>
           </div>
           <div style="display:flex;justify-content:flex-end;margin-top:8px">
             <button type="button" class="btn btn-outline" (click)="resetFiltersOrders()">
-              <i class="bi bi-eraser"></i> Réinitialiser
+              <i class="bi bi-eraser"></i> Reset
             </button>
           </div>
         </form>
@@ -80,12 +78,12 @@
     </div>
 
     <div *ngIf="rechercheActiveOrders && isLoading" class="alert alert-success">
-      <i class="bi bi-search"></i> Recherche en cours…
+      <i class="bi bi-search"></i> Search in progress…
     </div>
 
     <div *ngIf="showStatsOrders && statistiquesOrders" class="card" style="margin-bottom:18px">
       <div class="card-header">
-        <h3><i class="bi bi-graph-up"></i> Statistiques Commandes</h3>
+        <h3><i class="bi bi-graph-up"></i> Statistics Orders</h3>
       </div>
       <div class="card-body">
         <div class="stats-grid">
@@ -94,8 +92,9 @@
             <div class="stat-label">Total</div>
           </div>
           <div class="stat-card text-center">
-            <div class="stat-value" style="color:var(--warning)">{{ statistiquesOrders.parStatut?.EN_ATTENTE || 0 }}</div>
-            <div class="stat-label">En attente</div>
+            <div class="stat-value" style="color:var(--warning)">{{ statistiquesOrders.parStatut?.EN_ATTENTE || 0 }}
+            </div>
+            <div class="stat-label">Pending</div>
             <div class="progress mt-1">
               <div class="progress-bar bg-warning" [style.width]="getProgressWidthOrders('EN_ATTENTE')"></div>
             </div>
@@ -103,7 +102,7 @@
           </div>
           <div class="stat-card text-center">
             <div class="stat-value" style="color:var(--info)">{{ statistiquesOrders.parStatut?.EN_COURS || 0 }}</div>
-            <div class="stat-label">En cours</div>
+            <div class="stat-label">In Progress</div>
             <div class="progress mt-1">
               <div class="progress-bar bg-info" [style.width]="getProgressWidthOrders('EN_COURS')"></div>
             </div>
@@ -111,7 +110,7 @@
           </div>
           <div class="stat-card text-center">
             <div class="stat-value" style="color:var(--success)">{{ statistiquesOrders.parStatut?.LIVREE || 0 }}</div>
-            <div class="stat-label">Livrées</div>
+            <div class="stat-label">Delivered</div>
             <div class="progress mt-1">
               <div class="progress-bar bg-success" [style.width]="getProgressWidthOrders('LIVREE')"></div>
             </div>
@@ -123,32 +122,36 @@
 
     <div class="tx-sort-row">
       <div class="tx-sort-group">
-        <button type="button" class="tx-sort-btn" [class.active]="sortByOrders === 'date'" (click)="sortOrdersByField('date')">
+        <button type="button" class="tx-sort-btn" [class.active]="sortByOrders === 'date'"
+          (click)="sortOrdersByField('date')">
           <i class="bi bi-calendar"></i> Date
-          <i *ngIf="sortByOrders === 'date'" [class]="sortOrderOrders === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+          <i *ngIf="sortByOrders === 'date'"
+            [class]="sortOrderOrders === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
         </button>
-        <button type="button" class="tx-sort-btn" [class.active]="sortByOrders === 'nom'" (click)="sortOrdersByField('nom')">
+        <button type="button" class="tx-sort-btn" [class.active]="sortByOrders === 'nom'"
+          (click)="sortOrdersByField('nom')">
           <i class="bi bi-person"></i> Client
-          <i *ngIf="sortByOrders === 'nom'" [class]="sortOrderOrders === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+          <i *ngIf="sortByOrders === 'nom'"
+            [class]="sortOrderOrders === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
         </button>
       </div>
-      <span style="font-size:12px;color:var(--text3)">{{ filteredOrders.length }} commande(s)</span>
+      <span style="font-size:12px;color:var(--text3)">{{ filteredOrders.length }} order(s)</span>
     </div>
 
     <div *ngIf="isLoading && !rechercheActiveOrders" class="empty-state">
       <div class="spinner-border" role="status"></div>
-      <p class="mt-2">Chargement…</p>
+      <p class="mt-2">Loading…</p>
     </div>
 
     <div *ngIf="!isLoading" class="card" style="padding:0">
-       <table class="data-table">
+      <table class="data-table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Client</th>
-            <th>Adresse</th>
-            <th>Date prévue</th>
-            <th>Statut</th>
+            <th>Customer</th>
+            <th>Address</th>
+            <th>Scheduled date</th>
+            <th>Status</th>
             <th style="width:180px">Actions</th>
           </tr>
         </thead>
@@ -161,16 +164,20 @@
             <td><span [class]="getStatutClassOrder(order.statut)">{{ order.statut }}</span></td>
             <td>
               <div class="btn-group" style="display: flex; gap: 5px; flex-wrap: wrap;">
-                <button type="button" class="btn btn-outline-danger btn-sm" (click)="onGenerateOrderPDF(order)" title="Générer PDF">
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="onGenerateOrderPDF(order)"
+                  title="Générer PDF">
                   <i class="bi bi-file-pdf"></i>
                 </button>
-                <button type="button" class="btn btn-outline btn-sm" (click)="onViewOrderDetail(order.idDelivery)" title="Détail">
+                <button type="button" class="btn btn-outline btn-sm" (click)="onViewOrderDetail(order.idDelivery)"
+                  title="Détail">
                   <i class="bi bi-eye"></i>
                 </button>
-                <button type="button" class="btn btn-outline btn-sm" (click)="onEditOrder(order.idDelivery)" title="Modifier">
+                <button type="button" class="btn btn-outline btn-sm" (click)="onEditOrder(order.idDelivery)"
+                  title="Modifier">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button type="button" class="btn btn-danger btn-sm" (click)="onDeleteOrder(order.idDelivery)" title="Supprimer">
+                <button type="button" class="btn btn-danger btn-sm" (click)="onDeleteOrder(order.idDelivery)"
+                  title="Supprimer">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -179,7 +186,7 @@
           <tr *ngIf="filteredOrders.length === 0">
             <td colspan="6" class="text-center" style="padding:32px">
               <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
-              Aucune commande trouvée
+              No order found
             </td>
           </tr>
         </tbody>
@@ -188,15 +195,21 @@
 
     <!-- Pagination Commandes -->
     <div *ngIf="!isLoading && filteredOrders.length > 0" class="pagination-container">
-      <div class="pagination-info">Affichage de {{ getStartIndexOrders() }} à {{ getEndIndexOrders() }} sur {{ totalItemsOrders }} commande(s)</div>
+      <div class="pagination-info">Displaying {{ getStartIndexOrders() }} to {{ getEndIndexOrders() }} of {{
+        totalItemsOrders }} order(s)</div>
       <div class="pagination-controls">
-        <button class="pagination-btn" (click)="goToPageOrders(1)" [disabled]="currentPageOrders === 1"><i class="bi bi-chevron-bar-left"></i></button>
-        <button class="pagination-btn" (click)="previousPageOrders()" [disabled]="currentPageOrders === 1"><i class="bi bi-chevron-left"></i></button>
+        <button class="pagination-btn" (click)="goToPageOrders(1)" [disabled]="currentPageOrders === 1"><i
+            class="bi bi-chevron-bar-left"></i></button>
+        <button class="pagination-btn" (click)="previousPageOrders()" [disabled]="currentPageOrders === 1"><i
+            class="bi bi-chevron-left"></i></button>
         <div class="page-numbers">
-          <button *ngFor="let page of getPageNumbersOrders()" class="page-number" [class.active]="currentPageOrders === page" (click)="goToPageOrders(page)">{{ page }}</button>
+          <button *ngFor="let page of getPageNumbersOrders()" class="page-number"
+            [class.active]="currentPageOrders === page" (click)="goToPageOrders(page)">{{ page }}</button>
         </div>
-        <button class="pagination-btn" (click)="nextPageOrders()" [disabled]="currentPageOrders === getTotalPagesOrders()"><i class="bi bi-chevron-right"></i></button>
-        <button class="pagination-btn" (click)="goToPageOrders(getTotalPagesOrders())" [disabled]="currentPageOrders === getTotalPagesOrders()"><i class="bi bi-chevron-bar-right"></i></button>
+        <button class="pagination-btn" (click)="nextPageOrders()"
+          [disabled]="currentPageOrders === getTotalPagesOrders()"><i class="bi bi-chevron-right"></i></button>
+        <button class="pagination-btn" (click)="goToPageOrders(getTotalPagesOrders())"
+          [disabled]="currentPageOrders === getTotalPagesOrders()"><i class="bi bi-chevron-bar-right"></i></button>
       </div>
     </div>
   </div>
@@ -206,32 +219,33 @@
     <div class="action-bar">
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button type="button" class="btn btn-outline" (click)="toggleStatsShipments()">
-          <i class="bi bi-graph-up"></i> Statistiques
+          <i class="bi bi-graph-up"></i> Statistics
         </button>
-        <button type="button" class="btn btn-danger" (click)="generateAllShipmentsPDFs()" 
-                *ngIf="filteredShipments.length > 0" title="Exporter toutes les expéditions filtrées">
-          <i class="bi bi-file-pdf"></i> Exporter tout
+        <button type="button" class="btn btn-danger" (click)="generateAllShipmentsPDFs()"
+          *ngIf="filteredShipments.length > 0" title="Export all filtered shipments">
+          <i class="bi bi-file-pdf"></i> Export All
         </button>
         <button type="button" class="btn btn-primary" (click)="onCreateShipment()">
-          <i class="bi bi-plus-circle"></i> Nouvelle expédition
+          <i class="bi bi-plus-circle"></i> New Shipment
         </button>
       </div>
     </div>
 
     <div class="card" style="margin-bottom:18px">
-      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <h3><i class="bi bi-search"></i> Recherche</h3>
-        <span *ngIf="rechercheActiveShipments" class="badge badge-info">Recherche active</span>
+      <div class="card-header"
+        style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <h3><i class="bi bi-search"></i> Search</h3>
+        <span *ngIf="rechercheActiveShipments" class="badge badge-info">Search active</span>
       </div>
       <div class="card-body">
         <form [formGroup]="searchFormShipments">
           <div class="form-row">
             <div class="form-group">
-              <label>Produit (ID)</label>
-              <input type="number" formControlName="produitId" placeholder="ex. 101">
+              <label>Product (ID)</label>
+              <input type="number" formControlName="produitId" placeholder="e.g., 101">
             </div>
             <div class="form-group">
-              <label>Quantité</label>
+              <label>Quantity</label>
               <input type="number" formControlName="quantite" placeholder="ex. 15.5">
             </div>
           </div>
@@ -239,18 +253,18 @@
             <div class="form-group">
               <label>Statut</label>
               <select formControlName="statut">
-                <option value="">Tous</option>
+                <option value="">All</option>
                 <option *ngFor="let statut of statutsShipments" [value]="statut">{{ statut }}</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Date de départ</label>
+              <label>Departure Date</label>
               <input type="date" formControlName="dateDepart">
             </div>
           </div>
           <div style="display:flex;justify-content:flex-end;margin-top:8px">
             <button type="button" class="btn btn-outline" (click)="resetFiltersShipments()">
-              <i class="bi bi-eraser"></i> Réinitialiser
+              <i class="bi bi-eraser"></i> Reset
             </button>
           </div>
         </form>
@@ -258,12 +272,12 @@
     </div>
 
     <div *ngIf="rechercheActiveShipments && isLoading" class="alert alert-success">
-      <i class="bi bi-search"></i> Recherche en cours…
+      <i class="bi bi-search"></i> Search in progress…
     </div>
 
     <div *ngIf="showStatsShipments && statistiquesShipments" class="card" style="margin-bottom:18px">
       <div class="card-header">
-        <h3><i class="bi bi-graph-up"></i> Statistiques Expéditions</h3>
+        <h3><i class="bi bi-graph-up"></i> Statistics Shipments</h3>
       </div>
       <div class="card-body">
         <div class="stats-grid">
@@ -272,8 +286,9 @@
             <div class="stat-label">Total</div>
           </div>
           <div class="stat-card text-center">
-            <div class="stat-value" style="color:var(--warning)">{{ statistiquesShipments.parStatut?.EN_ATTENTE || 0 }}</div>
-            <div class="stat-label">En attente</div>
+            <div class="stat-value" style="color:var(--warning)">{{ statistiquesShipments.parStatut?.EN_ATTENTE || 0 }}
+            </div>
+            <div class="stat-label">Pending</div>
             <div class="progress mt-1">
               <div class="progress-bar bg-warning" [style.width]="getProgressWidthShipments('EN_ATTENTE')"></div>
             </div>
@@ -281,15 +296,16 @@
           </div>
           <div class="stat-card text-center">
             <div class="stat-value" style="color:var(--info)">{{ statistiquesShipments.parStatut?.EN_COURS || 0 }}</div>
-            <div class="stat-label">En cours</div>
+            <div class="stat-label">In Progress</div>
             <div class="progress mt-1">
               <div class="progress-bar bg-info" [style.width]="getProgressWidthShipments('EN_COURS')"></div>
             </div>
             <small>{{ statistiquesShipments.pourcentage_EN_COURS | number:'1.0-0' }}%</small>
           </div>
           <div class="stat-card text-center">
-            <div class="stat-value" style="color:var(--success)">{{ statistiquesShipments.parStatut?.LIVREE || 0 }}</div>
-            <div class="stat-label">Livrées</div>
+            <div class="stat-value" style="color:var(--success)">{{ statistiquesShipments.parStatut?.LIVREE || 0 }}
+            </div>
+            <div class="stat-label">Delivered</div>
             <div class="progress mt-1">
               <div class="progress-bar bg-success" [style.width]="getProgressWidthShipments('LIVREE')"></div>
             </div>
@@ -297,28 +313,32 @@
           </div>
         </div>
         <p *ngIf="statistiquesShipments.quantiteTotale" class="text-center" style="margin-top:14px">
-          Quantité totale transportée : <strong>{{ statistiquesShipments.quantiteTotale | number:'1.0-2' }}</strong>
+          Total quantity shipped : <strong>{{ statistiquesShipments.quantiteTotale | number:'1.0-2' }}</strong>
         </p>
       </div>
     </div>
 
     <div class="tx-sort-row">
       <div class="tx-sort-group">
-        <button type="button" class="tx-sort-btn" [class.active]="sortByShipments === 'date'" (click)="sortShipmentsByField('date')">
-          <i class="bi bi-calendar"></i> Date départ
-          <i *ngIf="sortByShipments === 'date'" [class]="sortOrderShipments === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+        <button type="button" class="tx-sort-btn" [class.active]="sortByShipments === 'date'"
+          (click)="sortShipmentsByField('date')">
+          <i class="bi bi-calendar"></i> Departure Date
+          <i *ngIf="sortByShipments === 'date'"
+            [class]="sortOrderShipments === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
         </button>
-        <button type="button" class="tx-sort-btn" [class.active]="sortByShipments === 'quantite'" (click)="sortShipmentsByField('quantite')">
-          <i class="bi bi-bar-chart"></i> Quantité
-          <i *ngIf="sortByShipments === 'quantite'" [class]="sortOrderShipments === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+        <button type="button" class="tx-sort-btn" [class.active]="sortByShipments === 'quantite'"
+          (click)="sortShipmentsByField('quantite')">
+          <i class="bi bi-bar-chart"></i> Quantity
+          <i *ngIf="sortByShipments === 'quantite'"
+            [class]="sortOrderShipments === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
         </button>
       </div>
-      <span style="font-size:12px;color:var(--text3)">{{ filteredShipments.length }} expédition(s)</span>
+      <span style="font-size:12px;color:var(--text3)">{{ filteredShipments.length }} shipment(s)</span>
     </div>
 
     <div *ngIf="isLoading && !rechercheActiveShipments" class="empty-state">
       <div class="spinner-border" role="status"></div>
-      <p class="mt-2">Chargement des expéditions…</p>
+      <p class="mt-2">Loading shipments…</p>
     </div>
 
     <div *ngIf="!isLoading" class="card" style="padding:0">
@@ -329,10 +349,10 @@
             <th>Commande</th>
             <th>Client</th>
             <th>Produit</th>
-            <th>Qté</th>
-            <th>Transp.</th>
-            <th>Départ</th>
-            <th>Statut</th>
+            <th>Quantity</th>
+            <th>Transporter</th>
+            <th>Departure Date</th>
+            <th>Status</th>
             <th style="width:150px">Actions</th>
           </tr>
         </thead>
@@ -348,16 +368,20 @@
             <td><span [class]="getStatutClassShipment(shipment.statut)">{{ shipment.statut }}</span></td>
             <td>
               <div class="btn-group" style="display: flex; gap: 5px;">
-                <button type="button" class="btn btn-outline-primary btn-sm" (click)="onViewShipmentDetail(shipment.id)" title="Détail">
+                <button type="button" class="btn btn-outline-primary btn-sm" (click)="onViewShipmentDetail(shipment.id)"
+                  title="Détail">
                   <i class="bi bi-eye"></i>
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="onEditShipment(shipment.id)" title="Modifier">
+                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="onEditShipment(shipment.id)"
+                  title="Modifier">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button type="button" class="btn btn-outline-danger btn-sm" (click)="onGenerateShipmentPDF(shipment.id)" title="Générer PDF">
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="onGenerateShipmentPDF(shipment.id)"
+                  title="Générer PDF">
                   <i class="bi bi-file-pdf"></i>
                 </button>
-                <button type="button" class="btn btn-outline-danger btn-sm" (click)="onDeleteShipment(shipment.id)" title="Supprimer">
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="onDeleteShipment(shipment.id)"
+                  title="Supprimer">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -366,9 +390,10 @@
           <tr *ngIf="filteredShipments.length === 0">
             <td colspan="9" class="text-center" style="padding:32px">
               <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
-              Aucune expédition
-              <button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;display:inline-flex" (click)="onCreateShipment()">
-                <i class="bi bi-plus-circle"></i> Créer
+              No shipments
+              <button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;display:inline-flex"
+                (click)="onCreateShipment()">
+                <i class="bi bi-plus-circle"></i> Create
               </button>
             </td>
           </tr>
@@ -378,17 +403,23 @@
 
     <!-- Pagination Expéditions -->
     <div *ngIf="!isLoading && filteredShipments.length > 0" class="pagination-container">
-      <div class="pagination-info">Affichage de {{ getStartIndexShipments() }} à {{ getEndIndexShipments() }} sur {{ totalItemsShipments }} expédition(s)</div>
+      <div class="pagination-info">Display of {{ getStartIndexShipments() }} à {{ getEndIndexShipments() }} on {{
+        totalItemsShipments }} shipment(s)</div>
       <div class="pagination-controls">
-        <button class="pagination-btn" (click)="goToPageShipments(1)" [disabled]="currentPageShipments === 1"><i class="bi bi-chevron-bar-left"></i></button>
-        <button class="pagination-btn" (click)="previousPageShipments()" [disabled]="currentPageShipments === 1"><i class="bi bi-chevron-left"></i></button>
+        <button class="pagination-btn" (click)="goToPageShipments(1)" [disabled]="currentPageShipments === 1"><i
+            class="bi bi-chevron-bar-left"></i></button>
+        <button class="pagination-btn" (click)="previousPageShipments()" [disabled]="currentPageShipments === 1"><i
+            class="bi bi-chevron-left"></i></button>
         <div class="page-numbers">
-          <button *ngFor="let page of getPageNumbersShipments()" class="page-number" [class.active]="currentPageShipments === page" (click)="goToPageShipments(page)">{{ page }}</button>
+          <button *ngFor="let page of getPageNumbersShipments()" class="page-number"
+            [class.active]="currentPageShipments === page" (click)="goToPageShipments(page)">{{ page }}</button>
         </div>
-        <button class="pagination-btn" (click)="nextPageShipments()" [disabled]="currentPageShipments === getTotalPagesShipments()"><i class="bi bi-chevron-right"></i></button>
-        <button class="pagination-btn" (click)="goToPageShipments(getTotalPagesShipments())" [disabled]="currentPageShipments === getTotalPagesShipments()"><i class="bi bi-chevron-bar-right"></i></button>
+        <button class="pagination-btn" (click)="nextPageShipments()"
+          [disabled]="currentPageShipments === getTotalPagesShipments()"><i class="bi bi-chevron-right"></i></button>
+        <button class="pagination-btn" (click)="goToPageShipments(getTotalPagesShipments())"
+          [disabled]="currentPageShipments === getTotalPagesShipments()"><i
+            class="bi bi-chevron-bar-right"></i></button>
       </div>
     </div>
   </div>
 </div>
->>>>>>> origin/gestion_livraison

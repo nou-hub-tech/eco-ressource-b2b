@@ -1,41 +1,69 @@
 <div class="page-wrapper">
-  <div class="page-header"><h1>Shipments</h1><p>Detailed view of all cargo and delivery assignments</p></div>
+  <div class="page-header">
+    <h1>Shipments</h1>
+    <p>Detailed view of all cargo and delivery assignments</p>
+  </div>
   <div style="display:flex;flex-direction:column;gap:14px">
     <div class="card" *ngFor="let s of shipments" style="padding:20px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <div
+        style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
         <div>
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
             <code style="font-size:12px;color:var(--text3);font-weight:500">{{s.id}}</code>
-            <span class="badge" [ngClass]="s.status==='delivered'?'badge-success':s.status==='in-transit'?'badge-info':'badge-warning'">{{s.status}}</span>
+            <span class="badge"
+              [ngClass]="s.status==='LIVREE'?'badge-success':s.status==='EN_COURS'?'badge-info':'badge-warning'">{{s.status}}</span>
           </div>
-          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">{{s.product}}</div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">
+            {{s.product}}</div>
           <div style="font-size:12px;color:var(--text3)">Client: {{s.client}}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent)">{{s.earn}} TND</div>
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent)">{{s.earn}} TND
+          </div>
           <div style="font-size:11px;color:var(--text3);margin-top:2px">Earnings</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:14px;background:var(--bg3,var(--bg2));border-radius:8px;border:1px solid var(--border);margin-bottom:14px">
+      <div
+        style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:14px;background:var(--bg3,var(--bg2));border-radius:8px;border:1px solid var(--border);margin-bottom:14px">
         <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);margin-bottom:4px">Route</div>
+          <div
+            style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);margin-bottom:4px">
+            Route</div>
           <div style="font-size:13px;font-weight:600;color:var(--text)">{{s.from}} → {{s.to}}</div>
         </div>
         <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);margin-bottom:4px">Pickup</div>
+          <div
+            style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);margin-bottom:4px">
+            Pickup</div>
           <div style="font-size:13px;color:var(--text2)">{{s.pickup}}</div>
         </div>
         <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);margin-bottom:4px">Delivery</div>
+          <div
+            style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);margin-bottom:4px">
+            Delivery</div>
           <div style="font-size:13px;color:var(--text2)">{{s.delivery}}</div>
         </div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-sm" *ngIf="s.status==='pickup'">Confirm Pickup</button>
-        <button class="btn btn-primary btn-sm" *ngIf="s.status==='in-transit'">Mark Delivered</button>
-        <button class="btn btn-outline btn-sm">QR Code</button>
-        <button class="btn btn-ghost btn-sm">Contact Client</button>
+        <button class="btn btn-primary btn-sm" *ngIf="s.status==='EN_ATTENTE'">Confirm Pickup</button>
+        <button class="btn btn-primary btn-sm" *ngIf="s.status==='EN_COURS'">Mark Delivered</button>
+        <button class="btn btn-outline btn-sm" (click)="showQr(s)">QR Code</button>
       </div>
+    </div>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="modal-backdrop" *ngIf="selectedQrShipment" (click)="closeQr()" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation: fadeIn 0.2s ease-out">
+    <div class="card" (click)="$event.stopPropagation()" style="background:var(--bg);padding:30px;border-radius:16px;text-align:center;width:100%;max-width:320px;box-shadow:0 15px 35px rgba(0,0,0,0.25);border:1px solid var(--border)">
+      <h3 style="margin:0 0 20px 0;font-family:'Syne';font-size:20px;font-weight:700">QR Code<br><span style="color:var(--accent);font-size:15px;margin-top:6px;display:inline-block">{{selectedQrShipment.id}}</span></h3>
+      
+      <div style="background:var(--bg2);padding:15px;border-radius:12px;margin-bottom:15px;min-height:200px;display:flex;align-items:center;justify-content:center">
+        <img *ngIf="qrDataUrl" [src]="qrDataUrl" alt="QR Code" style="width:200px;height:200px;display:block;border-radius:8px">
+        <div *ngIf="!qrDataUrl" style="color:var(--text3);font-size:14px">Génération...</div>
+      </div>
+      
+      <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.4">Scanner ce code pour confirmer ou suivre la livraison.</div>
+      <button class="btn btn-outline" style="width:100%" (click)="closeQr()">Fermer</button>
     </div>
   </div>
 </div>

@@ -39,9 +39,9 @@ export class MarketChatbot implements OnInit {
   isListening = false;
   recognition: any = null;
 
-  private readonly finderApi    = 'http://localhost:8080/api/enterprise/finder';
-  private readonly aiApi        = 'http://localhost:8080/ai/chat';
-  private readonly classifyApi  = 'http://localhost:8080/ai/classify-image';  // HuggingFace VIT — uses confirmed HF key
+  private readonly finderApi    = 'http://localhost:9090/api/enterprise/finder';
+  private readonly aiApi        = 'http://localhost:9090/ai/chat';
+  private readonly classifyApi  = 'http://localhost:9090/ai/classify-image';  // HuggingFace VIT — uses confirmed HF key
 
   constructor(
     private http: HttpClient,
@@ -520,7 +520,7 @@ Rules:
   getImageUrl(img: string | undefined): string {
     if (!img || img === 'default.png' || img === 'undefined') return '';
     if (img.startsWith('http')) return img;
-    return `http://localhost:8080/files/${img}`;
+    return `http://localhost:9090/files/${img}`;
   }
 
   getCategoryColor(cat: string): string {

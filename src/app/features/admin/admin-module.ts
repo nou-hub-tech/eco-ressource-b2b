@@ -42,6 +42,8 @@ const routes: Routes = [
       { path: 'events', component: AdminEvents },
       { path: 'stock', component: Stock },
       { path: 'deliveries', component: Deliveries },
+      { path: 'delivery-orders', loadChildren: () => import('../transporter/delivery-order/delivery-order.module').then(m => m.DeliveryOrderModule) },
+      { path: 'shipments', loadChildren: () => import('../transporter/shipment/shipment.module').then(m => m.ShipmentModule) },
       { path: 'listings', component: Listings },
       { path: 'reservations', component: Reservations },
       { path: 'treasury', component: Treasury },

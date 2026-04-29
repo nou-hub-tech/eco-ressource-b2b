@@ -8,6 +8,7 @@ import { TransportService, Transporter } from '../../../core/services/transport.
 import { PdfGeneratorService } from '../../../core/services/pdf-generator.service';
 import { AuthService, User } from '../../../core/services/auth.service';
 import { ShipmentUpdateService } from '../../../core/services/shipment-update.service';
+import { NotificationApiService, NotificationData } from '../../../core/services/notification-api.service';
 import { Shipment } from '../../../core/models/shipment';
 import { DeliveryOrder } from '../../../core/models/delivery-order';
 import { StatutExpedition, StatutCommande } from '../../../core/models/statut';
@@ -19,7 +20,7 @@ import { StatutExpedition, StatutCommande } from '../../../core/models/statut';
     styleUrls: ['./my-deliveries.css']
 })
 export class MyDeliveries implements OnInit, OnDestroy {
-    
+
     allShipments: Shipment[] = [];
     filteredShipments: Shipment[] = [];
     deliveryOrders: Map<number, DeliveryOrder> = new Map();
@@ -32,7 +33,11 @@ export class MyDeliveries implements OnInit, OnDestroy {
     private subscriptions: Subscription = new Subscription();
     private refreshInterval: any;
     private migratedShipmentIds: Set<number> = new Set();
-    
+
+    // Notifications
+    notifications: NotificationData[] = [];
+    showNotifications = false;
+
     // Cache pour éviter les recalculs fréquents
     private productNamesCache: Map<number, string> = new Map();
     private co2Cache: Map<string, string> = new Map();
@@ -44,16 +49,18 @@ export class MyDeliveries implements OnInit, OnDestroy {
         private pdfGenerator: PdfGeneratorService,
         private authService: AuthService,
         private shipmentUpdateService: ShipmentUpdateService,
+        private notificationApi: NotificationApiService,
         private cd: ChangeDetectorRef,
         private ngZone: NgZone
-    ) {}
+    ) { }
 
     ngOnInit(): void {
         console.log('🚚 INITIALISATION DE MYDELIVERIES');
         this.getCurrentUser();
         this.loadDeliveryOrders();
         this.loadTransporters();
-        
+        this.loadInitialNotifications();
+
         // ÉCOUTER LES MISES À JOUR EN TEMPS RÉEL
         this.subscriptions.add(
             this.shipmentUpdateService.shipmentUpdated$.subscribe((data) => {
@@ -83,13 +90,13 @@ export class MyDeliveries implements OnInit, OnDestroy {
 
     onShipmentUpdate(data: any): void {
         console.log('🔄 Mise à jour détectée:', data);
-        
+
         // Rechargement uniquement si nécessaire
         if (data.transporterId || data.deliveryOrderId) {
             this.loadShipments();
             this.loadTransporters();
         }
-        
+
         if (data.transporterName && data.deliveryOrderId) {
             this.successMessage = `✅ ${data.transporterName} a accepté la livraison`;
             setTimeout(() => {
@@ -105,7 +112,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
                 this.currentUser = user;
                 this.currentUserName = user.name.toLowerCase().trim();
                 console.log('✅ Utilisateur:', this.currentUserName);
-                
+
                 if (this.allShipments.length > 0) {
                     this.filterShipmentsByClient();
                 } else {
@@ -115,7 +122,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
             }
         });
         this.subscriptions.add(userSub);
-        
+
         const currentUser = this.authService.currentUser;
         if (currentUser && !this.currentUser) {
             this.currentUser = currentUser;
@@ -125,7 +132,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
 
     loadShipments(): void {
         if (this.isLoading) return;
-        
+
         this.isLoading = true;
         const sub = this.shipmentService.getAll().subscribe({
             next: (data: Shipment[]) => {
@@ -156,7 +163,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
             const clientName = order?.nomClient?.toLowerCase().trim() || '';
             return clientName === this.currentUserName;
         });
-        
+
         this.cd.detectChanges();
     }
 
@@ -217,38 +224,38 @@ export class MyDeliveries implements OnInit, OnDestroy {
      */
     getTransporterName(idTransporter: number, shipmentStatut: StatutExpedition, deliveryOrderId: number): string {
         console.log(`🔍 getTransporterName - ID: ${idTransporter}, Statut Exp: ${shipmentStatut}, OrderId: ${deliveryOrderId}`);
-        
+
         // Récupérer la commande associée
         const order = this.deliveryOrders.get(deliveryOrderId);
         const orderStatut = order?.statut;
-        
+
         console.log(`   → Statut commande: ${orderStatut}`);
-        
+
         // CRITIQUE: Si la commande est EN_ATTENTE (pas encore acceptée) → afficher "-"
         if (orderStatut === StatutCommande.EN_ATTENTE) {
             console.log(`   → Commande non acceptée, affichage "-"`);
             return '-';
         }
-        
+
         // Si l'expédition est en attente → "-"
         if (shipmentStatut === StatutExpedition.EN_ATTENTE) {
             console.log(`   → Expédition en attente, affichage "-"`);
             return '-';
         }
-        
+
         // Si pas de transporteur assigné → "-"
         if (!idTransporter || idTransporter === 0) {
             console.log(`   → Pas de transporteur assigné, affichage "-"`);
             return '-';
         }
-        
+
         // Chercher le transporteur dans la Map
         const transporter = this.transporters.get(idTransporter);
         if (transporter) {
             console.log(`   ✅ Transporteur trouvé: ${transporter.companyName}`);
             return transporter.companyName;
         }
-        
+
         // Fallback
         console.log(`   ⚠️ Transporteur non trouvé pour ID ${idTransporter}`);
         return `Transporteur #${idTransporter}`;
@@ -269,7 +276,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
     }
 
     getStatutClass(statut: StatutExpedition): string {
-        switch(statut) {
+        switch (statut) {
             case StatutExpedition.EN_ATTENTE: return 'badge badge-warning';
             case StatutExpedition.EN_COURS: return 'badge badge-info';
             case StatutExpedition.LIVREE: return 'badge badge-success';
@@ -278,7 +285,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
     }
 
     getStatutText(statut: StatutExpedition): string {
-        switch(statut) {
+        switch (statut) {
             case StatutExpedition.EN_ATTENTE: return 'En attente';
             case StatutExpedition.EN_COURS: return 'En cours';
             case StatutExpedition.LIVREE: return 'Livrée';
@@ -290,7 +297,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
         if (this.productNamesCache.has(produitId)) {
             return this.productNamesCache.get(produitId)!;
         }
-        
+
         const produits: { [key: number]: string } = {
             1: 'Équipements électroniques',
             2: 'Pièces détachées',
@@ -309,7 +316,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
         if (this.co2Cache.has(key)) {
             return this.co2Cache.get(key)!;
         }
-        
+
         const estimatedDistance = distance || 50;
         const co2 = quantite * estimatedDistance * 0.2;
         const result = co2 >= 1000 ? `${(co2 / 1000).toFixed(1)} t` : `${Math.round(co2)} kg`;
@@ -340,10 +347,10 @@ export class MyDeliveries implements OnInit, OnDestroy {
             setTimeout(() => this.errorMessage = '', 3000);
             return;
         }
-        
+
         const orderId = shipment.deliveryOrder?.idDelivery;
         const deliveryOrder = orderId ? this.deliveryOrders.get(orderId) : null;
-        
+
         try {
             this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder || null);
             this.successMessage = `PDF #${shipmentId} généré`;
@@ -366,10 +373,10 @@ export class MyDeliveries implements OnInit, OnDestroy {
 
         this.isLoading = true;
         let count = 0;
-        
+
         this.filteredShipments.forEach((shipment, index) => {
             const deliveryOrder = this.deliveryOrders.get(shipment.deliveryOrder?.idDelivery) || null;
-            
+
             setTimeout(() => {
                 try {
                     this.pdfGenerator.generateShipmentPDF(shipment, deliveryOrder);
@@ -377,7 +384,7 @@ export class MyDeliveries implements OnInit, OnDestroy {
                 } catch (error) {
                     console.error(`❌ Erreur PDF ${shipment.id}:`, error);
                 }
-                
+
                 if (index === this.filteredShipments.length - 1) {
                     this.isLoading = false;
                     this.successMessage = `${count} PDF(s) généré(s)`;
@@ -398,5 +405,82 @@ export class MyDeliveries implements OnInit, OnDestroy {
             console.log(`Shipment #${s.id} - OrderStatut: ${order?.statut} - TransporterID: ${s.idTransporter} - Nom: ${this.getTransporterName(s.idTransporter, s.statut, s.deliveryOrder?.idDelivery)}`);
         });
         alert(`Diagnostic:\nTransporteurs: ${this.transporters.size}\nExpéditions: ${this.filteredShipments.length}`);
+    }
+
+    // ===== NOTIFICATION PANEL =====
+    loadInitialNotifications(): void {
+        const userId = this.currentUser ? parseInt(this.currentUser.id, 10) : 0;
+        if (userId > 0) {
+            this.notificationApi.getUnreadNotifications(userId).subscribe({
+                next: (data) => {
+                    const localNotifs = JSON.parse(localStorage.getItem('notifications_' + userId) || '[]');
+                    const adminNotifs = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
+                    const allNotifs = [...(data || []), ...localNotifs, ...adminNotifs];
+                    this.notifications = Array.from(new Map(allNotifs.map(item => [item.id, item])).values());
+                    this.cd.detectChanges();
+                },
+                error: () => {
+                    const localNotifs = JSON.parse(localStorage.getItem('notifications_' + userId) || '[]');
+                    const adminNotifs = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
+                    const allNotifs = [...localNotifs, ...adminNotifs];
+                    this.notifications = Array.from(new Map(allNotifs.map(item => [item.id, item])).values());
+                    this.cd.detectChanges();
+                }
+            });
+        } else {
+            const adminNotifs = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
+            this.notifications = adminNotifs;
+            this.cd.detectChanges();
+        }
+    }
+
+    openNotifications(): void {
+        this.showNotifications = true;
+        this.loadInitialNotifications();
+    }
+
+    closeNotifications(): void {
+        this.showNotifications = false;
+    }
+
+    markAsRead(notifId: string | undefined): void {
+        if (!notifId) return;
+        const userId = this.currentUser ? parseInt(this.currentUser.id, 10) : 0;
+        const notif = this.notifications.find(n => n.id === notifId);
+        if (notif) { notif.read = true; }
+
+        // Mettre à jour localStorage (mode hors-ligne)
+        if (userId > 0) {
+            let localNotifs = JSON.parse(localStorage.getItem('notifications_' + userId) || '[]');
+            let n = localNotifs.find((x: any) => x.id === notifId);
+            if (n) { n.read = true; localStorage.setItem('notifications_' + userId, JSON.stringify(localNotifs)); }
+        }
+        let adminNotifs = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
+        let nAdmin = adminNotifs.find((x: any) => x.id === notifId);
+        if (nAdmin) { nAdmin.read = true; localStorage.setItem('admin_notifications', JSON.stringify(adminNotifs)); }
+
+        // Appel API
+        if (userId > 0) {
+            this.notificationApi.markAsRead(userId, [notifId]).subscribe();
+        }
+        this.cd.detectChanges();
+    }
+
+    deleteNotification(notifId: string | undefined): void {
+        if (!notifId) return;
+        this.notifications = this.notifications.filter(n => n.id !== notifId);
+
+        // Supprimer du localStorage (mode hors-ligne)
+        const userId = this.currentUser ? parseInt(this.currentUser.id, 10) : 0;
+        if (userId > 0) {
+            let localNotifs = JSON.parse(localStorage.getItem('notifications_' + userId) || '[]');
+            localNotifs = localNotifs.filter((n: any) => n.id !== notifId);
+            localStorage.setItem('notifications_' + userId, JSON.stringify(localNotifs));
+        }
+        let adminNotifs = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
+        adminNotifs = adminNotifs.filter((n: any) => n.id !== notifId);
+        localStorage.setItem('admin_notifications', JSON.stringify(adminNotifs));
+
+        this.cd.detectChanges();
     }
 }

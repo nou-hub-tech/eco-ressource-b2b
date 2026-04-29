@@ -34,7 +34,7 @@ export class ProductFinder implements OnInit {
   selectedItem: any = null;
 
   readonly categories = ['Metal','Plastic','Paper','Glass','Textile','Electronics','Wood','Chemical','Other'];
-  private readonly api = 'http://localhost:8080/api/enterprise/finder';
+  private readonly api = 'http://localhost:9090/api/enterprise/finder';
 
   constructor(
     private http: HttpClient,
@@ -143,7 +143,7 @@ export class ProductFinder implements OnInit {
   getImageUrl(img: string | undefined): string {
     if (!img || img === 'default.png' || img === 'undefined') return '';
     if (img.startsWith('http')) return img;
-    return `http://localhost:8080/files/${img}`;
+    return `http://localhost:9090/files/${img}`;
   }
 
   getCategoryColor(cat: string): string {

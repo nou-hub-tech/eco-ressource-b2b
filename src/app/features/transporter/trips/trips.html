@@ -1,15 +1,15 @@
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1>📦 Trajets disponibles</h1>
-      <p>Trajets basés sur votre position et les commandes à livrer</p>
+      <h1>📦 Available trips</h1>
+      <p>Routes based on your location and the orders to deliver</p>
     </div>
   </div>
 
   <!-- PANEL IA -->
   <div class="ia-panel" *ngIf="iaPrediction && currentAcceptedTrip">
     <div class="ia-header">
-      <div class="ia-title">🤖 IA Livraison Intelligente</div>
+      <div class="ia-title">🤖 Intelligent Delivery AI</div>
       <div class="ia-confidence">
         Fiabilité: {{ iaPrediction.confiance }}%
         <div class="confidence-bar-small">
@@ -17,7 +17,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="ia-body">
       <div class="ia-stats">
         <div class="ia-stat">
@@ -27,25 +27,25 @@
         </div>
         <div class="ia-stat">
           <span class="stat-icon">⏱️</span>
-          <span class="stat-label">Temps estimé</span>
+          <span class="stat-label">Estimated time</span>
           <span class="stat-value">{{ iaPrediction.tempsEnHeures }}</span>
         </div>
         <div class="ia-stat">
           <span class="stat-icon">🕐</span>
-          <span class="stat-label">Arrivée</span>
+          <span class="stat-label">Arrival</span>
           <span class="stat-value">{{ iaPrediction.tempsArrivee | date:'HH:mm' }}</span>
         </div>
       </div>
-      
+
       <div class="ia-conditions">
         <div class="condition"><span class="condition-icon">🚦</span>{{ iaPrediction.trafic }}</div>
         <div class="condition"><span class="condition-icon">🌤️</span>{{ iaPrediction.meteo }}</div>
         <div class="condition conseil"><span class="condition-icon">💡</span>{{ iaPrediction.conseil }}</div>
       </div>
     </div>
-    
+
     <div class="ia-probleme-btn">
-      <button class="btn-probleme" (click)="openProblemeModal()">🚨 Signaler un problème</button>
+      <button class="btn-probleme" (click)="openProblemeModal()">🚨 Report a problem</button>
     </div>
   </div>
 
@@ -53,17 +53,19 @@
   <div class="map-card">
     <div class="map-header">
       <i class="bi bi-map"></i>
-      <span>Votre position - Carte des livraisons</span>
+      <span>Your location - Delivery map</span>
     </div>
     <div id="mainMap" class="map-container"></div>
-    
+
     <div class="button-group">
       <button class="btn-locate btn-gps" (click)="getUserLocation()" [disabled]="isLoadingLocation">📍 GPS</button>
-      <button class="btn-locate btn-manual" (click)="enableManualLocationSelection()" [disabled]="isSelectingLocation">✏️ Manuel</button>
-      <button class="btn-locate btn-track" (click)="startRealTimeTracking()" [disabled]="isTracking">▶️ Temps réel</button>
+      <button class="btn-locate btn-manual" (click)="enableManualLocationSelection()"
+        [disabled]="isSelectingLocation">✏️ Manuel</button>
+      <button class="btn-locate btn-track" (click)="startRealTimeTracking()" [disabled]="isTracking">▶️ Temps
+        réel</button>
       <button class="btn-locate btn-stop" (click)="stopRealTimeTracking()" [disabled]="!isTracking">⏹️ Arrêter</button>
     </div>
-    
+
     <div class="map-footer">
       <small>📍 Position: Lat: {{userLat.toFixed(4)}}, Lng: {{userLng.toFixed(4)}}</small>
     </div>
@@ -73,19 +75,20 @@
   <div *ngIf="locationError" class="alert-warning">{{ locationError }}</div>
   <div *ngIf="locationSuccess" class="alert-success">{{ locationSuccess }}</div>
   <div *ngIf="locationWarning" class="alert-ia">{{ locationWarning }}</div>
-  <div *ngIf="isTracking" class="tracking-indicator">📍 Suivi GPS activé</div>
+  <div *ngIf="isTracking" class="tracking-indicator">📍 GPS tracking enabled</div>
+
 
   <!-- Liste des trajets -->
   <div class="section-header">
-    <h2><i class="bi bi-truck"></i> Trajets disponibles</h2>
+    <h2><i class="bi bi-truck"></i> Available routess</h2>
     <span class="badge-count">{{ availableTrips?.length || 0 }} trajet(s)</span>
   </div>
 
-  <div *ngIf="isLoadingTrips" class="loading-state">Chargement...</div>
+  <div *ngIf="isLoadingTrips" class="loading-state">Loading...</div>
 
   <div *ngIf="!isLoadingTrips && availableTrips?.length === 0" class="empty-state">
     <i class="bi bi-inbox"></i>
-    <p>Aucun trajet disponible</p>
+    <p>No available routes</p>
   </div>
 
   <div class="trips-list">
@@ -98,7 +101,7 @@
         </div>
         <span class="trip-distance">{{ trip.distance }} km</span>
       </div>
-      
+
       <div class="trip-body">
         <div class="trip-info">
           <div class="info-row"><i class="bi bi-person"></i>{{ trip.clientName }}</div>
@@ -110,23 +113,23 @@
           <div class="impact-item"><i class="bi bi-tree"></i>CO₂: {{ trip.co2 }}</div>
         </div>
       </div>
-      
+
       <div class="trip-actions" *ngIf="!trip.accepted && !hasActiveTrip">
-        <button class="btn-accept" (click)="acceptTrip(trip)">✅ Accepter</button>
-        <button class="btn-refuse" (click)="refuseTrip(trip)">❌ Refuser</button>
+        <button class="btn-accept" (click)="acceptTrip(trip)">✅ Accept</button>
+        <button class="btn-refuse" (click)="refuseTrip(trip)">❌ Decline</button>
       </div>
-      
+
       <div class="trip-disabled-message" *ngIf="!trip.accepted && hasActiveTrip">
-        ⚠️ Trajet en cours
+        ⚠️ Ongoing trip
       </div>
-      
+
       <div class="trip-active-message" *ngIf="trip.accepted && !trip.completed">
-        <div class="message-content">🚚 Trajet en cours</div>
-        <button class="btn-complete" (click)="completeTrip(trip.id)">✅ Terminer</button>
+        <div class="message-content">🚚 Ongoing trips</div>
+        <button class="btn-complete" (click)="completeTrip(trip.id)">✅ Finish</button>
       </div>
-      
+
       <div class="trip-completed-message" *ngIf="trip.completed">
-        ✅ Livraison terminée
+        ✅ Delivery completed
       </div>
     </div>
   </div>
@@ -136,15 +139,15 @@
 <div class="modal-overlay" *ngIf="showProblemeModal" (click)="closeProblemeModal()">
   <div class="modal probleme-modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>🚨 Signaler un problème</h2>
+      <h2>🚨 Report a problem</h2>
       <button class="btn-icon" (click)="closeProblemeModal()">✕</button>
     </div>
     <div class="modal-body">
       <select [(ngModel)]="problemeType" class="form-control">
-        <option value="PANNE">🔧 Panne véhicule</option>
-        <option value="EMBOUTEILLAGE">🚦 Embouteillage</option>
+        <option value="PANNE">🔧 Vehicle breakdown</option>
+        <option value="EMBOUTEILLAGE">🚦 Traffic jam</option>
         <option value="ACCIDENT">🚗 Accident</option>
-        <option value="CLIENT_ABSENT">🏠 Client absent</option>
+        <option value="CLIENT_ABSENT">🏠 Customer absent</option>
       </select>
       <textarea [(ngModel)]="problemeDescription" rows="2" class="form-control" placeholder="Description..."></textarea>
       <div class="retard-buttons">
@@ -155,8 +158,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeProblemeModal()">Annuler</button>
-      <button class="btn-danger" (click)="envoyerAlerteClient()">Notifier le client</button>
+      <button class="btn-secondary" (click)="closeProblemeModal()">Cancel</button>
+      <button class="btn-danger" (click)="envoyerAlerteClient()">Notify the customer</button>
     </div>
   </div>
 </div>
