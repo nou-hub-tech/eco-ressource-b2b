@@ -575,7 +575,7 @@ export class PdfGeneratorService {
         }
         
         // ========== PIED DE PAGE ==========
-        const pageCount = doc.getNumberOfPages();
+        const pageCount = (doc as any).getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);
@@ -776,7 +776,7 @@ export class PdfGeneratorService {
         }
         
         // ========== PIED DE PAGE ==========
-        const pageCount = doc.getNumberOfPages();
+        const pageCount = (doc as any).getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setFontSize(8);

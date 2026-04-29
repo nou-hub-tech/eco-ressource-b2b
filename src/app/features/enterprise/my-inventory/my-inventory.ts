@@ -429,7 +429,7 @@ export class MyInventory implements OnInit, AfterViewChecked {
     let alt = false;
     for (const row of this.filtered) {
       if (y > 272) {
-        this.pdfFooter(pdf, pdf.getNumberOfPages(), 1);
+        this.pdfFooter(pdf, (pdf as any).getNumberOfPages(), 1);
         pdf.addPage();
         y = this.pdfHeader(pdf, 'INVENTORY REPORT');
         y = this.pdfTableHeader(pdf, cols, y);
@@ -498,7 +498,7 @@ export class MyInventory implements OnInit, AfterViewChecked {
 
     for (const line of this.reportLines) {
       if (y > 265) {
-        this.pdfFooter(pdf, pdf.getNumberOfPages(), 1);
+        this.pdfFooter(pdf, (pdf as any).getNumberOfPages(), 1);
         pdf.addPage();
         y = this.pdfHeader(pdf, 'AUDIT REPORT');
         y = this.pdfTableHeader(pdf, cols, y);
