@@ -18,6 +18,7 @@ import html2canvas from 'html2canvas';
 type EventRow = PlatformEventDto & {
   isJoined: boolean;
   participationId?: number;
+  coverImageDocId?: number;
 };
 
 @Component({
@@ -110,7 +111,7 @@ export class Events implements OnInit, OnDestroy {
     private readonly participationService: EventParticipationService,
     private readonly geolocationService: GeolocationService,
     private readonly cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   get isAdmin(): boolean {
     return this.auth.currentUser?.role === 'admin';
@@ -183,6 +184,30 @@ export class Events implements OnInit, OnDestroy {
     });
   }
 
+  private fetchCoverImages(rows: EventRow[]): void {
+    const requests = rows.map(r =>
+      this.eventService.getEventDocuments(r.id).pipe(
+        catchError(() => of([] as EventDocumentDto[]))
+      )
+    );
+    if (requests.length === 0) return;
+
+    forkJoin(requests).subscribe(results => {
+      rows.forEach((r, i) => {
+        const docs = results[i] || [];
+        const imgDoc = docs.find(d => {
+          const type = d.fileType || '';
+          const name = d.fileName || '';
+          return type.startsWith('image/') || name.match(/\.(jpg|jpeg|png|gif)$/i);
+        });
+        if (imgDoc) {
+          r.coverImageDocId = imgDoc.id;
+        }
+      });
+      this.requestRender();
+    });
+  }
+
   private isTerminalStatus(status: string): boolean {
     const s = (status ?? '').toUpperCase();
     return s === 'DONE' || s === 'CANCELLED';
@@ -233,6 +258,7 @@ export class Events implements OnInit, OnDestroy {
             events,
             parts as Array<Record<string, unknown>>
           );
+          this.fetchCoverImages(this.displayRows);
           this.requestRender();
         },
         error: () => {
@@ -314,11 +340,10 @@ export class Events implements OnInit, OnDestroy {
       !this.form.eventDate ||
       !this.form.location?.trim() ||
       !this.form.typeLabel?.trim() ||
-      !this.form.status ||
-      this.form.participants < 1
+      !this.form.status
     ) {
       this.saveError =
-        'Please fill all fields; participants must be at least 1.';
+        'Please fill all fields';
       return;
     }
 
@@ -334,12 +359,12 @@ export class Events implements OnInit, OnDestroy {
       .subscribe({
         next: (savedEvent) => {
           if (this.selectedFiles.length > 0) {
-             this.uploadPendingFiles(savedEvent.id);
+            this.uploadPendingFiles(savedEvent.id);
           } else {
-             this.saving = false;
-             this.closeModal();
-             this.reloadEvents();
-             this.requestRender();
+            this.saving = false;
+            this.closeModal();
+            this.reloadEvents();
+            this.requestRender();
           }
         },
         error: () => {
@@ -364,7 +389,7 @@ export class Events implements OnInit, OnDestroy {
 
     this.editMap = L.map('edit-map').setView([defaultLat, defaultLng], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this.editMap);
-    
+
     const iconDefault = L.icon({
       iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -379,7 +404,7 @@ export class Events implements OnInit, OnDestroy {
     if (this.form.latitude && this.form.longitude) {
       this.editMarker = L.marker([this.form.latitude, this.form.longitude]).addTo(this.editMap);
     }
-    
+
     this.editMap.on('click', (e: L.LeafletMouseEvent) => {
       this.form.latitude = e.latlng.lat;
       this.form.longitude = e.latlng.lng;
@@ -390,7 +415,7 @@ export class Events implements OnInit, OnDestroy {
       }
       this.requestRender();
     });
-    
+
     setTimeout(() => { this.editMap?.invalidateSize(); }, 100);
   }
 
@@ -405,7 +430,7 @@ export class Events implements OnInit, OnDestroy {
           const lon = parseFloat(data[0].lon);
           this.form.latitude = lat;
           this.form.longitude = lon;
-          this.form.location = data[0].display_name.split(',')[0]; 
+          this.form.location = data[0].display_name.split(',')[0];
           if (this.editMap) {
             this.editMap.setView([lat, lon], 14);
             if (this.editMarker) {
@@ -416,11 +441,11 @@ export class Events implements OnInit, OnDestroy {
           }
           this.requestRender();
         } else {
-            this.showToast('Location not found in map search', 'error');
+          this.showToast('Location not found in map search', 'error');
         }
       })
       .catch(() => {
-          this.showToast('Error searching location', 'error');
+        this.showToast('Error searching location', 'error');
       });
   }
 
@@ -534,6 +559,7 @@ export class Events implements OnInit, OnDestroy {
                 events,
                 parts as Array<Record<string, unknown>>
               );
+              this.fetchCoverImages(this.displayRows);
               this.showNearbyEvents = true;
               this.requestRender();
             },
@@ -610,6 +636,7 @@ export class Events implements OnInit, OnDestroy {
             search.content,
             parts as Array<Record<string, unknown>>
           );
+          this.fetchCoverImages(this.displayRows);
           this.totalElements = search.totalElements;
           this.totalPages = search.totalPages;
           this.requestRender();
@@ -655,8 +682,8 @@ export class Events implements OnInit, OnDestroy {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (file.size > 5 * 1024 * 1024) {
-             this.showToast(`File ${file.name} exceeds 5MB limit.`, 'error');
-             continue;
+          this.showToast(`File ${file.name} exceeds 5MB limit.`, 'error');
+          continue;
         }
         this.selectedFiles.push(file);
       }
@@ -689,7 +716,7 @@ export class Events implements OnInit, OnDestroy {
   }
 
   uploadPendingFiles(eventId: number): void {
-    const uploads = this.selectedFiles.map(file => 
+    const uploads = this.selectedFiles.map(file =>
       this.eventService.uploadEventDocument(eventId, file).pipe(
         catchError(err => {
           console.error('Failed to upload', file.name, err);
@@ -869,33 +896,33 @@ export class Events implements OnInit, OnDestroy {
   // ───────────────────────────────────────────────
   // Part 4B: AI Description Generation (Groq)
   // ───────────────────────────────────────────────
-generateDescription(): void {
-  this.generatingDescription = true;
-  this.requestRender();
+  generateDescription(): void {
+    this.generatingDescription = true;
+    this.requestRender();
 
-  this.eventService.generateDescription({
-    title:              this.form.title       || '',
-    typeLabel:          this.form.typeLabel   || '',
-    location:           this.form.location    || '',
-    eventDate:          this.form.eventDate   || '',
-    currentDescription: this.form.description || ''
-  }).pipe(
-    finalize(() => {
-      this.generatingDescription = false;
-      this.requestRender();
-    })
-  ).subscribe({
-    next: ({ description }) => {
-      if (description) {
-        this.form.description = description;
-        this.showToast('Description generated successfully!', 'success');
-      } else {
-        this.showToast('AI returned an empty response.', 'error');
+    this.eventService.generateDescription({
+      title: this.form.title || '',
+      typeLabel: this.form.typeLabel || '',
+      location: this.form.location || '',
+      eventDate: this.form.eventDate || '',
+      currentDescription: this.form.description || ''
+    }).pipe(
+      finalize(() => {
+        this.generatingDescription = false;
+        this.requestRender();
+      })
+    ).subscribe({
+      next: ({ description }) => {
+        if (description) {
+          this.form.description = description;
+          this.showToast('Description generated successfully!', 'success');
+        } else {
+          this.showToast('AI returned an empty response.', 'error');
+        }
+      },
+      error: () => {
+        this.showToast('Failed to generate description.', 'error');
       }
-    },
-    error: () => {
-      this.showToast('Failed to generate description.', 'error');
-    }
-  });
-}
+    });
+  }
 }
