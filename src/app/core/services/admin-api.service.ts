@@ -250,8 +250,10 @@ export class AdminApiService {
   );
 }
 
-  publishToFacebook(eventId: number): Observable<string> {
-    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, null, 
+  publishToFacebook(eventId: number, imageBlob: Blob): Observable<string> {
+    const formData = new FormData();
+    formData.append('image', imageBlob, 'poster.png');
+    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, formData, 
       { responseType: 'text' });
   }
 }

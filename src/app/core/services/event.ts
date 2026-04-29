@@ -73,7 +73,7 @@ export class EventService {
   return this.adminApi.generateDescription(req);
 }
 
-  publishToFacebook(eventId: number): Observable<string> {
-    return this.adminApi.publishToFacebook(eventId);
+  publishToFacebook(eventId: number, imageBlob: Blob): Observable<string> {
+    return this.adminApi.publishToFacebook(eventId, imageBlob);
   }
 }

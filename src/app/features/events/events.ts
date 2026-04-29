@@ -13,6 +13,7 @@ import { EventService } from '../../core/services/event';
 import { GeolocationService } from '../../core/services/geolocation.service';
 import { environment } from '../../../environments/environment';
 import * as L from 'leaflet';
+import html2canvas from 'html2canvas';
 
 type EventRow = PlatformEventDto & {
   isJoined: boolean;
@@ -99,6 +100,7 @@ export class Events implements OnInit, OnDestroy {
   // Facebook
   facebookConnected = false;
   publishingFacebook = false;
+  posterEvent: PlatformEventDto | null = null;
 
   form: PlatformEventRequestPayload = Events.emptyForm();
 
@@ -747,20 +749,51 @@ export class Events implements OnInit, OnDestroy {
   // ───────────────────────────────────────────────
   publishToFacebook(e: PlatformEventDto): void {
     this.publishingFacebook = true;
+    this.posterEvent = e;
     this.requestRender();
 
-    this.eventService.publishToFacebook(e.id).subscribe({
-      next: () => {
+    setTimeout(() => {
+      const element = document.getElementById('facebook-poster');
+      if (!element) {
         this.publishingFacebook = false;
-        this.showToast('Event published to Facebook! 🎉', 'success');
+        this.posterEvent = null;
+        this.showToast('Failed to find poster element.', 'error');
         this.requestRender();
-      },
-      error: (err) => {
-        this.publishingFacebook = false;
-        this.showToast('Facebook publish failed: ' + (err.error || 'Unknown error'), 'error');
-        this.requestRender();
+        return;
       }
-    });
+
+      html2canvas(element, { useCORS: true, scale: 2 }).then(canvas => {
+        canvas.toBlob(blob => {
+          if (!blob) {
+            this.publishingFacebook = false;
+            this.posterEvent = null;
+            this.showToast('Failed to generate image blob.', 'error');
+            this.requestRender();
+            return;
+          }
+
+          this.eventService.publishToFacebook(e.id, blob).subscribe({
+            next: () => {
+              this.publishingFacebook = false;
+              this.posterEvent = null;
+              this.showToast('Event published to Facebook! 🎉', 'success');
+              this.requestRender();
+            },
+            error: (err) => {
+              this.publishingFacebook = false;
+              this.posterEvent = null;
+              this.showToast('Facebook publish failed: ' + (err.error || 'Unknown error'), 'error');
+              this.requestRender();
+            }
+          });
+        }, 'image/png');
+      }).catch(err => {
+        this.publishingFacebook = false;
+        this.posterEvent = null;
+        this.showToast('Failed to generate poster: ' + err.message, 'error');
+        this.requestRender();
+      });
+    }, 150);
   }
 
   // ───────────────────────────────────────────────
