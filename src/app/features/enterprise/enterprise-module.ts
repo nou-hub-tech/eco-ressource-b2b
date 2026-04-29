@@ -22,6 +22,9 @@ import { MyInventory } from './my-inventory/my-inventory';
 import { ProductFinder } from './product-finder/product-finder';
 import { MarketChatbot } from './market-chatbot/market-chatbot';
 import { MyReclamations } from './my-reclamations/my-reclamations';
+import { PaymentSuccessComponent } from './payment/payment-success.component';
+import { PaymentFailureComponent } from './payment/payment-failure.component';
+import { StripePaymentModalComponent } from './payment/stripe-payment-modal.component';
 
 const routes: Routes = [
   {
@@ -46,6 +49,8 @@ const routes: Routes = [
       { path: 'product-finder',  component: ProductFinder },
       { path: 'market-chatbot',  component: MarketChatbot },
       { path: 'my-reclamations', component: MyReclamations },
+      { path: 'payment/success',  component: PaymentSuccessComponent },
+      { path: 'payment/failure',  component: PaymentFailureComponent },
       {
         path: 'annonces',
         loadChildren: () =>
@@ -60,9 +65,11 @@ const routes: Routes = [
     Dashboard, Marketplace, MyStock, MyProducts, MyInventory,
     MyDeliveries, MyListings, MyReservations,
     Transactions, Reports, Requests, Events, Treasury, Invoices,
-    InvoiceChatComponent, ProductFinder, MarketChatbot, MyReclamations
+    InvoiceChatComponent, ProductFinder, MarketChatbot, MyReclamations,
+    PaymentSuccessComponent, PaymentFailureComponent, StripePaymentModalComponent
   ],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)],
   providers: [DatePipe, DecimalPipe]
 })
 export class EnterpriseModule {}
+

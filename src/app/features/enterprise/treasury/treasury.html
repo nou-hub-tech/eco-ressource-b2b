@@ -29,7 +29,14 @@
         <h1 class="page-title">💼 Trésorerie</h1>
         <p class="page-subtitle">Transactions, Escrow &amp; Dashboard Financier</p>
       </div>
-      <button class="btn btn-outline btn-sm" (click)="exportToExcel()">📊 Export</button>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="polling-badge">
+          <span class="polling-dot"></span>
+          🔄 Surveillance livraisons active
+          <span class="polling-time">{{ lastPollingCheck }}</span>
+        </div>
+        <button class="btn btn-outline btn-sm" (click)="exportToExcel()">📊 Export</button>
+      </div>
     </div>
 
     <!-- Barre d'onglets -->
@@ -101,8 +108,22 @@
               </td>
               <td class="date-cell">{{ esc.createdAt }}</td>
               <td class="action-cell">
-                <button class="btn btn-release btn-sm" *ngIf="esc.status==='LOCKED'" title="Libérer"
-                  (click)="releaseEscrow(esc)">🔓</button>
+                <!-- Badge : paiement Stripe déjà effectué -->
+                <span *ngIf="esc.konnectPaymentRef && esc.status==='LOCKED'" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+                         padding:3px 9px;border-radius:8px;margin-right:4px;
+                         background:rgba(99,102,241,0.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);"
+                  title="Paiement Stripe enregistré — en attente de livraison">
+                  💳 Payé
+                </span>
+                <!-- Bouton Stripe Pay -->
+                <button class="btn btn-konnect btn-sm" *ngIf="esc.status==='LOCKED' && !esc.konnectPaymentRef"
+                  [disabled]="stripeLoading === esc.id" title="Payer via Stripe (paiement sécurisé)"
+                  (click)="openStripeModal(esc)">
+                  {{ stripeLoading === esc.id ? '⏳...' : '💳 Stripe' }}
+                </button>
+                <!-- Bouton libérer manuellement (fallback) -->
+                <button class="btn btn-release btn-sm" *ngIf="esc.status==='LOCKED'"
+                  title="Libérer manuellement (secours)" (click)="releaseEscrow(esc)">🔓</button>
                 <button class="btn btn-ghost btn-sm" (click)="openEscrowForm(esc)">✏️</button>
                 <button class="btn btn-danger btn-sm" (click)="deleteEscrow(esc.id!)">🗑️</button>
               </td>
@@ -472,5 +493,10 @@
       </form>
     </div>
   </div>
+
+  <!-- ====== MODAL STRIPE PAIEMENT ====== -->
+  <app-stripe-payment-modal *ngIf="stripeModalEscrow" [escrow]="stripeModalEscrow" (closed)="stripeModalEscrow = null"
+    (paymentDone)="onStripePaymentSuccess(stripeModalEscrow!)">
+  </app-stripe-payment-modal>
 
 </div><!-- /PAGE WRAPPER -->

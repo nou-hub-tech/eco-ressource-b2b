@@ -1061,6 +1061,12 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     this.cd.detectChanges();
                     this.locationSuccess = `✅ Livraison terminée pour ${trip.to} ! +8 TND`;
                     setTimeout(() => this.locationSuccess = null, 5000);
+
+                    // 🔓 Libération explicite de l'escrow (appel direct backend)
+                    this.deliveryOrderService.releaseEscrow(tripId).subscribe({
+                        next: (res: any) => console.log('[TRIPS] Escrow libéré :', res),
+                        error: (err: any) => console.warn('[TRIPS] Release escrow warning:', err)
+                    });
                 }
             });
         }

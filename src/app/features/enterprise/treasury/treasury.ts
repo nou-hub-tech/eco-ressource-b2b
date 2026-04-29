@@ -1,9 +1,11 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
 import * as XLSX from 'xlsx';
 import { FinanceService } from '../../../core/services/finance';
 import { InvoiceService } from '../../../core/services/invoice';
+import { StripePaymentService } from '../../../core/services/stripe-payment.service';
 import { FinanceTransaction, EscrowEntry, Invoice } from '../../../core/models/finance.model';
 
 Chart.register(...registerables);
@@ -70,9 +72,19 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
   private viewReady = false;
   private dataReady = false;
 
+  // 💳 Stripe — état modal et chargement
+  stripeLoading: number | null = null;
+  stripeModalEscrow: EscrowEntry | null = null;
+
+  // 🔄 Polling surveillance livraisons
+  lastPollingCheck = 'En attente...';
+  private pollingInterval: any = null;
+
   constructor(
     private financeService: FinanceService,
     private invoiceService: InvoiceService,
+    private stripePaymentService: StripePaymentService,
+    private http: HttpClient,
     private fb: FormBuilder,
     private cd: ChangeDetectorRef
   ) {
@@ -92,11 +104,41 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void { this.loadData(); }
+  ngOnInit(): void {
+    this.loadData();
+    this.startPollingBadge();
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    this.cashChartInstance?.destroy();
+    this.projectChartInstance?.destroy();
+  }
 
   ngAfterViewInit(): void {
     this.viewReady = true;
     // Charts sera initialisé via setTab('stats') — pas ici car *ngIf
+  }
+
+  /** 🔄 Poll toutes les 30s le backend pour afficher le badge de surveillance */
+  private startPollingBadge(): void {
+    const check = () => {
+      this.http.get<{ lastCheck: string; active: string }>('/api/stripe/polling-status')
+        .subscribe({
+          next: (res) => {
+            const prev = this.lastPollingCheck;
+            this.lastPollingCheck = res.lastCheck;
+            // Si l'heure a changé → recharger les escrows (une livraison a peut-être été traitée)
+            if (prev !== 'En attente...' && prev !== res.lastCheck) {
+              this.loadData();
+            }
+            this.cd.detectChanges();
+          },
+          error: () => { /* silencieux si backend éteint */ }
+        });
+    };
+    check(); // premier appel immédiat
+    this.pollingInterval = setInterval(check, 30_000);
   }
 
   /** Change d'onglet — réinitialise les graphiques si on va sur 'stats' */
@@ -107,10 +149,6 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  ngOnDestroy(): void {
-    this.cashChartInstance?.destroy();
-    this.projectChartInstance?.destroy();
-  }
 
   // ==================== KPI COMPUTED ====================
 
@@ -170,6 +208,33 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
           error: () => this.showToast('Erreur lors de la libération de l\'escrow', 'error')
         });
       }
+    );
+  }
+
+  /**
+   * 💳 STRIPE — Ouvrir le modal de paiement
+   * Affiche le formulaire carte Stripe pour payer l’escrow
+   */
+  openStripeModal(esc: EscrowEntry): void {
+    this.stripeModalEscrow = esc;
+  }
+
+  /**
+   * Appelé par le modal Stripe après paiement réussi.
+   * Met à jour l’affichage local (badge "Payé") sans recharger la page.
+   */
+  onStripePaymentSuccess(esc: EscrowEntry): void {
+    this.stripeModalEscrow = null;
+    const idx = this.escrowEntries.findIndex(e => e.id === esc.id);
+    if (idx !== -1) {
+      // Marquer localement comme payé via Stripe (badge s’affiche)
+      (this.escrowEntries[idx] as any).konnectPaymentRef = 'stripe_paid';
+      this.escrowEntries = [...this.escrowEntries];
+    }
+    this.cd.detectChanges();
+    this.showToast(
+      `✅ Paiement Stripe confirmé pour "${esc.project}" — Fonds bloqués en escrow`,
+      'success'
     );
   }
 
@@ -258,12 +323,12 @@ export class Treasury implements OnInit, AfterViewInit, OnDestroy {
 
   getTypeLabel(type: string): string {
     const labels: Record<string, string> = {
-      PAYMENT:     '💳 Paiement',
-      REFUND:      '↩️ Remboursement',
-      LOAN:        '🏦 Prêt',
-      DISBURSEMENT:'📤 Décaissement',
-      FEE:         '🏷️ Frais',
-      ESCROW:      '🔒 Escrow',
+      PAYMENT: '💳 Paiement',
+      REFUND: '↩️ Remboursement',
+      LOAN: '🏦 Prêt',
+      DISBURSEMENT: '📤 Décaissement',
+      FEE: '🏷️ Frais',
+      ESCROW: '🔒 Escrow',
     };
     return labels[type?.toUpperCase()] ?? type;
   }
