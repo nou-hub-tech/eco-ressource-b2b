@@ -10,6 +10,7 @@ import { StatutCommande, StatutExpedition } from '../../../core/models/statut';
 import { Shipment } from '../../../core/models/shipment';
 import { environment } from '../../../../environments/environment';
 import { LivraisonIAService, PredictionLivraison, Probleme } from '../../../core/services/livraison-ia.service';
+import { NotificationApiService } from '../../../core/services/notification-api.service';
 
 declare var L: any;
 
@@ -45,20 +46,21 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     currentAcceptedTrip: any = null;
     private refreshInterval: any;
     
-    // Variables pour le transporteur
     currentTransporterId: number = 0;
     currentTransporterName: string = '';
     private transportersList: Transporter[] = [];
     private transportersLoaded: boolean = false;
     private apiUrl = environment.apiUrl;
     
-    // Propriétés IA
     iaPrediction: PredictionLivraison | null = null;
     showProblemeModal = false;
     problemeType: string = 'EMBOUTEILLAGE';
     problemeDescription: string = '';
     problemeRetard: number = 30;
     toastMessage: string = '';
+    
+    // ✅ Mapping client nom → ID utilisateur
+    private clientNameToUserId: Map<string, number> = new Map();
     
     constructor(
         private deliveryOrderService: DeliveryOrderService,
@@ -68,7 +70,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         private shipmentUpdateService: ShipmentUpdateService,
         private transportService: TransportService,
         private cd: ChangeDetectorRef,
-        private iaService: LivraisonIAService
+        private iaService: LivraisonIAService,
+        private notificationApiService: NotificationApiService
     ) {}
     
     async ngOnInit(): Promise<void> {
@@ -233,7 +236,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             date: trip.date,
             acceptedAt: trip.acceptedAt,
             completed: trip.completed || false,
-            transporterId: trip.transporterId
+            transporterId: trip.transporterId,
+            targetClientId: trip.targetClientId
         }));
         localStorage.setItem('acceptedTrips', JSON.stringify(acceptedData));
         localStorage.setItem('hasActiveTrip', JSON.stringify(this.hasActiveTrip));
@@ -275,6 +279,10 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             next: (orders: DeliveryOrder[]) => {
                 console.log('Commandes reçues:', orders.length);
                 this.deliveryOrders = orders;
+                
+                // ✅ Construire le mapping des clients
+                this.buildClientMapping();
+                
                 this.calculateAvailableTrips();
                 this.isLoadingTrips = false;
                 
@@ -292,6 +300,26 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 this.loadMockData();
             }
         });
+    }
+    
+    // ✅ Construire le mapping nom_client → ID utilisateur
+    buildClientMapping(): void {
+        // Mapping manuel basé sur vos données
+        this.clientNameToUserId.set('slim ben ali', 2);
+        this.clientNameToUserId.set('Linda Slimi', 37);
+        // Ajoutez d'autres clients ici au fur et à mesure
+        
+        console.log('📋 Mapping clients chargé:', Array.from(this.clientNameToUserId.entries()));
+    }
+    
+    // ✅ Récupérer l'ID utilisateur à partir du nom du client
+    getClientUserId(clientName: string): number {
+        const userId = this.clientNameToUserId.get(clientName);
+        if (userId) {
+            return userId;
+        }
+        console.warn(`⚠️ Client non trouvé dans le mapping: ${clientName}, utilisation fallback 2`);
+        return 2; // Fallback par défaut
     }
     
     loadMockData(): void {
@@ -439,7 +467,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 
                 const distance = this.calculateDistance(this.userLat, this.userLng, cityLat, cityLng);
                 
-                // Pas de filtre - on affiche toutes les commandes
                 console.log(`📦 Commande #${order.idDelivery}: ${cityName}, distance: ${distance} km`);
                 
                 const isAccepted = this.acceptedTrips.has(order.idDelivery);
@@ -684,10 +711,13 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         this.cd.detectChanges();
     }
     
+    // ✅ METHODE CORRIGÉE - ENVOI DYNAMIQUE
     envoyerAlerteClient(): void {
         console.log('📨 envoyerAlerteClient appelé');
         if (!this.currentAcceptedTrip) {
-            console.error('Pas de trajet actif');
+            console.error('❌ Pas de trajet actif');
+            this.locationError = '❌ Aucun trajet actif';
+            setTimeout(() => this.locationError = null, 3000);
             return;
         }
         
@@ -697,62 +727,109 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             this.problemeRetard
         );
         
-        this.iaService.envoyerNotificationClient(
-            probleme,
-            this.currentAcceptedTrip.clientName,
-            this.currentAcceptedTrip.telephone || "Non renseigné"
-        );
+        // ✅ Récupérer l'ID utilisateur dynamiquement à partir du nom du client
+        const clientName = this.currentAcceptedTrip.clientName;
+        const clientId = this.getClientUserId(clientName);
         
-        this.toastMessage = `✅ Client notifié : ${probleme.messageClient.substring(0, 80)}...`;
-        setTimeout(() => this.toastMessage = '', 5000);
+        console.log(`🔍 Envoi notification à ${clientName} (ID: ${clientId})`);
+        console.log(`📝 Message: ${probleme.messageClient}`);
         
-        this.closeProblemeModal();
+        if (clientId === 0) {
+            console.error('❌ Client non trouvé dans le mapping');
+            this.locationError = '❌ Client non identifié';
+            setTimeout(() => this.locationError = null, 3000);
+            this.closeProblemeModal();
+            return;
+        }
         
-        this.locationWarning = `🚨 Problème signalé: ${probleme.type} - Retard: ${probleme.retardMinutes} min`;
+        this.notificationApiService.sendNotification(clientId, {
+            type: 'PROBLEME_LIVRAISON',
+            deliveryOrderId: this.currentAcceptedTrip.id,
+            clientName: clientName,
+            targetUserId: clientId,
+            message: probleme.messageClient,
+            problemeType: this.problemeType,
+            retardMinutes: this.problemeRetard,
+            timestamp: new Date().toISOString()
+        }).subscribe({
+            next: (response) => {
+                console.log('✅ Notification envoyée avec succès à', clientName, '(ID:', clientId, ')');
+                this.toastMessage = `✅ Client notifié`;
+                setTimeout(() => this.toastMessage = '', 5000);
+            },
+            error: (err) => {
+                console.error('❌ Erreur envoi notification:', err);
+                this.locationError = `❌ Erreur: ${err.message}`;
+                setTimeout(() => this.locationError = null, 5000);
+            }
+        });
+        
+        this.locationWarning = `🚨 Problème signalé: ${probleme.type}`;
         setTimeout(() => this.locationWarning = '', 8000);
+        this.closeProblemeModal();
     }
     
     acceptTrip(trip: any): void {
+        console.log('🔍 Recherche dynamique du transporteur...');
+        
+        const currentUser = this.authService.currentUser;
+        
+        if (currentUser && currentUser.id && this.transportersList.length > 0) {
+            const userId = parseInt(currentUser.id, 10);
+            let transporter = this.transportersList.find(t => t.userId === userId);
+            
+            if (!transporter && currentUser.name) {
+                transporter = this.transportersList.find(t => 
+                    t.companyName?.toLowerCase().trim() === currentUser.name?.toLowerCase().trim()
+                );
+            }
+            
+            if (!transporter && this.transportersList.length > 0) {
+                transporter = this.transportersList[0];
+                console.log('⚠️ Fallback: premier transporteur');
+            }
+            
+            if (transporter) {
+                this.currentTransporterId = transporter.id;
+                this.currentTransporterName = transporter.companyName;
+                console.log(`✅ Transporteur: ${this.currentTransporterName} (ID: ${this.currentTransporterId})`);
+            }
+        } else if (this.transportersList.length > 0) {
+            this.currentTransporterId = this.transportersList[0].id;
+            this.currentTransporterName = this.transportersList[0].companyName;
+        }
+        
         if (!this.currentTransporterId || this.currentTransporterId <= 0) {
-            console.error('❌ currentTransporterId invalide:', this.currentTransporterId);
-            this.locationError = '❌ Impossible d\'accepter: transporteur non identifié. Veuillez rafraîchir la page.';
+            this.locationError = '❌ Aucun transporteur disponible';
             setTimeout(() => this.locationError = null, 5000);
             return;
         }
         
-        console.log('📦 Acceptation du trajet - Transporteur utilisé:', {
-            transporterId: this.currentTransporterId,
-            transporterName: this.currentTransporterName
-        });
-        
         if (this.hasActiveTrip) {
-            this.locationError = '❌ Vous avez déjà un trajet en cours. Terminez-le avant d\'en accepter un nouveau.';
+            this.locationError = '❌ Trajet déjà en cours';
             setTimeout(() => this.locationError = null, 5000);
             return;
         }
         
         if (trip.accepted) {
-            this.locationError = '❌ Ce trajet a déjà été accepté';
+            this.locationError = '❌ Trajet déjà accepté';
             setTimeout(() => this.locationError = null, 3000);
             return;
         }
         
-        if (confirm(`Accepter le trajet vers ${trip.to} (${trip.distance} km) ? Un bon de livraison sera généré.`)) {
-            
+        if (confirm(`Accepter le trajet vers ${trip.to} (${trip.distance} km) ?`)) {
             this.deliveryOrderService.updateStatut(trip.id, StatutCommande.EN_COURS).subscribe({
                 next: () => {
                     this.deliveryOrderService.getById(trip.id).subscribe({
                         next: (deliveryOrder: DeliveryOrder) => {
-                            
                             this.pdfGenerator.generateDeliveryOrderPDF(deliveryOrder);
-                            
                             this.shipmentService.getAll().subscribe({
                                 next: (shipments: Shipment[]) => {
-                                    const existingShipment = shipments.find(
-                                        s => s.deliveryOrder?.idDelivery === trip.id
-                                    );
-                                    
+                                    const existingShipment = shipments.find(s => s.deliveryOrder?.idDelivery === trip.id);
                                     const nowIso = new Date().toISOString();
+                                    
+                                    // Récupérer l'ID du client pour le stocker dans le trajet
+                                    const targetClientId = this.getClientUserId(trip.clientName);
                                     
                                     if (existingShipment && existingShipment.id) {
                                         const updatedShipment: Shipment = {
@@ -761,13 +838,18 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                             statut: StatutExpedition.EN_COURS,
                                             dateDepart: existingShipment.dateDepart || nowIso
                                         };
-                                        
-                                        console.log('📤 Mise à jour expédition avec transporter.id =', this.currentTransporterId);
-                                        
                                         this.shipmentService.update(existingShipment.id, updatedShipment).subscribe({
                                             next: (shipment: Shipment) => {
                                                 console.log('✅ Expédition mise à jour');
-                                                
+                                                this.notificationApiService.sendNotification(targetClientId, {
+                                                    type: 'ACCEPTATION_LIVRAISON',
+                                                    deliveryOrderId: trip.id,
+                                                    clientName: trip.clientName,
+                                                    targetUserId: targetClientId,
+                                                    transporterName: this.currentTransporterName,
+                                                    message: `${this.currentTransporterName} a accepté votre livraison`,
+                                                    timestamp: new Date().toISOString()
+                                                }).subscribe();
                                                 this.shipmentUpdateService.notifyShipmentUpdate({
                                                     type: 'SHIPMENT_UPDATED',
                                                     shipment: shipment,
@@ -777,9 +859,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                                     clientName: trip.clientName,
                                                     timestamp: new Date()
                                                 });
-                                            },
-                                            error: (error) => {
-                                                console.error('❌ Erreur mise à jour expédition:', error);
                                             }
                                         });
                                     } else {
@@ -792,13 +871,18 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                             dateDepart: nowIso,
                                             statut: StatutExpedition.EN_COURS
                                         };
-                                        
-                                        console.log('📤 Création expédition avec transporter.id =', this.currentTransporterId);
-                                        
                                         this.shipmentService.create(newShipment).subscribe({
                                             next: (shipment: Shipment) => {
                                                 console.log('✅ Expédition créée');
-                                                
+                                                this.notificationApiService.sendNotification(targetClientId, {
+                                                    type: 'ACCEPTATION_LIVRAISON',
+                                                    deliveryOrderId: trip.id,
+                                                    clientName: trip.clientName,
+                                                    targetUserId: targetClientId,
+                                                    transporterName: this.currentTransporterName,
+                                                    message: `${this.currentTransporterName} a accepté votre livraison`,
+                                                    timestamp: new Date().toISOString()
+                                                }).subscribe();
                                                 this.shipmentUpdateService.notifyShipmentUpdate({
                                                     type: 'NEW_SHIPMENT',
                                                     shipment: shipment,
@@ -808,15 +892,9 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                                     clientName: trip.clientName,
                                                     timestamp: new Date()
                                                 });
-                                            },
-                                            error: (error) => {
-                                                console.error('❌ Erreur création expédition:', error);
                                             }
                                         });
                                     }
-                                },
-                                error: (error) => {
-                                    console.error('❌ Erreur récupération des expéditions:', error);
                                 }
                             });
                             
@@ -837,7 +915,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                 acceptedAt: new Date().toISOString(),
                                 completed: false,
                                 transporterId: this.currentTransporterId,
-                                transporterName: this.currentTransporterName
+                                transporterName: this.currentTransporterName,
+                                targetClientId: this.getClientUserId(trip.clientName)
                             };
                             
                             this.acceptedTrips.set(trip.id, this.currentAcceptedTrip);
@@ -845,29 +924,14 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                             this.calculateAvailableTrips();
                             this.addOrderMarkersToMap();
                             
-                            setTimeout(() => {
-                                this.calculerPredictionIA(trip);
-                            }, 500);
+                            setTimeout(() => this.calculerPredictionIA(trip), 500);
+                            setTimeout(() => this.drawRoute(trip.lat, trip.lng), 500);
                             
-                            setTimeout(() => {
-                                this.drawRoute(trip.lat, trip.lng);
-                            }, 500);
-                            
-                            this.locationSuccess = `✅ Trajet accepté vers ${trip.to} ! Bon de livraison généré.`;
+                            this.locationSuccess = `✅ Trajet accepté vers ${trip.to} !`;
                             setTimeout(() => this.locationSuccess = null, 5000);
                             this.cd.detectChanges();
-                        },
-                        error: (error) => {
-                            console.error('Erreur:', error);
-                            this.locationError = '❌ Erreur lors de la récupération de la commande';
-                            setTimeout(() => this.locationError = null, 3000);
                         }
                     });
-                },
-                error: (error) => {
-                    console.error('Erreur:', error);
-                    this.locationError = '❌ Erreur lors de l\'acceptation';
-                    setTimeout(() => this.locationError = null, 3000);
                 }
             });
         }
@@ -875,7 +939,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     
     completeTrip(tripId: number): void {
         const trip = this.acceptedTrips.get(tripId) || this.availableTrips.find(t => t.id === tripId);
-        
         if (!trip) {
             this.locationError = '❌ Trajet non trouvé';
             setTimeout(() => this.locationError = null, 3000);
@@ -883,11 +946,9 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
         
         if (confirm(`Confirmez-vous la livraison terminée pour ${trip.to} ?`)) {
-            
             this.deliveryOrderService.updateStatut(tripId, StatutCommande.LIVREE).subscribe({
                 next: () => {
                     this.saveEarning(8, new Date(), tripId);
-                    
                     this.shipmentService.getAll().subscribe({
                         next: (shipments: Shipment[]) => {
                             const shipment = shipments.find(s => s.deliveryOrder.idDelivery === tripId);
@@ -901,18 +962,15 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                                             shipmentId: shipment.id,
                                             deliveryOrderId: tripId
                                         });
-                                    },
-                                    error: (err) => console.error('Erreur mise à jour expédition:', err)
+                                    }
                                 });
                             }
-                        },
-                        error: (err) => console.error('Erreur recherche expédition:', err)
+                        }
                     });
                     
                     if (this.acceptedTrips.has(tripId)) {
                         const updatedTrip = this.acceptedTrips.get(tripId);
                         updatedTrip.completed = true;
-                        updatedTrip.completedAt = new Date().toISOString();
                         this.acceptedTrips.set(tripId, updatedTrip);
                     }
                     
@@ -936,14 +994,8 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                     this.addOrderMarkersToMap();
                     
                     this.cd.detectChanges();
-                    
-                    this.locationSuccess = `✅ Livraison terminée pour ${trip.to} ! +8 TND ajoutés à vos gains.`;
+                    this.locationSuccess = `✅ Livraison terminée pour ${trip.to} ! +8 TND`;
                     setTimeout(() => this.locationSuccess = null, 5000);
-                },
-                error: (error) => {
-                    console.error('Erreur:', error);
-                    this.locationError = '❌ Erreur lors de la finalisation';
-                    setTimeout(() => this.locationError = null, 3000);
                 }
             });
         }
@@ -959,7 +1011,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         if (confirm(`Refuser le trajet vers ${trip.to} ?`)) {
             this.locationSuccess = `❌ Trajet refusé`;
             setTimeout(() => this.locationSuccess = null, 3000);
-            
             const index = this.availableTrips.indexOf(trip);
             if (index > -1) {
                 this.availableTrips.splice(index, 1);
@@ -977,16 +1028,13 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         this.calculateAvailableTrips();
         this.updateMapPosition(lat, lng);
         this.addOrderMarkersToMap();
-        setTimeout(() => {
-            this.drawAllAcceptedRoutes();
-        }, 500);
+        setTimeout(() => this.drawAllAcceptedRoutes(), 500);
         this.cd.detectChanges();
     }
     
     loadSavedPosition(): void {
         const savedLat = localStorage.getItem('userLat');
         const savedLng = localStorage.getItem('userLng');
-        
         if (savedLat && savedLng) {
             this.userLat = parseFloat(savedLat);
             this.userLng = parseFloat(savedLng);
@@ -997,9 +1045,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         this.isSelectingLocation = true;
         this.locationSuccess = '📍 Cliquez sur la carte pour définir votre position';
         const mapContainer = document.getElementById('mainMap');
-        if (mapContainer) {
-            mapContainer.style.cursor = 'crosshair';
-        }
+        if (mapContainer) mapContainer.style.cursor = 'crosshair';
         setTimeout(() => {
             if (this.locationSuccess === '📍 Cliquez sur la carte pour définir votre position') {
                 this.locationSuccess = null;
@@ -1010,9 +1056,7 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     disableManualLocationSelection(): void {
         this.isSelectingLocation = false;
         const mapContainer = document.getElementById('mainMap');
-        if (mapContainer) {
-            mapContainer.style.cursor = '';
-        }
+        if (mapContainer) mapContainer.style.cursor = '';
     }
     
     getUserLocation(): void {
@@ -1023,7 +1067,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         }
         
         this.isLoadingLocation = true;
-        
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 this.savePosition(position.coords.latitude, position.coords.longitude);
@@ -1042,23 +1085,16 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     }
     
     startRealTimeTracking(): void {
-        if (this.isTracking) {
-            this.stopRealTimeTracking();
-        }
-        
+        if (this.isTracking) this.stopRealTimeTracking();
         if (!navigator.geolocation) {
             this.locationError = '❌ GPS non supporté';
             return;
         }
-        
         this.isTracking = true;
         this.locationSuccess = '📍 Suivi en temps réel activé';
         setTimeout(() => this.locationSuccess = null, 3000);
-        
         this.watchId = navigator.geolocation.watchPosition(
-            (position) => {
-                this.savePosition(position.coords.latitude, position.coords.longitude);
-            },
+            (position) => this.savePosition(position.coords.latitude, position.coords.longitude),
             (error) => {
                 console.error('Erreur suivi:', error);
                 this.stopRealTimeTracking();
@@ -1081,7 +1117,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     private updateMapPosition(lat: number, lng: number): void {
         if (this.mainMap) {
             this.mainMap.setView([lat, lng], 12);
-            
             if (this.userMarker) {
                 this.userMarker.setLatLng([lat, lng]);
             } else {
@@ -1104,14 +1139,11 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
             console.error('Map container not found');
             return;
         }
-        
         this.mainMap = L.map('mainMap').setView([this.userLat, this.userLng], 8);
-        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
         }).addTo(this.mainMap);
-        
         this.mainMap.on('click', (e: any) => {
             if (this.isSelectingLocation) {
                 this.savePosition(e.latlng.lat, e.latlng.lng);
@@ -1120,16 +1152,11 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 setTimeout(() => this.locationSuccess = null, 3000);
             }
         });
-        
         this.updateMapPosition(this.userLat, this.userLng);
-        
         setTimeout(() => {
             this.addOrderMarkersToMap();
-            setTimeout(() => {
-                this.drawAllAcceptedRoutes();
-            }, 500);
+            setTimeout(() => this.drawAllAcceptedRoutes(), 500);
         }, 1000);
-        
         console.log('Carte initialisée');
     }
     
@@ -1142,30 +1169,19 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     initRouteMap(): void {
         const mapContainer = document.getElementById('routeMap');
         if (!mapContainer || !this.selectedTrip || typeof L === 'undefined') return;
-        
         if ((mapContainer as any)._leaflet_id) {
             const existingMap = (window as any).routeMap;
             if (existingMap) existingMap.remove();
         }
-        
         const map = L.map('routeMap').setView([this.userLat, this.userLng], 10);
         (window as any).routeMap = map;
-        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
-        
-        L.marker([this.userLat, this.userLng]).addTo(map)
-            .bindPopup('<strong>📍 Votre position</strong>')
-            .openPopup();
-        
+        L.marker([this.userLat, this.userLng]).addTo(map).bindPopup('<strong>📍 Votre position</strong>').openPopup();
         L.marker([this.selectedTrip.lat, this.selectedTrip.lng]).addTo(map)
-            .bindPopup(`<strong>${this.selectedTrip.to}</strong><br>
-                        Client: ${this.selectedTrip.clientName}<br>
-                        Adresse: ${this.selectedTrip.address}<br>
-                        Distance: ${this.selectedTrip.distance} km`)
+            .bindPopup(`<strong>${this.selectedTrip.to}</strong><br>Client: ${this.selectedTrip.clientName}<br>Adresse: ${this.selectedTrip.address}<br>Distance: ${this.selectedTrip.distance} km`)
             .openPopup();
-        
         const latlngs = [[this.userLat, this.userLng], [this.selectedTrip.lat, this.selectedTrip.lng]];
         const polyline = L.polyline(latlngs, { color: '#d4a574', weight: 3 }).addTo(map);
         map.fitBounds(polyline.getBounds());
@@ -1181,15 +1197,12 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     ngOnDestroy(): void {
         this.stopRealTimeTracking();
         window.removeEventListener('orderChanged', this.handleOrderChange.bind(this));
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
+        if (this.refreshInterval) clearInterval(this.refreshInterval);
     }
     
     handleOrderChange(): void {
         console.log('Changement d\'ordre détecté, rechargement des données...');
         this.loadDeliveryOrders();
-        
         this.deliveryOrderService.getAll().subscribe({
             next: (orders: DeliveryOrder[]) => {
                 orders.forEach(order => {
@@ -1200,9 +1213,6 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                         }
                     }
                 });
-            },
-            error: (error) => {
-                console.error('Erreur lors de la vérification des statuts:', error);
             }
         });
     }
@@ -1210,51 +1220,32 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
     autoCompleteTrip(tripId: number): void {
         const trip = this.acceptedTrips.get(tripId);
         if (!trip) return;
-        
         this.shipmentService.getAll().subscribe({
             next: (shipments: Shipment[]) => {
                 const shipment = shipments.find(s => s.deliveryOrder.idDelivery === tripId);
                 if (shipment) {
                     shipment.statut = StatutExpedition.LIVREE;
-                    this.shipmentService.update(shipment.id, shipment).subscribe({
-                        next: () => console.log('Expédition mise à jour automatiquement'),
-                        error: (err) => console.error('Erreur mise à jour expédition:', err)
-                    });
+                    this.shipmentService.update(shipment.id, shipment).subscribe();
                 }
-            },
-            error: (err) => console.error('Erreur recherche expédition:', err)
+            }
         });
-        
         this.saveEarning(8, new Date(), tripId);
-        
         trip.completed = true;
-        trip.completedAt = new Date().toISOString();
         this.acceptedTrips.set(tripId, trip);
-        
         const availableTrip = this.availableTrips.find(t => t.id === tripId);
-        if (availableTrip) {
-            availableTrip.completed = true;
-            availableTrip.accepted = true;
-        }
-        
+        if (availableTrip) availableTrip.completed = true;
         if (this.currentAcceptedTrip && this.currentAcceptedTrip.id === tripId) {
             this.hasActiveTrip = false;
             this.currentAcceptedTrip = null;
             this.iaPrediction = null;
         }
-        
-        this.routeLines.forEach(line => {
-            if (this.mainMap) this.mainMap.removeLayer(line);
-        });
+        this.routeLines.forEach(line => { if (this.mainMap) this.mainMap.removeLayer(line); });
         this.routeLines = [];
-        
         this.saveAcceptedTripsToStorage();
         this.calculateAvailableTrips();
         this.addOrderMarkersToMap();
-        
-        this.locationSuccess = `✅ Livraison terminée automatiquement pour ${trip.to} via QR code ! +8 TND ajoutés.`;
+        this.locationSuccess = `✅ Livraison terminée automatiquement pour ${trip.to} ! +8 TND`;
         setTimeout(() => this.locationSuccess = null, 5000);
-        
         this.cd.detectChanges();
     }
     
@@ -1265,26 +1256,17 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
                 this.calculateAvailableTrips();
                 this.addOrderMarkersToMap();
                 this.cd.detectChanges();
-
                 let hasChanges = false;
-                
                 orders.forEach(order => {
                     if (this.acceptedTrips.has(order.idDelivery)) {
                         const trip = this.acceptedTrips.get(order.idDelivery);
                         if (order.statut === StatutCommande.LIVREE && !trip.completed) {
-                            console.log(`Changement détecté: commande ${order.idDelivery} marquée comme LIVREE`);
                             hasChanges = true;
                             this.autoCompleteTrip(order.idDelivery);
                         }
                     }
                 });
-                
-                if (hasChanges) {
-                    this.loadDeliveryOrders();
-                }
-            },
-            error: (error) => {
-                console.error('Erreur lors de la vérification des changements:', error);
+                if (hasChanges) this.loadDeliveryOrders();
             }
         });
     }
@@ -1295,33 +1277,27 @@ export class Trips implements OnInit, AfterViewInit, OnDestroy {
         console.log('transportersList:', this.transportersList);
         console.log('currentTransporterId:', this.currentTransporterId);
         console.log('currentTransporterName:', this.currentTransporterName);
-        
         const currentUser = this.authService.currentUser;
         console.log('currentUser:', currentUser);
-        
         if (currentUser) {
             const userId = parseInt(currentUser.id, 10);
             console.log('user_id:', userId);
             const found = this.transportersList.find(t => t.userId === userId);
             console.log('Transporteur trouvé par userId:', found);
         }
-        
         alert(`Diagnostic:\nTransporteur ID: ${this.currentTransporterId}\nNom: ${this.currentTransporterName}\nListe taille: ${this.transportersList.length}`);
     }
     
     diagnosticCommandes(): void {
         console.log('=== DIAGNOSTIC COMMANDES ===');
         console.log('Commandes reçues:', this.deliveryOrders.length);
-        
         if (this.deliveryOrders.length === 0) {
             alert('❌ Aucune commande chargée ! Vérifiez l\'API');
             return;
         }
-        
         this.deliveryOrders.forEach(order => {
             console.log(`- #${order.idDelivery}: ${order.nomClient} - ${order.adresseLivraison} - ${order.statut}`);
         });
-        
         alert(`${this.deliveryOrders.length} commandes chargées. Regardez la console (F12) pour les détails.`);
     }
     

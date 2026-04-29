@@ -4,7 +4,7 @@
                 <div class="card-header">
                     <h3>
                         <i class="bi" [class.bi-pencil-square]="isEditMode" [class.bi-plus-circle]="!isEditMode"></i>
-                        {{ isEditMode ? 'Modifier' : 'Nouvelle' }} commande
+                        {{ isEditMode ? 'Modifier' : 'Nouvelle' }} Order
                     </h3>
                 </div>
                 <div class="card-body">
@@ -17,68 +17,68 @@
                     <!-- Indicateur de chargement -->
                     <div *ngIf="isLoading" class="empty-state">
                         <div class="spinner-border" role="status"></div>
-                        <p class="mt-2" style="color:var(--text3)">Traitement en cours…</p>
+                        <p class="mt-2" style="color:var(--text3)">Processing…</p>
                     </div>
 
                     <!-- Formulaire -->
                     <form [formGroup]="deliveryOrderForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
                         <!-- Champ Nom Client -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Nom du client *</label>
+                            <label class="form-label fw-bold">Client Name *</label>
                             <input type="text" 
                                    class="form-control" 
                                    formControlName="nomClient"
                                    [class.is-invalid]="nomClient?.invalid && nomClient?.touched"
                                    placeholder="Entrez le nom complet du client">
                             <div class="invalid-feedback">
-                                <div *ngIf="nomClient?.errors?.['required']">Le nom du client est requis</div>
-                                <div *ngIf="nomClient?.errors?.['minlength']">Minimum 2 caractères</div>
-                                <div *ngIf="nomClient?.errors?.['maxlength']">Maximum 100 caractères</div>
+                                <div *ngIf="nomClient?.errors?.['required']">The customer name is required</div>
+                                <div *ngIf="nomClient?.errors?.['minlength']">Minimum 2 characters</div>
+                                <div *ngIf="nomClient?.errors?.['maxlength']">Maximum 100 characters</div>
                             </div>
                         </div>
 
                         <!-- Champ Téléphone -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Téléphone *</label>
+                            <label class="form-label fw-bold">phone *</label>
                             <input type="tel" 
                                    class="form-control" 
                                    formControlName="telephoneClient"
                                    [class.is-invalid]="telephoneClient?.invalid && telephoneClient?.touched"
                                    placeholder="ex: 0612345678 ou 0123456789">
                             <div class="invalid-feedback">
-                                <div *ngIf="telephoneClient?.errors?.['required']">Le numéro de téléphone est requis</div>
-                                <div *ngIf="telephoneClient?.errors?.['pattern']">8 à 15 chiffres uniquement (sans espace ni tiret)</div>
+                                <div *ngIf="telephoneClient?.errors?.['required']">The phone number is required</div>
+                                <div *ngIf="telephoneClient?.errors?.['pattern']">8 to 15 digits only (without space or dash)</div>
                             </div>
                             <small class="text-muted">Format: 8 à 15 chiffres</small>
                         </div>
 
                         <!-- Champ Adresse -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Adresse de livraison *</label>
+                            <label class="form-label fw-bold">Delivery address *</label>
                             <textarea rows="3" 
                                       class="form-control" 
                                       formControlName="adresseLivraison"
                                       [class.is-invalid]="adresseLivraison?.invalid && adresseLivraison?.touched"
                                       placeholder="Adresse complète de livraison (rue, ville, code postal)"></textarea>
                             <div class="invalid-feedback">
-                                <div *ngIf="adresseLivraison?.errors?.['required']">L'adresse de livraison est requise</div>
-                                <div *ngIf="adresseLivraison?.errors?.['minlength']">Minimum 5 caractères</div>
+                                <div *ngIf="adresseLivraison?.errors?.['required']">The delivery address is required</div>
+                                <div *ngIf="adresseLivraison?.errors?.['minlength']">Minimum 5 characters</div>
                             </div>
                         </div>
 
                         <!-- Champ Date -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Date prévue de livraison *</label>
+                            <label class="form-label fw-bold">Planned delivery date *</label>
                             <input type="datetime-local" 
                                    class="form-control" 
                                    formControlName="datePrevue"
                                    [min]="today"
                                    [class.is-invalid]="datePrevue?.invalid && datePrevue?.touched">
                             <div class="invalid-feedback">
-                                <div *ngIf="datePrevue?.errors?.['required']">La date prévue est requise</div>
-                                <div *ngIf="datePrevue?.errors?.['invalidDate']">Format de date invalide</div>
-                                <div *ngIf="datePrevue?.errors?.['pastDate']">La date doit être dans le futur</div>
-                                <div *ngIf="datePrevue?.errors?.['invalidYear']">Année invalide (entre 1900 et 2100)</div>
+                                <div *ngIf="datePrevue?.errors?.['required']">The planned delivery date is required</div>
+                                <div *ngIf="datePrevue?.errors?.['invalidDate']">Invalid date format</div>
+                                <div *ngIf="datePrevue?.errors?.['pastDate']">The date must be in the future</div>
+                                <div *ngIf="datePrevue?.errors?.['invalidYear']">Invalid year (between 1900 and 2100)</div>
                             </div>
                             <small class="text-muted">
                                 <i class="bi bi-calendar-event"></i> Utilisez le calendrier pour sélectionner une date et heure
@@ -91,13 +91,13 @@
                             <select class="form-select" formControlName="statut">
                                 <option *ngFor="let statut of statuts" [value]="statut">{{ statut }}</option>
                             </select>
-                            <small class="text-muted">Statut initial: EN_ATTENTE</small>
+                            <small class="text-muted">Initial status: PENDING</small>
                         </div>
 
                         <!-- Boutons -->
                         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px">
                             <button type="button" class="btn btn-outline" (click)="onCancel()">
-                                <i class="bi bi-x-circle"></i> Annuler
+                                <i class="bi bi-x-circle"></i> Cancel
                             </button>
                             <button type="submit" class="btn btn-primary" [disabled]="deliveryOrderForm.invalid">
                                 <i class="bi bi-check-circle"></i>

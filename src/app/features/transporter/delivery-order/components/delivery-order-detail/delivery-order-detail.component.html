@@ -1,11 +1,11 @@
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1><i class="bi bi-info-circle"></i> Détail commande</h1>
-      <p>Informations et expéditions liées</p>
+      <h1><i class="bi bi-info-circle"></i> Order details</h1>
+      <p>Information and shipping details</p>
     </div>
     <button type="button" class="btn btn-outline" (click)="goBack()">
-      <i class="bi bi-arrow-left"></i> Retour
+      <i class="bi bi-arrow-left"></i> Back
     </button>
   </div>
 
@@ -18,17 +18,17 @@
   <div *ngIf="!isLoading && deliveryOrder" class="tx-detail-grid">
     <div class="card">
       <div class="card-header">
-        <h3>Commande</h3>
+        <h3>Order</h3>
       </div>
       <div class="card-body">
         <table class="data-table">
           <tbody>
             <tr><th style="width:42%">ID</th><td><strong>{{ deliveryOrder.idDelivery }}</strong></td></tr>
             <tr><th>Client</th><td>{{ deliveryOrder.nomClient }}</td></tr>
-            <tr><th>Téléphone</th><td>{{ deliveryOrder.telephoneClient }}</td></tr>
-            <tr><th>Adresse</th><td>{{ deliveryOrder.adresseLivraison }}</td></tr>
-            <tr><th>Date prévue</th><td>{{ deliveryOrder.datePrevue | date:'dd/MM/yyyy HH:mm' }}</td></tr>
-            <tr><th>Statut</th><td><span [class]="getStatutClass(deliveryOrder.statut)">{{ deliveryOrder.statut }}</span></td></tr>
+            <tr><th>Phone</th><td>{{ deliveryOrder.telephoneClient }}</td></tr>
+            <tr><th>Address</th><td>{{ deliveryOrder.adresseLivraison }}</td></tr>
+            <tr><th>Planned delivery date</th><td>{{ deliveryOrder.datePrevue | date:'dd/MM/yyyy HH:mm' }}</td></tr>
+            <tr><th>Status</th><td><span [class]="getStatutClass(deliveryOrder.statut)">{{ deliveryOrder.statut }}</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -40,10 +40,10 @@
       </div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
         <button type="button" class="btn btn-primary" (click)="editOrder()">
-          <i class="bi bi-pencil"></i> Modifier
+          <i class="bi bi-pencil"></i> Modify
         </button>
         <button type="button" class="btn btn-outline" (click)="addShipment()">
-          <i class="bi bi-plus-circle"></i> Ajouter une expédition
+          <i class="bi bi-plus-circle"></i> Add shipment
         </button>
       </div>
     </div>
@@ -51,23 +51,23 @@
 
   <div *ngIf="!isLoading && deliveryOrder" class="card" style="padding:0;margin-top:8px">
     <div class="card-header">
-      <h3><i class="bi bi-truck"></i> Expéditions associées</h3>
+      <h3><i class="bi bi-truck"></i> Associated Shipments</h3>
     </div>
     <div *ngIf="shipments.length === 0" class="empty-state" style="padding:32px">
-      <p style="color:var(--text3)">Aucune expédition pour cette commande</p>
+      <p style="color:var(--text3)">No shipments associated with this order</p>
       <button type="button" class="btn btn-primary btn-sm" (click)="addShipment()">
-        <i class="bi bi-plus-circle"></i> Ajouter une expédition
+        <i class="bi bi-plus-circle"></i> Add shipment
       </button>
     </div>
     <table *ngIf="shipments.length > 0" class="data-table">
       <thead>
         <tr>
           <th>ID</th>
-          <th>Produit</th>
-          <th>Qté</th>
-          <th>Transp.</th>
-          <th>Départ</th>
-          <th>Statut</th>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Carrier</th>
+          <th>Departure</th>
+          <th>Status</th>
           <th></th>
         </tr>
       </thead>

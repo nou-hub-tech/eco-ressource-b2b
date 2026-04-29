@@ -24,9 +24,7 @@ export interface Probleme {
 @Injectable({ providedIn: 'root' })
 export class LivraisonIAService {
     
-    // Base de données des distances réelles (chaque paire une seule fois)
     private readonly distances: { [key: string]: number } = {
-        // Tunis et banlieue
         'Tunis-Ariana': 8,
         'Tunis-Ben Arous': 12,
         'Tunis-La Marsa': 15,
@@ -35,8 +33,6 @@ export class LivraisonIAService {
         'Tunis-Mégrine': 14,
         'Tunis-Rades': 16,
         'Tunis-Hammam Lif': 20,
-        
-        // Grandes villes depuis Tunis
         'Tunis-Sousse': 140,
         'Tunis-Sfax': 270,
         'Tunis-Gabès': 380,
@@ -49,8 +45,6 @@ export class LivraisonIAService {
         'Tunis-Gafsa': 340,
         'Tunis-Tozeur': 430,
         'Tunis-Tataouine': 550,
-        
-        // Entre grandes villes
         'Sfax-Sousse': 130,
         'Sfax-Gabès': 110,
         'Sousse-Monastir': 20,
@@ -63,8 +57,6 @@ export class LivraisonIAService {
         'Ben Arous-Sfax': 265,
         'Bizerte-Sousse': 200,
         'Nabeul-Sousse': 60,
-        
-        // Autres
         'Monastir-Mahdia': 45
     };
     
@@ -72,33 +64,24 @@ export class LivraisonIAService {
         console.log('🤖 IA Service initialisé avec ' + Object.keys(this.distances).length + ' distances');
     }
     
-    // Obtenir la distance réelle entre deux villes (gère les deux sens)
     getDistanceReelle(depart: string, arrivee: string): number {
-        // Vérifier dans les deux sens
         const key = `${depart}-${arrivee}`;
         const keyInverse = `${arrivee}-${depart}`;
-        
         let distance = this.distances[key] || this.distances[keyInverse];
-        
         if (!distance) {
             console.warn(`⚠️ Distance non trouvée pour ${depart} → ${arrivee}, utilisation valeur par défaut: 15km`);
             distance = 15;
         }
-        
-        console.log(`📏 Distance ${depart} → ${arrivee}: ${distance} km`);
         return distance;
     }
     
-    // Calculer le temps de trajet estimé
     getTempsTrajet(distance: number, heure: number, jour: number): number {
-        // Vitesse selon distance
         let vitesse = 40;
         if (distance <= 20) vitesse = 25;
         else if (distance <= 50) vitesse = 50;
         else if (distance <= 150) vitesse = 80;
         else vitesse = 90;
         
-        // Facteur trafic
         let facteurTrafic = 1.0;
         const estHeurePointe = (heure >= 7 && heure <= 9) || (heure >= 17 && heure <= 19);
         const estWeekend = jour === 5 || jour === 6;
@@ -107,14 +90,12 @@ export class LivraisonIAService {
         else if (heure >= 12 && heure <= 14) facteurTrafic = 1.2;
         
         let temps = (distance / vitesse) * 60 * facteurTrafic;
-        
         if (distance <= 20) temps += 10;
         if (heure >= 20 || heure <= 6) temps += 5;
         
         return Math.round(temps);
     }
     
-    // Prédiction complète
     predireLivraison(depart: string, arrivee: string): PredictionLivraison {
         const maintenant = new Date();
         const heure = maintenant.getHours();
@@ -183,11 +164,5 @@ export class LivraisonIAService {
             retardMinutes: retardEstime,
             messageClient: messageClient
         };
-    }
-    
-    envoyerNotificationClient(probleme: Probleme, clientNom: string, clientTel: string): void {
-        console.log(`📱 Notification à ${clientNom} (${clientTel})`);
-        console.log(`📝 Message: ${probleme.messageClient}`);
-        alert(`🔔 CLIENT NOTIFIÉ\n\nÀ: ${clientNom}\nMessage: ${probleme.messageClient}`);
     }
 }

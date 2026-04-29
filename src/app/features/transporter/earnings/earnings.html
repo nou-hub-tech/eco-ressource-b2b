@@ -1,18 +1,18 @@
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1><i class="bi bi-currency-dollar"></i> Gains</h1>
-      <p>Revenus et paiements liés à vos trajets (8 TND par livraison)</p>
+      <h1><i class="bi bi-currency-dollar"></i> Earnings</h1>
+      <p>Earnings and payments related to your trips (8 TND per delivery)</p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button type="button" class="btn btn-outline btn-sm" (click)="showAllDeliveries()">
-        <i class="bi bi-list-ul"></i> Historique complet
+        <i class="bi bi-list-ul"></i> Complete History
       </button>
       <button type="button" class="btn btn-outline btn-sm" (click)="showMonthlyView()" *ngIf="viewMode === 'all'">
-        <i class="bi bi-calendar-month"></i> Vue par mois
+        <i class="bi bi-calendar-month"></i> Monthly View
       </button>
       <button type="button" class="btn btn-outline btn-sm" (click)="clearEarnings()">
-        <i class="bi bi-trash"></i> Effacer l'historique
+        <i class="bi bi-trash"></i> Clear History
       </button>
     </div>
   </div>
@@ -24,7 +24,7 @@
         <i class="bi bi-cash-stack"></i>
       </div>
       <div class="stat-info">
-        <div class="stat-label">Total des gains</div>
+        <div class="stat-label">Total Earnings</div>
         <div class="stat-value">{{ totalEarnings }} TND</div>
       </div>
     </div>
@@ -34,7 +34,7 @@
         <i class="bi bi-truck"></i>
       </div>
       <div class="stat-info">
-        <div class="stat-label">Total livraisons</div>
+        <div class="stat-label">Total Deliveries</div>
         <div class="stat-value">{{ totalDeliveries }}</div>
       </div>
     </div>
@@ -44,7 +44,7 @@
         <i class="bi bi-calculator"></i>
       </div>
       <div class="stat-info">
-        <div class="stat-label">Gain moyen</div>
+        <div class="stat-label">Average Gain</div>
         <div class="stat-value">{{ totalDeliveries > 0 ? (totalEarnings / totalDeliveries) : 0 }} TND</div>
       </div>
     </div>
@@ -53,17 +53,17 @@
   <!-- Vue par mois -->
   <div *ngIf="viewMode === 'monthly'">
     <div class="section-header">
-      <h2><i class="bi bi-calendar-month"></i> Gains par mois</h2>
+      <h2><i class="bi bi-calendar-month"></i> Earnings by Month</h2>
     </div>
     <div class="card" style="padding:0">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Période</th>
-            <th>Livraisons</th>
-            <th>Montant</th>
-            <th>Statut</th>
-            <th>Détails</th>
+            <th>Period</th>
+            <th>Deliveries</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Details</th>
           </tr>
         </thead>
         <tbody>
@@ -74,14 +74,14 @@
             <td><span class="badge badge-success">{{ earning.statut }}</span></td>
             <td>
               <button class="btn-details" (click)="showMonthDetails(earning)">
-                <i class="bi bi-eye"></i> Voir
+                <i class="bi bi-eye"></i> View 
               </button>
             </td>
           </tr>
           <tr *ngIf="monthlyEarnings.length === 0">
             <td colspan="5" class="text-center" style="padding:32px;color:var(--text3)">
               <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
-              Aucun gain enregistré pour le moment
+              No earnings recorded for the moment
             </td>
           </tr>
         </tbody>
@@ -105,21 +105,21 @@
           <div class="summary-card">
             <div class="summary-icon"><i class="bi bi-truck"></i></div>
             <div class="summary-info">
-              <span class="summary-label">Total livraisons</span>
+              <span class="summary-label">Total Deliveries</span>
               <span class="summary-value">{{ filteredEarnings.length }}</span>
             </div>
           </div>
           <div class="summary-card">
             <div class="summary-icon"><i class="bi bi-cash-stack"></i></div>
             <div class="summary-info">
-              <span class="summary-label">Total gains</span>
+              <span class="summary-label">Total Earnings</span>
               <span class="summary-value earnings">{{ filteredEarnings.reduce((sum, e) => sum + e.amount, 0) }} TND</span>
             </div>
           </div>
           <div class="summary-card">
             <div class="summary-icon"><i class="bi bi-calculator"></i></div>
             <div class="summary-info">
-              <span class="summary-label">Moyenne / livraison</span>
+              <span class="summary-label">Average / Delivery</span>
               <span class="summary-value">{{ filteredEarnings.length > 0 ? (filteredEarnings.reduce((sum, e) => sum + e.amount, 0) / filteredEarnings.length) : 0 }} TND</span>
             </div>
           </div>
@@ -131,9 +131,9 @@
             <span>N°</span>
             <span>ID Commande</span>
             <span>Date & Heure</span>
-            <span>Jour</span>
-            <span>Montant</span>
-            <span>Statut</span>
+            <span>Day</span>
+            <span>Amount</span>
+            <span>Status</span>
           </div>
           <div class="list-body">
             <div class="delivery-item" *ngFor="let earning of filteredEarnings; let i = index">
@@ -142,20 +142,20 @@
               <div class="delivery-date">{{ formatDate(earning.date) }}</div>
               <div class="delivery-day">{{ getDayName(earning.date) }}</div>
               <div class="delivery-amount">{{ earning.amount }} TND</div>
-              <div class="delivery-status"><span class="badge badge-success">Payé</span></div>
+              <div class="delivery-status"><span class="badge badge-success">Paid</span></div>
             </div>
           </div>
         </div>
 
         <div *ngIf="filteredEarnings.length === 0" class="empty-state">
           <i class="bi bi-inbox"></i>
-          <p>Aucune commande trouvée</p>
+          <p>No orders found</p>
         </div>
       </div>
       <div class="modal-footer-details">
-        <button class="btn-secondary" (click)="closeDetails()">Fermer</button>
+        <button class="btn-secondary" (click)="closeDetails()">Close</button>
         <button class="btn-primary" *ngIf="viewMode === 'monthly'" (click)="showAllDeliveries(); closeDetails()">
-          Voir tout l'historique
+          View all history
         </button>
       </div>
     </div>

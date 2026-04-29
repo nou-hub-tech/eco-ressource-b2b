@@ -1,17 +1,17 @@
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
-      <p>Vue d’ensemble de vos commandes et expéditions</p>
+      <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
+      <p>Overview of your orders and shipments</p>
     </div>
     <button type="button" class="btn btn-primary btn-sm" (click)="loadDashboard()" [disabled]="isLoading">
-      <i class="bi bi-arrow-repeat"></i> Actualiser
+      <i class="bi bi-arrow-repeat"></i> Refresh
     </button>
   </div>
 
   <div *ngIf="isLoading" class="empty-state">
     <div class="spinner-border" role="status"></div>
-    <p class="mt-2" style="color:var(--text3)">Chargement des données…</p>
+    <p class="mt-2" style="color:var(--text3)">Loading data…</p>
   </div>
 
   <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
@@ -21,34 +21,34 @@
       <div class="stat-card text-center">
         <div class="stat-icon" style="background:rgba(245,158,11,.12);font-size:18px">📦</div>
         <div class="stat-value">{{ stats.totalCommandes }}</div>
-        <div class="stat-label">Total commandes</div>
+        <div class="stat-label">Total orders</div>
       </div>
       <div class="stat-card text-center">
         <div class="stat-icon" style="background:rgba(96,165,250,.12);font-size:18px">🚚</div>
         <div class="stat-value">{{ stats.totalExpeditions }}</div>
-        <div class="stat-label">Expéditions</div>
+        <div class="stat-label">Shipments</div>
       </div>
       <div class="stat-card text-center">
         <div class="stat-icon" style="background:rgba(251,191,36,.12);font-size:18px">⏳</div>
         <div class="stat-value">{{ stats.commandesEnAttente }}</div>
-        <div class="stat-label">En attente</div>
+        <div class="stat-label">Pending</div>
       </div>
       <div class="stat-card text-center">
         <div class="stat-icon" style="background:rgba(52,211,153,.12);font-size:18px">✓</div>
         <div class="stat-value">{{ stats.commandesLivrees }}</div>
-        <div class="stat-label">Livrées</div>
+        <div class="stat-label">Delivered</div>
       </div>
     </div>
 
     <div class="card" style="margin-bottom:18px">
       <div class="card-header">
-        <h3><i class="bi bi-pie-chart"></i> Répartition des commandes</h3>
+        <h3><i class="bi bi-pie-chart"></i> Distribution of orders</h3>
       </div>
       <div class="card-body">
         <div class="grid-3" style="margin-bottom:0">
           <div class="text-center">
             <h4 style="color:var(--warning);margin-bottom:4px">{{ stats.commandesEnAttente }}</h4>
-            <small style="color:var(--text3)">En attente</small>
+            <small style="color:var(--text3)">Pending</small>
             <div class="progress mt-1">
               <div class="progress-bar bg-warning" [style.width.%]="getPourcentage('EN_ATTENTE')"></div>
             </div>
@@ -56,7 +56,7 @@
           </div>
           <div class="text-center">
             <h4 style="color:var(--info);margin-bottom:4px">{{ stats.commandesEnCours }}</h4>
-            <small style="color:var(--text3)">En cours</small>
+            <small style="color:var(--text3)">In Progress</small>
             <div class="progress mt-1">
               <div class="progress-bar bg-info" [style.width.%]="getPourcentage('EN_COURS')"></div>
             </div>
@@ -64,7 +64,7 @@
           </div>
           <div class="text-center">
             <h4 style="color:var(--success);margin-bottom:4px">{{ stats.commandesLivrees }}</h4>
-            <small style="color:var(--text3)">Livrées</small>
+            <small style="color:var(--text3)">Delivered</small>
             <div class="progress mt-1">
               <div class="progress-bar bg-success" [style.width.%]="getPourcentage('LIVREE')"></div>
             </div>
@@ -77,7 +77,7 @@
     <div class="grid-2" style="margin-bottom:18px">
       <div class="card" style="padding:0">
         <div class="card-header">
-          <h3><i class="bi bi-trophy"></i> Top clients</h3>
+          <h3><i class="bi bi-trophy"></i> Top Clients</h3>
         </div>
         <table class="data-table">
           <tbody>
@@ -86,14 +86,14 @@
               <td style="text-align:right"><span class="badge badge-primary">{{ client.nombreCommandes }} cmd</span></td>
             </tr>
             <tr *ngIf="stats.topClients.length === 0">
-              <td colspan="2" class="text-center" style="color:var(--text3);padding:24px">Aucune donnée</td>
+              <td colspan="2" class="text-center" style="color:var(--text3);padding:24px">No data available</td>
             </tr>
           </tbody>
         </table>
       </div>
       <div class="card" style="padding:0">
         <div class="card-header">
-          <h3><i class="bi bi-box"></i> Top produits</h3>
+          <h3><i class="bi bi-box"></i> Top Products</h3>
         </div>
         <table class="data-table">
           <tbody>
@@ -102,7 +102,7 @@
               <td style="text-align:right"><span class="badge badge-success">{{ produit.nombreExpeditions }} exp.</span></td>
             </tr>
             <tr *ngIf="stats.topProduits.length === 0">
-              <td colspan="2" class="text-center" style="color:var(--text3);padding:24px">Aucune donnée</td>
+              <td colspan="2" class="text-center" style="color:var(--text3);padding:24px">No data</td>
             </tr>
           </tbody>
         </table>
@@ -111,7 +111,7 @@
 
     <div class="card" style="padding:0;margin-bottom:18px">
       <div class="card-header">
-        <h3><i class="bi bi-clock-history"></i> Activité récente</h3>
+        <h3><i class="bi bi-clock-history"></i> Recent Activity</h3>
       </div>
       <table class="data-table">
         <thead>
@@ -124,20 +124,20 @@
             <td style="color:var(--text3);font-size:12px">{{ act.date }}</td>
           </tr>
           <tr *ngIf="stats.activitesRecentes.length === 0">
-            <td colspan="3" class="text-center" style="color:var(--text3);padding:24px">Aucune activité</td>
+            <td colspan="3" class="text-center" style="color:var(--text3);padding:24px">No recent activity</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="stat-card text-center" style="margin-bottom:18px">
-      <div class="stat-label">Quantité totale transportée</div>
+      <div class="stat-label">Total Quantity Transported</div>
       <div class="stat-value" style="color:var(--accent)">{{ stats.quantiteTotale | number:'1.0-2' }}</div>
       <div class="stat-label">unités</div>
     </div>
 
     <div *ngIf="stats.commandesEnRetard > 0" class="alert alert-danger" style="text-align:center">
-      <strong>{{ stats.commandesEnRetard }}</strong> commande(s) en retard — date de livraison dépassée.
+      <strong>{{ stats.commandesEnRetard }}</strong> late order(s) — delivery date exceeded
     </div>
   </div>
 </div>

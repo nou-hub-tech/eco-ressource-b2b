@@ -1,16 +1,16 @@
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1><i class="bi bi-box-seam"></i> Commandes de livraison</h1>
-      <p>Recherche, statistiques et gestion des commandes</p>
+      <h1><i class="bi bi-box-seam"></i> Delivery orders</h1>
+      <p>Search, statistics and management of orders</p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button type="button" class="btn btn-outline" (click)="toggleStats()">
-        <i class="bi bi-graph-up"></i> Statistiques
+        <i class="bi bi-graph-up"></i> Statistics
       </button>
       <button type="button" class="btn btn-danger" (click)="generateAllPDFs()" 
               *ngIf="filteredOrders.length > 0" title="Exporter toutes les commandes filtrées">
-        <i class="bi bi-file-pdf"></i> Exporter tout
+        <i class="bi bi-file-pdf"></i> Export all
       </button>
       <!-- BOUTON "NOUVELLE COMMANDE" SUPPRIMÉ -->
     </div>
@@ -18,18 +18,18 @@
 
   <div class="card" style="margin-bottom:18px">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-      <h3><i class="bi bi-search"></i> Recherche</h3>
-      <span *ngIf="rechercheActive" class="badge badge-info">Recherche active</span>
+      <h3><i class="bi bi-search"></i> Search</h3>
+      <span *ngIf="rechercheActive" class="badge badge-info">Search active</span>
     </div>
     <div class="card-body">
       <form [formGroup]="searchForm">
         <div class="form-row">
           <div class="form-group">
-            <label>Nom client</label>
-            <input type="text" formControlName="nomClient" placeholder="Tapez pour rechercher…">
+            <label>Client Name</label>
+            <input type="text" formControlName="nomClient" placeholder="Type to search…">
           </div>
           <div class="form-group">
-            <label>Adresse</label>
+            <label>Adress</label>
             <input type="text" formControlName="adresseLivraison" placeholder="Adresse de livraison…">
           </div>
         </div>
@@ -37,18 +37,18 @@
           <div class="form-group">
             <label>Statut</label>
             <select formControlName="statut">
-              <option value="">Tous</option>
+              <option value="">All</option>
               <option *ngFor="let statut of statuts" [value]="statut">{{ statut }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Date prévue</label>
+            <label>Planned date</label>
             <input type="date" formControlName="datePrevue">
           </div>
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:8px">
           <button type="button" class="btn btn-outline" (click)="resetFilters()">
-            <i class="bi bi-eraser"></i> Réinitialiser
+            <i class="bi bi-eraser"></i> Reset
           </button>
         </div>
       </form>
@@ -56,12 +56,12 @@
   </div>
 
   <div *ngIf="rechercheActive && isLoading" class="alert alert-success" style="border-color:rgba(52,211,153,.3)">
-    <i class="bi bi-search"></i> Recherche en cours…
+    <i class="bi bi-search"></i> Search in progress…
   </div>
 
   <div *ngIf="showStats && statistiques" class="card" style="margin-bottom:18px">
     <div class="card-header">
-      <h3><i class="bi bi-graph-up"></i> Statistiques</h3>
+      <h3><i class="bi bi-graph-up"></i> Statistics</h3>
     </div>
     <div class="card-body">
       <div class="stats-grid">
@@ -71,7 +71,7 @@
         </div>
         <div class="stat-card text-center">
           <div class="stat-value" style="color:var(--warning)">{{ statistiques.parStatut?.EN_ATTENTE || 0 }}</div>
-          <div class="stat-label">En attente</div>
+          <div class="stat-label">Pending</div>
           <div class="progress mt-1">
             <div class="progress-bar bg-warning" [style.width]="getProgressWidth('EN_ATTENTE')"></div>
           </div>
@@ -79,7 +79,7 @@
         </div>
         <div class="stat-card text-center">
           <div class="stat-value" style="color:var(--info)">{{ statistiques.parStatut?.EN_COURS || 0 }}</div>
-          <div class="stat-label">En cours</div>
+          <div class="stat-label">In Progress</div>
           <div class="progress mt-1">
             <div class="progress-bar bg-info" [style.width]="getProgressWidth('EN_COURS')"></div>
           </div>
@@ -87,7 +87,7 @@
         </div>
         <div class="stat-card text-center">
           <div class="stat-value" style="color:var(--success)">{{ statistiques.parStatut?.LIVREE || 0 }}</div>
-          <div class="stat-label">Livrées</div>
+          <div class="stat-label">Delivered</div>
           <div class="progress mt-1">
             <div class="progress-bar bg-success" [style.width]="getProgressWidth('LIVREE')"></div>
           </div>
@@ -108,7 +108,7 @@
         <i *ngIf="sortBy === 'nom'" [class]="sortOrder === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
       </button>
     </div>
-    <span style="font-size:12px;color:var(--text3)">{{ filteredOrders.length }} commande(s)</span>
+    <span style="font-size:12px;color:var(--text3)">{{ filteredOrders.length }} order(s)</span>
   </div>
 
   <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
@@ -116,7 +116,7 @@
 
   <div *ngIf="isLoading && !rechercheActive" class="empty-state">
     <div class="spinner-border" role="status"></div>
-    <p class="mt-2" style="color:var(--text3)">Chargement…</p>
+    <p class="mt-2" style="color:var(--text3)">Loading…</p>
   </div>
 
   <div *ngIf="!isLoading" class="card" style="padding:0">
@@ -126,9 +126,9 @@
           <tr>
             <th>ID</th>
             <th>Client</th>
-            <th>Adresse</th>
-            <th>Date prévue</th>
-            <th>Statut</th>
+            <th>Address</th>
+            <th>Date Planned</th>
+            <th>Status</th>
             <th style="width:140px">Actions</th>
           </tr>
         </thead>
@@ -158,7 +158,7 @@
           <tr *ngIf="filteredOrders.length === 0">
             <td colspan="6" class="text-center" style="padding:32px;color:var(--text3)">
               <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
-              Aucune commande trouvée
+              No orders found
               <!-- BOUTON CRÉER SUPPRIMÉ -->
             </td>
            </tr>
@@ -171,7 +171,7 @@
   <div *ngIf="!isLoading && filteredOrders.length > 0" class="pagination-container">
     <div class="pagination-info">
       <span>
-        Affichage de {{ getStartIndex() }} à {{ getEndIndex() }} sur {{ totalItems }} commande(s)
+        Displaying {{ getStartIndex() }} to {{ getEndIndex() }} of {{ totalItems }} order(s)
       </span>
     </div>
     

@@ -1,11 +1,11 @@
 <div class="page-wrapper">
   <div class="page-header-row">
     <div class="page-header" style="margin:0">
-      <h1><i class="bi bi-info-circle"></i> Détail expédition</h1>
-      <p>Expédition et commande associée</p>
+      <h1><i class="bi bi-info-circle"></i> Shipment detail</h1>
+      <p>Shipment and associated order</p>
     </div>
     <button type="button" class="btn btn-outline" (click)="goBack()">
-      <i class="bi bi-arrow-left"></i> Retour
+      <i class="bi bi-arrow-left"></i> Back
     </button>
   </div>
 
@@ -18,17 +18,17 @@
   <div *ngIf="!isLoading && shipment" class="tx-detail-grid">
     <div class="card">
       <div class="card-header">
-        <h3>Expédition</h3>
+        <h3>Shipment</h3>
       </div>
       <div class="card-body">
         <table class="data-table">
           <tbody>
             <tr><th style="width:42%">ID</th><td><strong>{{ shipment.id }}</strong></td></tr>
-            <tr><th>Commande</th><td>#{{ shipment.deliveryOrder.idDelivery }}</td></tr>
-            <tr><th>Produit</th><td>{{ shipment.produitId }}</td></tr>
-            <tr><th>Quantité</th><td>{{ shipment.quantite }}</td></tr>
-            <tr><th>Transporteur</th><td>{{ shipment.idTransporter }}</td></tr>
-            <tr><th>Départ</th><td>{{ shipment.dateDepart | date:'dd/MM/yyyy HH:mm' }}</td></tr>
+            <tr><th>Order</th><td>#{{ shipment.deliveryOrder.idDelivery }}</td></tr>
+            <tr><th>Product</th><td>{{ shipment.produitId }}</td></tr>
+            <tr><th>Quantity</th><td>{{ shipment.quantite }}</td></tr>
+            <tr><th>Carrie</th><td>{{ shipment.idTransporter }}</td></tr>
+            <tr><th>Departure</th><td>{{ shipment.dateDepart | date:'dd/MM/yyyy HH:mm' }}</td></tr>
             <tr><th>Statut</th><td><span [class]="getStatutClass(shipment.statut)">{{ shipment.statut }}</span></td></tr>
           </tbody>
         </table>
@@ -37,19 +37,19 @@
 
     <div class="card">
       <div class="card-header">
-        <h3>Commande</h3>
+        <h3>Order</h3>
       </div>
       <div class="card-body" *ngIf="deliveryOrder">
         <table class="data-table">
           <tbody>
             <tr><th style="width:42%">Client</th><td>{{ deliveryOrder.nomClient }}</td></tr>
-            <tr><th>Téléphone</th><td>{{ deliveryOrder.telephoneClient }}</td></tr>
-            <tr><th>Adresse</th><td>{{ deliveryOrder.adresseLivraison }}</td></tr>
-            <tr><th>Date prévue</th><td>{{ deliveryOrder.datePrevue | date:'dd/MM/yyyy HH:mm' }}</td></tr>
+            <tr><th>Phone</th><td>{{ deliveryOrder.telephoneClient }}</td></tr>
+            <tr><th>Adress</th><td>{{ deliveryOrder.adresseLivraison }}</td></tr>
+            <tr><th>Planned date</th><td>{{ deliveryOrder.datePrevue | date:'dd/MM/yyyy HH:mm' }}</td></tr>
           </tbody>
         </table>
         <button type="button" class="btn btn-outline" style="width:100%;margin-top:12px" [routerLink]="['/transporter/delivery-orders/detail', deliveryOrder.idDelivery]">
-          <i class="bi bi-eye"></i> Voir la commande
+          <i class="bi bi-eye"></i> View order
         </button>
       </div>
     </div>
@@ -61,10 +61,10 @@
     </div>
     <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
       <button type="button" class="btn btn-primary" (click)="editShipment()">
-        <i class="bi bi-pencil"></i> Modifier l’expédition
+        <i class="bi bi-pencil"></i> Edit the shipment
       </button>
       <button type="button" class="btn btn-outline" [routerLink]="['/transporter/shipments/new']">
-        <i class="bi bi-plus-circle"></i> Nouvelle expédition
+        <i class="bi bi-plus-circle"></i> New shipmen
       </button>
     </div>
   </div>
