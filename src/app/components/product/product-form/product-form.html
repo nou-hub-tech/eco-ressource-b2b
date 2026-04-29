@@ -1,0 +1,173 @@
+<div class="form-container">
+  <div class="form-card">
+    <!-- Header -->
+    <div class="form-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <i class="fas fa-boxes"></i>
+        </div>
+        <div class="header-text">
+          <h1>{{ isEditMode ? 'Edit Product' : 'Create New Product' }}</h1>
+          <p>{{ isEditMode ? 'Update product information' : 'Add a new product to catalog' }}</p>
+        </div>
+      </div>
+      <div class="header-badge" *ngIf="isEditMode">
+        <i class="fas fa-edit"></i> Edit Mode
+      </div>
+    </div>
+
+    <form #productForm="ngForm" (ngSubmit)="save(productForm)" class="product-form">
+      
+      <!-- Two Column Layout -->
+      <div class="form-grid">
+        
+        <!-- Left Column -->
+        <div class="form-column">
+          <!-- Product Name -->
+          <div class="form-group" [class.error]="name.invalid && (name.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-tag"></i>
+              Product Name *
+            </label>
+            <input type="text" 
+                   [(ngModel)]="product.name" 
+                   name="name" 
+                   required 
+                   minlength="2"
+                   #name="ngModel"
+                   class="form-control" 
+                   placeholder="Enter product name">
+            <div class="form-error" *ngIf="name.invalid && (name.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i>
+              <span *ngIf="name.errors?.['required']">Product name is required</span>
+              <span *ngIf="name.errors?.['minlength']">Minimum 2 characters required</span>
+            </div>
+          </div>
+
+          <!-- Category -->
+          <div class="form-group" [class.error]="category.invalid && (category.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-folder"></i>
+              Category *
+            </label>
+            <input type="text" 
+                   [(ngModel)]="product.category" 
+                   name="category" 
+                   required
+                   #category="ngModel"
+                   class="form-control" 
+                   placeholder="e.g., Electronics, Furniture, Clothing">
+            <div class="form-error" *ngIf="category.invalid && (category.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i> Category is required
+            </div>
+          </div>
+
+          <!-- Material Type -->
+          <div class="form-group" [class.error]="materialType.invalid && (materialType.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-cube"></i>
+              Material Type *
+            </label>
+            <input type="text" 
+                   [(ngModel)]="product.materialType" 
+                   name="materialType" 
+                   required
+                   #materialType="ngModel"
+                   class="form-control" 
+                   placeholder="e.g., Plastic, Wood, Metal, Glass">
+            <div class="form-error" *ngIf="materialType.invalid && (materialType.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i> Material type is required
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="form-column">
+          <!-- Recyclable Toggle -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-recycle"></i>
+              Recyclable Status
+            </label>
+            <div class="toggle-switch">
+              <input type="checkbox" 
+                     [(ngModel)]="product.recyclable" 
+                     name="recyclable"
+                     id="recyclableToggle"
+                     class="toggle-input">
+              <label for="recyclableToggle" class="toggle-label">
+                <span class="toggle-slider"></span>
+                <span class="toggle-text" *ngIf="product.recyclable">Recyclable</span>
+                <span class="toggle-text" *ngIf="!product.recyclable">Not Recyclable</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group" [class.error]="description.invalid && (description.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-align-left"></i>
+              Description *
+            </label>
+            <textarea [(ngModel)]="product.description" 
+                      name="description" 
+                      required 
+                      minlength="5"
+                      #description="ngModel"
+                      class="form-control form-textarea" 
+                      rows="5"
+                      placeholder="Enter detailed product description..."></textarea>
+            <div class="form-error" *ngIf="description.invalid && (description.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i>
+              <span *ngIf="description.errors?.['required']">Description is required</span>
+              <span *ngIf="description.errors?.['minlength']">Minimum 5 characters required</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image Upload Section -->
+      <div class="image-section">
+        <label class="form-label">
+          <i class="fas fa-image"></i>
+          Product Image
+        </label>
+        <div class="image-upload-area" (click)="fileInput.click()">
+          <input type="file" #fileInput accept="image/*" (change)="onFileSelected($event)" style="display: none">
+          
+          <div *ngIf="!imagePreviewUrl" class="upload-placeholder">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Click to upload product image</p>
+            <small>Supported formats: JPG, PNG, GIF (Max 5MB)</small>
+          </div>
+          
+          <div *ngIf="imagePreviewUrl" class="image-preview-wrapper">
+            <img [src]="imagePreviewUrl" alt="Preview" class="image-preview">
+            <button type="button" class="remove-image" (click)="removeImage($event)">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Alert -->
+      <div class="error-alert" *ngIf="serverErrors">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ serverErrors }}
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()">
+          <i class="fas fa-times"></i>
+          Cancel
+        </button>
+        <button type="submit" class="btn-submit" [disabled]="productForm.invalid">
+          <i class="fas" [class.fa-plus]="!isEditMode" [class.fa-save]="isEditMode"></i>
+          {{ isEditMode ? 'Update Product' : 'Create Product' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

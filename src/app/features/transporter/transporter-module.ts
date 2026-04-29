@@ -18,6 +18,10 @@ const routes: Routes = [
       { path: 'dashboard', component: Dashboard },
       { path: 'trips',     component: Trips },
       { path: 'shipments', component: Shipments },
+      {
+        path: 'delivery-orders',
+        loadChildren: () => import('./delivery-order/delivery-order.module').then(m => m.DeliveryOrderModule)
+      },
       { path: 'earnings',  component: Earnings },
     ]
   }

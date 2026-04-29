@@ -1,20 +1,139 @@
 <div class="page-wrapper">
-  <div class="page-header"><h1>My Deliveries</h1><p>Track all your shipments and logistics operations</p></div>
-  <div class="card" style="padding:0">
-    <table class="data-table">
-      <thead><tr><th>ID</th><th>Product</th><th>Route</th><th>Transporter</th><th>CO₂ Saved</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let d of deliveries">
-          <td><code style="font-size:11px;color:var(--text3)">{{d.id}}</code></td>
-          <td><strong style="color:var(--text)">{{d.product}}</strong></td>
-          <td style="color:var(--text2);font-size:12px">{{d.from}} → {{d.to}}</td>
-          <td style="color:var(--text2)">{{d.transporter}}</td>
-          <td><span style="color:var(--success,#059669);font-weight:600;font-size:12px">🌿 {{d.co2}}</span></td>
-          <td><strong style="color:var(--primary)">{{d.amount}} TND</strong></td>
-          <td><span class="badge" [ngClass]="d.status==='delivered'?'badge-success':d.status==='in-transit'?'badge-info':'badge-warning'">{{d.status}}</span></td>
-          <td style="color:var(--text3);font-size:12px">{{d.date}}</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="page-header">
+    <div class="page-header-content">
+      <h1><i class="bi bi-truck"></i> My Deliveries</h1>
+      <p>Track all your shipments and logistics operations</p>
+      <p class="user-info" *ngIf="currentUserName">
+        <i class="bi bi-person-circle"></i> Deliveries for : <strong>{{ currentUserName }}</strong>
+      </p>
+    </div>
+    <div class="page-header-actions">
+      <!-- Bouton cloche -->
+      <button type="button" class="btn-notification" (click)="openNotifications()" title="Notifications">
+        <i class="bi bi-bell-fill"></i>
+        <span class="notification-badge" *ngIf="notifications.filter(n=>!n.read).length > 0">
+          {{ notifications.filter(n=>!n.read).length }}
+        </span>
+      </button>
+
+      <button type="button" class="btn btn-outline" (click)="generateAllPDFs()" *ngIf="filteredShipments.length > 0">
+        <i class="bi bi-file-pdf"></i> Export all ({{ filteredShipments.length }})
+      </button>
+    </div>
+  </div>
+
+  <!-- PANEL NOTIFICATIONS -->
+  <div class="notification-panel" *ngIf="showNotifications">
+    <div class="notification-header">
+      <h4><i class="bi bi-bell-fill"></i> Notifications</h4>
+      <button class="btn-icon" (click)="closeNotifications()">✕</button>
+    </div>
+    <div class="notification-list">
+      <div *ngIf="notifications.length === 0" class="notification-empty">
+        <i class="bi bi-inbox"></i>
+        <p>No notification</p>
+      </div>
+      <div *ngFor="let notif of notifications" class="notification-item" [class.unread]="!notif.read">
+        <div class="notification-icon">
+          <i
+            [class]="notif.type === 'PROBLEME_LIVRAISON' ? 'bi bi-exclamation-triangle-fill' : 'bi bi-check-circle-fill'"></i>
+        </div>
+        <div class="notification-content">
+          <div class="notification-title">{{ notif.type === 'PROBLEME_LIVRAISON' ? '⚠️ Problème' : '✅ Acceptation' }}
+          </div>
+          <div class="notification-message">{{ notif.message }}</div>
+          <div class="notification-date">{{ notif.timestamp | date:'dd/MM/yyyy HH:mm' }}</div>
+        </div>
+        <div class="notification-buttons">
+          <button *ngIf="!notif.read" class="btn-read" (click)="markAsRead(notif.id)">📖</button>
+          <button class="btn-delete" (click)="deleteNotification(notif.id)">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reste de votre HTML (tableau, etc.) -->
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+
+  <div class="stats-grid" *ngIf="!isLoading && filteredShipments.length > 0">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Total deliveries</div>
+        <div class="stat-value">{{ getTotalDeliveries() }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Delivered</div>
+        <div class="stat-value text-success">{{ getCompletedDeliveries() }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value text-warning">{{ getPendingDeliveries() }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-truck"></i></div>
+      <div class="stat-info">
+        <div class="stat-label">In progress</div>
+        <div class="stat-value text-info">{{ getInProgressDeliveries() }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner-border"></div>
+    <p>Loading...</p>
+  </div>
+
+  <div *ngIf="!isLoading && filteredShipments.length === 0 && allShipments.length > 0" class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <p>No deliveries for your account</p>
+  </div>
+
+  <div *ngIf="!isLoading && filteredShipments.length > 0" class="card">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Product</th>
+            <th>Client</th>
+            <th>Destination</th>
+            <th>Transporter</th>
+            <th>Quantity</th>
+            <th>CO₂</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let shipment of filteredShipments">
+            <td>#{{ shipment.id }}</td>
+            <td><strong>{{ getProductName(shipment.produitId) }}</strong></td>
+            <td>{{ getClientName(shipment.deliveryOrder?.idDelivery) }}</td>
+            <td>{{ getClientAddress(shipment.deliveryOrder?.idDelivery) }}</td>
+            <td>{{ getTransporterName(shipment.idTransporter, shipment.statut, shipment.deliveryOrder?.idDelivery) }}
+            </td>
+            <td>{{ getQuantity(shipment.quantite) }}</td>
+            <td>🌿 {{ getCO2Saved(shipment.quantite) }}</td>
+            <td><span [class]="getStatutClass(shipment.statut)">{{ getStatutText(shipment.statut) }}</span></td>
+            <td>{{ shipment.dateDepart | date:'dd/MM/yyyy' }}</td>
+            <td><button class="btn-icon btn-pdf" (click)="onGeneratePDF(shipment.id)"><i
+                  class="bi bi-file-pdf"></i></button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
+
+<button (click)="diagnosticTransporteurs()"
+  style="position:fixed; bottom:20px; right:20px; background:#d4a574; color:white; border:none; border-radius:50%; width:50px; height:50px; cursor:pointer;">🐛</button>

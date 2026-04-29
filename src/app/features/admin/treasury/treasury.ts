@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+
 @Component({ selector: 'app-treasury', standalone: false, templateUrl: './treasury.html', styleUrls: ['./treasury.css'] })
 export class Treasury implements OnInit {
   stats = [

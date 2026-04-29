@@ -1,0 +1,221 @@
+<div class="adm-wrap">
+
+  <!-- TOAST -->
+  <div class="adm-toast" [class.visible]="toastVisible" [class.t-ok]="toastType==='success'"
+    [class.t-err]="toastType==='error'" [class.t-info]="toastType==='info'">{{ toastMsg }}</div>
+
+  <!-- HEADER -->
+  <div class="adm-header">
+    <div class="adm-header-left">
+      <div class="adm-header-icon">💼</div>
+      <div>
+        <h1 class="adm-title">Trésorerie &amp; Finance</h1>
+        <p class="adm-subtitle">Vue globale · Toutes les entreprises de la plateforme</p>
+      </div>
+    </div>
+    <button class="adm-btn adm-btn-refresh" (click)="loadData()">🔄 Actualiser</button>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="adm-loading">
+    <div class="adm-spinner"></div>
+    <span>Chargement…</span>
+  </div>
+
+  <!-- ERREUR ACCES -->
+  <div *ngIf="!loading && erreur" class="adm-error-banner">
+    <div class="adm-error-icon">⚠️</div>
+    <div>
+      <div class="adm-error-title">Accès limité</div>
+      <div class="adm-error-msg">{{ erreur }}</div>
+      <div class="adm-error-hint">
+        Vérifiez la configuration Spring Security :
+        <code>/api/transactions/all</code>, <code>/api/escrow/all</code>, <code>/api/invoices/all</code>
+        doivent autoriser le rôle <strong>ADMIN</strong>.
+      </div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- ═══════════ PAR ENTREPRISE ═══════════ -->
+    <div class="adm-content">
+
+      <!-- HEADER + CONTROLS -->
+      <div class="ent-header">
+
+        <div class="ent-controls">
+          <div class="adm-search-wrap">
+            <span>🔍</span>
+            <input class="adm-search" type="text" [(ngModel)]="compSearch" placeholder="Rechercher…">
+          </div>
+          <div class="adm-filters">
+            <button class="adm-flt" [class.active]="compSort==='revenue'" (click)="compSort='revenue'">💰 CA</button>
+            <button class="adm-flt" [class.active]="compSort==='expenses'" (click)="compSort='expenses'">💸
+              Achats</button>
+            <button class="adm-flt" [class.active]="compSort==='net'" (click)="compSort='net'">⚖️ Solde</button>
+            <button class="adm-flt" [class.active]="compSort==='name'" (click)="compSort='name'">🔤 Nom</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLATFORM SUMMARY STRIP -->
+      <div class="ent-platform-strip">
+        <div class="ent-ps-item">
+          <div class="ent-ps-val adm-green">{{ fmt(totalRevenue) }} TND</div>
+          <div class="ent-ps-lbl">CA Encaissé Total</div>
+        </div>
+        <div class="ent-ps-div"></div>
+        <div class="ent-ps-item">
+          <div class="ent-ps-val adm-red">{{ fmt(totalExpenses) }} TND</div>
+          <div class="ent-ps-lbl">Dépenses Totales</div>
+        </div>
+        <div class="ent-ps-div"></div>
+        <div class="ent-ps-item">
+          <div class="ent-ps-val" [class.adm-green]="globalMargin>=0" [class.adm-red]="globalMargin<0">
+            {{ globalMargin>=0?'+':'' }}{{ fmt(globalMargin) }} TND
+          </div>
+          <div class="ent-ps-lbl">Marge Nette Plateforme</div>
+        </div>
+        <div class="ent-ps-div"></div>
+        <div class="ent-ps-item">
+          <div class="ent-ps-val adm-orange">{{ fmt(totalUnpaid) }} TND</div>
+          <div class="ent-ps-lbl">Total Impayé</div>
+        </div>
+        <div class="ent-ps-div"></div>
+        <div class="ent-ps-item">
+          <div class="ent-ps-val" style="color:var(--primary)">{{ companySummary.length }}</div>
+          <div class="ent-ps-lbl">Entreprises Actives</div>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div *ngIf="companySummary.length===0" class="adm-empty" style="padding:60px">
+        🏢 Aucune entreprise — données indisponibles (403)
+      </div>
+
+      <!-- MINIMALIST TABLE -->
+      <div class="adm-card" style="padding:0; overflow-x: auto;" *ngIf="companySummary.length>0">
+        <table class="adm-table adm-table-full">
+          <thead>
+            <tr>
+              <th>Entreprise</th>
+              <th class="adm-center">Factures (V/A)</th>
+              <th>CA Encaissé</th>
+              <th>Dépenses</th>
+              <th>Impayé</th>
+              <th>Solde Net</th>
+              <th class="adm-center">Détails</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of companySummary" class="ent-table-row" (click)="selectCompany(c.name)">
+              <td>
+                <div style="font-weight:700;color:var(--text)">{{ c.name }}</div>
+              </td>
+              <td class="adm-center">
+                <span class="adm-chip chip-vente">{{ c.sales }}</span> /
+                <span class="adm-chip chip-achat">{{ c.purchases }}</span>
+              </td>
+              <td><strong class="adm-green">{{ fmt(c.revenue) }} TND</strong></td>
+              <td><strong class="adm-red">{{ fmt(c.expenses) }} TND</strong></td>
+              <td>
+                <span *ngIf="c.unpaid>0" class="ent-badge ent-badge-warn">{{ fmt(c.unpaid) }} TND</span>
+                <span *ngIf="c.unpaid===0" class="ent-badge ent-badge-ok">0 TND</span>
+              </td>
+              <td>
+                <strong [class.adm-green]="c.net>=0" [class.adm-red]="c.net<0">
+                  {{ c.net>=0?'+':'' }}{{ fmt(c.net) }} TND
+                </strong>
+              </td>
+              <td class="adm-center">
+                <button class="adm-btn adm-btn-refresh" style="font-size:11px; padding: 4px 8px;"
+                  (click)="selectCompany(c.name); $event.stopPropagation()">Voir plus →</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SIDE PANEL DETAILS -->
+      <div class="adm-sidepanel-overlay" *ngIf="selectedCompany" (click)="closeCompanyDetails()"></div>
+      <div class="adm-sidepanel" [class.open]="selectedCompany">
+        <div class="adm-sp-header">
+          <h2>{{ selectedCompany }}</h2>
+          <button class="adm-sp-close" (click)="closeCompanyDetails()">×</button>
+        </div>
+
+        <div class="adm-sp-content" *ngIf="selectedCompany">
+
+          <!-- Invoices Section -->
+          <div class="adm-sp-section">
+            <h3 class="adm-sp-title">🧾 Factures</h3>
+            <div *ngIf="selectedCompanyInvoices.length===0" class="adm-empty">Aucune facture</div>
+            <div class="adm-sp-list" *ngIf="selectedCompanyInvoices.length>0">
+              <div class="adm-sp-item" *ngFor="let inv of selectedCompanyInvoices">
+                <div class="adm-sp-item-head">
+                  <span class="adm-code">{{ inv.invoiceNumber }}</span>
+                  <span class="adm-status" [class.s-ok]="inv.status==='PAID'" [class.s-warn]="inv.status==='UNPAID'">{{
+                    inv.status }}</span>
+                </div>
+                <div class="adm-sp-item-body">
+                  <div>
+                    <span class="adm-chip" [class.chip-vente]="inv.sellerName===selectedCompany"
+                      [class.chip-achat]="inv.clientName===selectedCompany">
+                      {{ inv.sellerName===selectedCompany ? 'Vente' : 'Achat' }}
+                    </span>
+                    <span class="adm-sm" style="margin-left: 6px;">{{ inv.project }}</span>
+                  </div>
+                  <strong [class.adm-green]="inv.sellerName===selectedCompany"
+                    [class.adm-red]="inv.clientName===selectedCompany">
+                    {{ inv.sellerName===selectedCompany?'+':'-' }}{{ fmt(inv.amountTTC) }} TND
+                  </strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transactions Section -->
+          <div class="adm-sp-section">
+            <h3 class="adm-sp-title">💳 Transactions (Flux Net)</h3>
+            <div *ngIf="selectedCompanyTx.length===0" class="adm-empty">Aucune transaction</div>
+            <div class="adm-sp-list" *ngIf="selectedCompanyTx.length>0">
+              <div class="adm-sp-item" *ngFor="let tx of selectedCompanyTx">
+                <div class="adm-sp-item-head">
+                  <span class="adm-code">{{ tx.id }}</span>
+                  <span class="adm-date">{{ tx.date }}</span>
+                </div>
+                <div class="adm-sp-item-body">
+                  <span class="adm-chip chip-in">{{ typeLabel(tx.type) }}</span>
+                  <strong>{{ fmt(tx.amount) }} TND</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Escrow Section -->
+          <div class="adm-sp-section">
+            <h3 class="adm-sp-title">🔒 Escrow Associé</h3>
+            <div *ngIf="selectedCompanyEscrow.length===0" class="adm-empty">Aucun fond bloqué</div>
+            <div class="adm-sp-list" *ngIf="selectedCompanyEscrow.length>0">
+              <div class="adm-sp-item" *ngFor="let esc of selectedCompanyEscrow">
+                <div class="adm-sp-item-head">
+                  <span class="adm-code">{{ esc.id }}</span>
+                  <span class="adm-status" [class.s-ok]="esc.status==='RELEASED'"
+                    [class.s-warn]="esc.status==='LOCKED'">{{ esc.status }}</span>
+                </div>
+                <div class="adm-sp-item-body">
+                  <span class="adm-sm">{{ esc.project }}</span>
+                  <strong>{{ fmt(esc.amount) }} TND</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /entreprises -->
+
+  </ng-container>
+</div>

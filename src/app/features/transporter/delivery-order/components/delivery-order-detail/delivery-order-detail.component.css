@@ -1,0 +1,7 @@
+.card { border-radius: 12px; overflow: hidden; }
+.card-header { padding: 15px 20px; font-weight: bold; }
+.badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; }
+.bg-warning { background-color: #ffc107; color: #000; }
+.bg-info { background-color: #0dcaf0; color: #000; }
+.bg-success { background-color: #198754; color: #fff; }
+.table-borderless th { font-weight: 600; }

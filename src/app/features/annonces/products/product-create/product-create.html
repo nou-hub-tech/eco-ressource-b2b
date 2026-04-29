@@ -1,0 +1,62 @@
+<div class="page-wrapper">
+  <div class="pc-page">
+    <a routerLink="/enterprise/annonces/products" class="btn btn-ghost btn-sm pc-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Retour à la liste
+    </a>
+
+    <h1 class="pc-heading">Nouveau produit</h1>
+    <p class="pc-sub">Les informations seront associées à votre entreprise automatiquement.</p>
+
+    <div class="pc-card card" [formGroup]="form">
+      <div class="form-group">
+        <label for="pc-name">Nom du produit *</label>
+        <input id="pc-name" type="text" formControlName="name" placeholder="Ex : Aluminium recyclé, palette bois…" autocomplete="off">
+        <div class="form-error" *ngIf="form.get('name')!.touched && form.get('name')!.hasError('required')">Le nom est obligatoire</div>
+        <div class="form-error" *ngIf="form.get('name')!.hasError('minlength')">Le nom doit contenir au moins 2 caractères</div>
+        <div class="form-error" *ngIf="form.get('name')!.hasError('maxlength')">Le nom ne peut pas dépasser 255 caractères</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pc-category">Catégorie</label>
+          <input id="pc-category" type="text" formControlName="category" placeholder="Ex : Métaux, plastique…">
+        </div>
+        <div class="form-group">
+          <label for="pc-material">Type de matériau</label>
+          <input id="pc-material" type="text" formControlName="materialType" placeholder="Optionnel">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="pc-desc">Description</label>
+        <textarea id="pc-desc" formControlName="description" rows="4" placeholder="Détails, origine, condition…"></textarea>
+        <div class="form-error" *ngIf="form.get('description')!.hasError('maxlength')">La description ne peut pas dépasser 1000 caractères</div>
+      </div>
+
+      <div class="form-group">
+        <label for="pc-image">URL de l'image</label>
+        <input id="pc-image" type="url" formControlName="image" placeholder="https://…">
+      </div>
+
+      <div class="pc-toggle-row">
+        <label class="pc-checkbox">
+          <input type="checkbox" formControlName="recyclable">
+          <span class="pc-checkbox-ui"></span>
+          <span class="pc-checkbox-label">Produit recyclable</span>
+        </label>
+        <p class="pc-hint">Cochez si le matériau peut être recyclé ou valorisé dans une filière adaptée.</p>
+      </div>
+
+      <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+      <div class="pc-actions">
+        <a routerLink="/enterprise/annonces/products" class="btn btn-outline">Annuler</a>
+        <button type="button" class="btn btn-primary" [disabled]="form.invalid || submitting" (click)="submit()">
+          <span *ngIf="!submitting">Créer le produit</span>
+          <span *ngIf="submitting" class="spinner-sm" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

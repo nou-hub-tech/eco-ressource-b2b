@@ -1,0 +1,1035 @@
+<div class="page-wrapper">
+
+
+  <div class="toast-container" [class.visible]="toastVisible">
+    <div class="toast" [class.toast-success]="toastType==='success'" [class.toast-error]="toastType==='error'"
+      [class.toast-info]="toastType==='info'">
+      <span class="toast-icon">{{ toastType==='success' ? '✓' : toastType==='error' ? '✕' : 'ℹ' }}</span>
+      <span>{{ toastMessage }}</span>
+    </div>
+  </div>
+
+  <!--  CONFIRM -->
+  <div *ngIf="showConfirm" class="modal-overlay" (click)="onConfirmNo()">
+    <div class="modal confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">⚠️</div>
+      <h3 class="confirm-title">Confirmation</h3>
+      <p class="confirm-msg">{{ confirmMessage }}</p>
+      <div class="confirm-actions">
+        <button class="btn btn-outline" (click)="onConfirmNo()">Annuler</button>
+        <button class="btn btn-danger" (click)="onConfirmYes()">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <!--  OVERDUE ALERT -->
+  <div class="alert-banner alert-overdue" *ngIf="overdueInvoices.length > 0">
+    <span class="alert-icon">🔴</span>
+    <span>
+      <strong>{{ overdueInvoices.length }} facture(s) en retard</strong> (impayées depuis +30j) —
+      Montant : <strong>{{ overdueAmount | number:'1.3-3' }} TND</strong>
+    </span>
+  </div>
+
+  <!-- ====== HEADER + ONGLETS ====== -->
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>🧭 Gestion des Factures</h1>
+      <p>Création, suivi, exports PDF/Excel — TVA calculée automatiquement</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <!-- 🔄 Indicateur de surveillance automatique -->
+      <div
+        style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;"
+        [style.background]="pollingActive ? 'rgba(5,150,105,0.12)' : 'rgba(107,114,128,0.1)'"
+        [style.color]="pollingActive ? '#059669' : 'var(--text3)'"
+        [title]="lastCheckTime ? 'Dernière vérification : ' + lastCheckTime.toLocaleTimeString() : 'En attente...'">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite;"
+          [style.background]="pollingActive ? '#059669' : '#9ca3af'"></span>
+        <span *ngIf="pollingActive">🔄 Surveillance livraisons active</span>
+        <span *ngIf="!pollingActive">⏸ Surveillance désactivée</span>
+        <span *ngIf="autoProcessedCount > 0"
+          style="margin-left:4px;background:#059669;color:white;border-radius:10px;padding:1px 6px;">
+          {{ autoProcessedCount }} auto
+        </span>
+      </div>
+      <button class="btn btn-outline btn-sm" (click)="exportAllToExcel()">📊 Excel</button>
+      <button class="btn btn-primary btn-sm" (click)="openForm()">➕ Nouvelle Facture</button>
+    </div>
+  </div>
+
+  <!-- Barre d'onglets -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeInvTab==='list'" (click)="activeInvTab='list'">
+      <span class="tab-icon">🧾</span> Factures
+      <span class="tab-badge" *ngIf="overdueInvoices.length > 0">{{ overdueInvoices.length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeInvTab==='stats'" (click)="activeInvTab='stats'">
+      <span class="tab-icon">📊</span> Statistiques
+    </button>
+    <button class="tab-btn ai-tab-btn" [class.active]="activeInvTab==='ai'" (click)="switchToAiTab()">
+      <span class="tab-icon">🤖</span> Analyse IA
+      <span class="tab-badge ai-badge" *ngIf="riskReport && riskReport.summary.criticalCount > 0">
+        {{ riskReport.summary.criticalCount }}
+      </span>
+    </button>
+  </div>
+
+  <!-- ====== ONGLET STATISTIQUES ====== -->
+  <div *ngIf="activeInvTab==='stats'" class="tab-content">
+
+    <!-- ── Bande résumé ── -->
+    <div class="stats-banner">
+      <div class="stats-banner-item">
+        <div class="stats-banner-val">{{ invoices.length }}</div>
+        <div class="stats-banner-lbl">Factures au total</div>
+      </div>
+      <div class="stats-banner-sep"></div>
+      <div class="stats-banner-item">
+        <div class="stats-banner-val" style="color:var(--success,#059669)">{{ totalTTC | number:'1.0-0' }} TND</div>
+        <div class="stats-banner-lbl">Volume total TTC</div>
+      </div>
+      <div class="stats-banner-sep"></div>
+      <div class="stats-banner-item">
+        <div class="stats-banner-val" style="color:var(--danger,#dc2626)">{{ overdueInvoices.length }}</div>
+        <div class="stats-banner-lbl">Factures en retard</div>
+      </div>
+    </div>
+
+    <!-- ── 4 KPI Cards avec barre de progression ── -->
+    <div class="stats-kpi-row">
+
+      <div class="card stats-kpi-card">
+        <div class="stats-kpi-top">
+          <div class="stats-kpi-icon" style="background:rgba(99,102,241,.12);color:#6366f1">🧾</div>
+          <div>
+            <div class="stats-kpi-lbl">Total factures</div>
+            <div class="stats-kpi-val">{{ invoices.length }}</div>
+          </div>
+        </div>
+        <div class="stats-kpi-sub">{{ totalTTC | number:'1.0-0' }} TND TTC</div>
+      </div>
+
+      <div class="card stats-kpi-card">
+        <div class="stats-kpi-top">
+          <div class="stats-kpi-icon" style="background:rgba(5,150,105,.12);color:#059669">✅</div>
+          <div>
+            <div class="stats-kpi-lbl">Payées</div>
+            <div class="stats-kpi-val" style="color:var(--success,#059669)">{{ totalPaid | number:'1.0-0' }} TND</div>
+          </div>
+        </div>
+        <div class="stats-progress-bar">
+          <div class="stats-progress-fill" style="background:#059669" [style.width]="recoveryRate + '%'"></div>
+        </div>
+        <div class="stats-kpi-sub">{{ countByStatus('PAID') }} facture(s) — {{ recoveryRate }}% recouvré</div>
+      </div>
+
+      <div class="card stats-kpi-card">
+        <div class="stats-kpi-top">
+          <div class="stats-kpi-icon" style="background:rgba(220,38,38,.10);color:#dc2626">⏳</div>
+          <div>
+            <div class="stats-kpi-lbl">Impayées</div>
+            <div class="stats-kpi-val" style="color:var(--danger,#dc2626)">{{ totalUnpaid | number:'1.0-0' }} TND</div>
+          </div>
+        </div>
+        <div class="stats-progress-bar">
+          <div class="stats-progress-fill" style="background:#dc2626" [style.width]="(100 - recoveryRate) + '%'"></div>
+        </div>
+        <div class="stats-kpi-sub">{{ countByStatus('UNPAID') }} facture(s) — {{ 100 - recoveryRate }}% restant</div>
+      </div>
+
+      <div class="card stats-kpi-card">
+        <div class="stats-kpi-top">
+          <div class="stats-kpi-icon" style="background:rgba(2,132,199,.12);color:#0284c7">📊</div>
+          <div>
+            <div class="stats-kpi-lbl">Taux recouvrement</div>
+            <div class="stats-kpi-val" style="color:var(--info,#0284c7)">{{ recoveryRate }}%</div>
+          </div>
+        </div>
+        <div class="stats-progress-bar">
+          <div class="stats-progress-fill"
+            [style.background]="recoveryRate >= 80 ? '#059669' : recoveryRate >= 50 ? '#d97706' : '#dc2626'"
+            [style.width]="recoveryRate + '%'"></div>
+        </div>
+        <div class="stats-kpi-sub">Score : {{ recoveryRate >= 80 ? '🟢 Excellent' : recoveryRate >= 50 ? '🟡 Moyen' :
+          '🔴 Critique' }}</div>
+      </div>
+
+    </div>
+
+    <!-- ── 2 colonnes : Donut + Détails Retards ── -->
+    <div class="stats-bottom-row">
+
+      <!-- Donut -->
+      <div class="card stats-donut-card">
+        <div class="chart-head">
+          <h3>🥧 Répartition PAID / UNPAID</h3>
+          <span class="chart-badge">{{ invoices.length }} factures</span>
+        </div>
+        <div class="donut-body">
+          <canvas #doughnutChart></canvas>
+          <div class="donut-center">
+            <div class="donut-pct">{{ recoveryRate }}%</div>
+            <div class="donut-lbl">Recouvré</div>
+          </div>
+        </div>
+        <!-- Légende -->
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#059669"></span>
+            <span>Payées ({{ countByStatus('PAID') }})</span>
+            <span class="legend-val">{{ totalPaid | number:'1.0-0' }} TND</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#dc2626"></span>
+            <span>Impayées ({{ countByStatus('UNPAID') }})</span>
+            <span class="legend-val">{{ totalUnpaid | number:'1.0-0' }} TND</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Factures en retard -->
+      <div class="card stats-overdue-card">
+        <div class="chart-head">
+          <h3>🔴 Factures en retard</h3>
+          <span class="chart-badge" [style.background]="overdueInvoices.length > 0 ? 'rgba(220,38,38,.1)' : ''"
+            [style.color]="overdueInvoices.length > 0 ? '#dc2626' : ''">
+            {{ overdueInvoices.length }} en retard
+          </span>
+        </div>
+
+        <div *ngIf="overdueInvoices.length === 0" style="text-align:center;padding:32px;color:var(--success,#059669)">
+          <div style="font-size:32px;margin-bottom:8px">✅</div>
+          <div style="font-size:13px;font-weight:600">Aucune facture en retard</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Toutes les factures sont à jour</div>
+        </div>
+
+        <div class="overdue-list" *ngIf="overdueInvoices.length > 0">
+          <div class="overdue-item" *ngFor="let inv of overdueInvoices">
+            <div class="overdue-item-left">
+              <code class="inv-num">{{ inv.invoiceNumber }}</code>
+              <div style="margin-top:3px">
+                <strong style="font-size:12px">{{ inv.clientName }}</strong>
+                <span style="font-size:11px;color:var(--text3);margin-left:6px">{{ inv.project }}</span>
+              </div>
+              <div style="font-size:10px;color:var(--text3);margin-top:1px">Émise le {{ inv.issueDate }}</div>
+            </div>
+            <div class="overdue-item-right">
+              <div style="font-size:14px;font-weight:800;color:var(--danger,#dc2626)">
+                {{ inv.amountTTC | number:'1.0-0' }} TND
+              </div>
+              <span class="overdue-badge">+30j</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total retards -->
+        <div class="overdue-total" *ngIf="overdueInvoices.length > 0">
+          <span>Total impayé en retard</span>
+          <strong style="color:var(--danger,#dc2626)">{{ overdueAmount | number:'1.3-3' }} TND</strong>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /STATS TAB -->
+
+
+  <!-- ====== ONGLET LISTE FACTURES (2 sections) ====== -->
+  <div *ngIf="activeInvTab==='list'" class="tab-content">
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 1 : FACTURES DE VENTE (entreprise = vendeur) -->
+    <!-- Montants à RECEVOIR / ENCAISSER                       -->
+    <!-- ══════════════════════════════════════ -->
+    <div class="invoice-section">
+
+      <div class="section-header section-sales">
+        <div class="section-header-left">
+          <span class="section-icon">📤</span>
+          <div>
+            <h2 class="section-title">Mes Factures de Vente</h2>
+            <p class="section-subtitle">Montants que vous allez encaisser — vous êtes vendeur</p>
+          </div>
+        </div>
+        <div class="section-kpis">
+          <div class="section-kpi">
+            <div class="section-kpi-val" style="color:#059669">{{ salesPaidTTC | number:'1.0-0' }} TND</div>
+            <div class="section-kpi-lbl">✅ Encaissé</div>
+          </div>
+          <div class="section-kpi-sep"></div>
+          <div class="section-kpi">
+            <div class="section-kpi-val" style="color:#f97316">{{ salesUnpaidTTC | number:'1.0-0' }} TND</div>
+            <div class="section-kpi-lbl">⏳ À encaisser</div>
+          </div>
+          <div class="section-kpi-sep"></div>
+          <div class="section-kpi">
+            <div class="section-kpi-val">{{ salesInvoices.length }}</div>
+            <div class="section-kpi-lbl">Total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbar ventes -->
+      <div class="card" style="padding:0">
+        <div class="card-header" style="flex-wrap:wrap;gap:12px">
+          <div class="filter-bar">
+            <button class="filter-btn" [class.active]="salesFilter==='ALL'" (click)="salesFilter='ALL'; salesPage=1">
+              Toutes <span class="filter-count">{{ salesInvoices.length }}</span>
+            </button>
+            <button class="filter-btn" [class.active]="salesFilter==='UNPAID'"
+              (click)="salesFilter='UNPAID'; salesPage=1">
+              ⏳ À encaisser <span class="filter-count">{{ countSales('UNPAID') }}</span>
+            </button>
+            <button class="filter-btn" [class.active]="salesFilter==='PAID'" (click)="salesFilter='PAID'; salesPage=1">
+              ✅ Encaissé <span class="filter-count">{{ countSales('PAID') }}</span>
+            </button>
+          </div>
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" type="text" [(ngModel)]="salesSearch" placeholder="Client, projet, N°…">
+            <button *ngIf="salesSearch" class="search-clear" (click)="salesSearch=''">&#x2715;</button>
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>N° Facture</th>
+              <th>Client (Acheteur)</th>
+              <th>Projet</th>
+              <th>Montant TTC</th>
+              <th>Statut</th>
+              <th>Date</th>
+              <th style="width:120px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="paginatedSales.length===0">
+              <td colspan="7" class="empty-cell">
+                <div style="padding:24px;text-align:center">
+                  <div style="font-size:28px;margin-bottom:8px">📭</div>
+                  <div style="font-weight:600">Aucune facture de vente</div>
+                  <div style="font-size:12px;color:var(--text3);margin-top:4px">Créez une facture de type VENTE pour
+                    commencer</div>
+                </div>
+              </td>
+            </tr>
+            <tr *ngFor="let inv of paginatedSales" [class.overdue-row]="isOverdue(inv)">
+              <td>
+                <code class="inv-num">{{ inv.invoiceNumber }}</code>
+                <span class="overdue-badge" *ngIf="isOverdue(inv)" style="margin-left:4px">+30j</span>
+              </td>
+              <td><strong style="font-size:12px">{{ inv.clientName }}</strong></td>
+              <td style="font-size:12px;color:var(--text3)">{{ inv.project }}</td>
+              <td>
+                <strong style="color:#059669">{{ inv.amountTTC | number:'1.3-3' }} TND</strong>
+                <div style="font-size:10px;color:var(--text3)">HT: {{ inv.amountHT | number:'1.0-0' }} | TVA {{ inv.tva
+                  }}%</div>
+              </td>
+              <td>
+                <span class="badge" [class.badge-success]="inv.status==='PAID'"
+                  [class.badge-warning]="inv.status==='UNPAID'">
+                  {{ inv.status === 'PAID' ? '✅ Encaissée' : '⏳ À encaisser' }}
+                </span>
+              </td>
+              <td style="font-size:11px;color:var(--text3)">{{ inv.issueDate }}</td>
+              <td class="action-cell">
+                <!-- Badge livraison liée -->
+                <span *ngIf="inv.deliveryOrderId"
+                  style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;margin-right:4px;"
+                  [style.background]="inv.status === 'PAID' ? 'rgba(5,150,105,0.1)' : 'rgba(234,179,8,0.12)'"
+                  [style.color]="inv.status === 'PAID' ? '#059669' : '#b45309'" [title]="getDeliveryBadgeTitle(inv)">
+                  <span>{{ inv.status === 'PAID' ? '📦✓' : '📦⏳' }}</span>
+                  DEL-{{ inv.deliveryOrderId }}
+                </span>
+                <button class="btn btn-delivery btn-sm" style="margin-right:4px;"
+                  title="Livrée (Libérer Escrow) — Déclenchement manuel" (click)="confirmDelivery(inv)"
+                  *ngIf="inv.status !== 'PAID'">🚚 Livrer</button>
+                <button class="btn btn-ghost btn-sm" title="Aperçu"
+                  (click)="openPreview(inv)">&#x1F441;&#xFE0F;</button>
+                <button class="btn btn-ghost btn-sm" title="PDF" (click)="exportInvoicePDF(inv)">&#x1F4C4;</button>
+                <button class="btn btn-ghost btn-sm" title="Modifier" (click)="openForm(inv)">&#x270F;&#xFE0F;</button>
+                <button class="btn btn-danger btn-sm" title="Supprimer"
+                  (click)="delete(inv.id!)">&#x1F5D1;&#xFE0F;</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination-bar" *ngIf="totalSalesPages > 1">
+          <span class="page-info">{{ filteredSales.length }} résultat(s) — page {{ salesPage }}/{{ totalSalesPages
+            }}</span>
+          <div class="page-btns">
+            <button class="page-btn" [disabled]="salesPage===1" (click)="salesPage=salesPage-1">‹</button>
+            <button class="page-btn" *ngFor="let p of [].constructor(totalSalesPages); let i = index"
+              [class.active]="i+1===salesPage" (click)="salesPage=i+1">{{ i+1 }}</button>
+            <button class="page-btn" [disabled]="salesPage===totalSalesPages" (click)="salesPage=salesPage+1">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- SECTION 2 : FACTURES D'ACHAT (entreprise = acheteur) -->
+    <!-- Montants que vous DEVEZ PAYER                        -->
+    <!-- ════════════════════════════════════════ -->
+    <div class="invoice-section" style="margin-top:32px">
+
+      <div class="section-header section-purchases">
+        <div class="section-header-left">
+          <span class="section-icon">📥</span>
+          <div>
+            <h2 class="section-title">Mes Factures d'Achat</h2>
+            <p class="section-subtitle">Montants que vous devez payer — vous êtes acheteur</p>
+          </div>
+        </div>
+        <div class="section-kpis">
+          <div class="section-kpi">
+            <div class="section-kpi-val" style="color:#059669">{{ purchasePaidTTC | number:'1.0-0' }} TND</div>
+            <div class="section-kpi-lbl">✅ Payé</div>
+          </div>
+          <div class="section-kpi-sep"></div>
+          <div class="section-kpi">
+            <div class="section-kpi-val" style="color:#dc2626">{{ purchaseUnpaidTTC | number:'1.0-0' }} TND</div>
+            <div class="section-kpi-lbl">⏳ À payer</div>
+          </div>
+          <div class="section-kpi-sep"></div>
+          <div class="section-kpi">
+            <div class="section-kpi-val">{{ purchaseInvoices.length }}</div>
+            <div class="section-kpi-lbl">Total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbar achats -->
+      <div class="card" style="padding:0">
+        <div class="card-header" style="flex-wrap:wrap;gap:12px">
+          <div class="filter-bar">
+            <button class="filter-btn" [class.active]="purchaseFilter==='ALL'"
+              (click)="purchaseFilter='ALL'; purchasePage=1">
+              Toutes <span class="filter-count">{{ purchaseInvoices.length }}</span>
+            </button>
+            <button class="filter-btn" [class.active]="purchaseFilter==='UNPAID'"
+              (click)="purchaseFilter='UNPAID'; purchasePage=1">
+              ⏳ À payer <span class="filter-count">{{ countPurchases('UNPAID') }}</span>
+            </button>
+            <button class="filter-btn" [class.active]="purchaseFilter==='PAID'"
+              (click)="purchaseFilter='PAID'; purchasePage=1">
+              ✅ Payé <span class="filter-count">{{ countPurchases('PAID') }}</span>
+            </button>
+          </div>
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" type="text" [(ngModel)]="purchaseSearch" placeholder="Fournisseur, projet, N°…">
+            <button *ngIf="purchaseSearch" class="search-clear" (click)="purchaseSearch=''">&#x2715;</button>
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>N° Facture</th>
+              <th>Fournisseur (Vendeur)</th>
+              <th>Projet</th>
+              <th>Montant TTC</th>
+              <th>Statut</th>
+              <th>Date</th>
+              <th style="width:120px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="paginatedPurchases.length===0">
+              <td colspan="7" class="empty-cell">
+                <div style="padding:24px;text-align:center">
+                  <div style="font-size:28px;margin-bottom:8px">📭</div>
+                  <div style="font-weight:600">Aucune facture d'achat</div>
+                  <div style="font-size:12px;color:var(--text3);margin-top:4px">Créez une facture de type ACHAT pour
+                    commencer</div>
+                </div>
+              </td>
+            </tr>
+            <tr *ngFor="let inv of paginatedPurchases" [class.overdue-row]="isOverdue(inv)">
+              <td>
+                <code class="inv-num">{{ inv.invoiceNumber }}</code>
+                <span class="overdue-badge" *ngIf="isOverdue(inv)" style="margin-left:4px">+30j</span>
+              </td>
+              <td><strong style="font-size:12px">{{ inv.sellerName || '—' }}</strong></td>
+              <td style="font-size:12px;color:var(--text3)">{{ inv.project }}</td>
+              <td>
+                <strong style="color:#dc2626">{{ inv.amountTTC | number:'1.3-3' }} TND</strong>
+                <div style="font-size:10px;color:var(--text3)">HT: {{ inv.amountHT | number:'1.0-0' }} | TVA {{ inv.tva
+                  }}%</div>
+              </td>
+              <td>
+                <span class="badge" [class.badge-success]="inv.status==='PAID'"
+                  [class.badge-danger]="inv.status==='UNPAID'">
+                  {{ inv.status === 'PAID' ? '✅ Payée' : '⏳ À payer' }}
+                </span>
+              </td>
+              <td style="font-size:11px;color:var(--text3)">{{ inv.issueDate }}</td>
+              <td class="action-cell">
+                <!-- Badge livraison liée -->
+                <span *ngIf="inv.deliveryOrderId"
+                  style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;margin-right:4px;"
+                  [style.background]="inv.status === 'PAID' ? 'rgba(5,150,105,0.1)' : 'rgba(234,179,8,0.12)'"
+                  [style.color]="inv.status === 'PAID' ? '#059669' : '#b45309'" [title]="getDeliveryBadgeTitle(inv)">
+                  <span>{{ inv.status === 'PAID' ? '📦✓' : '📦⏳' }}</span>
+                  DEL-{{ inv.deliveryOrderId }}
+                </span>
+                <button class="btn btn-delivery btn-sm" style="margin-right:4px;"
+                  title="Livrée (Libérer Escrow) — Déclenchement manuel" (click)="confirmDelivery(inv)"
+                  *ngIf="inv.status !== 'PAID'">🚚 Livrer</button>
+                <button class="btn btn-ghost btn-sm" title="Aperçu"
+                  (click)="openPreview(inv)">&#x1F441;&#xFE0F;</button>
+                <button class="btn btn-ghost btn-sm" title="PDF" (click)="exportInvoicePDF(inv)">&#x1F4C4;</button>
+                <button class="btn btn-ghost btn-sm" title="Modifier" (click)="openForm(inv)">&#x270F;&#xFE0F;</button>
+                <button class="btn btn-danger btn-sm" title="Supprimer"
+                  (click)="delete(inv.id!)">&#x1F5D1;&#xFE0F;</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination-bar" *ngIf="totalPurchasePages > 1">
+          <span class="page-info">{{ filteredPurchases.length }} résultat(s) — page {{ purchasePage }}/{{
+            totalPurchasePages }}</span>
+          <div class="page-btns">
+            <button class="page-btn" [disabled]="purchasePage===1" (click)="purchasePage=purchasePage-1">‹</button>
+            <button class="page-btn" *ngFor="let p of [].constructor(totalPurchasePages); let i = index"
+              [class.active]="i+1===purchasePage" (click)="purchasePage=i+1">{{ i+1 }}</button>
+            <button class="page-btn" [disabled]="purchasePage===totalPurchasePages"
+              (click)="purchasePage=purchasePage+1">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /LIST TAB -->
+
+
+
+  <!-- ====== MODAL FORM ====== -->
+  <div *ngIf="showForm" class="modal-overlay" (click)="closeForm()">
+    <div class="modal form-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editing ? '&#x270F;&#xFE0F; Modifier Facture' : '&#x2795; Nouvelle Facture' }}</h2>
+        <button class="modal-close" (click)="closeForm()">&#x2715;</button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="save()">
+
+        <!-- Datalist for autocomplete -->
+        <datalist id="companyNames">
+          <option *ngFor="let name of uniqueCompanyNames" [value]="name"></option>
+        </datalist>
+
+        <!-- ── TYPE DE FACTURE ── -->
+        <div class="invoice-type-selector">
+          <button type="button" class="type-btn type-vente" [class.active]="form.get('invoiceType')?.value === 'VENTE'"
+            (click)="form.get('invoiceType')!.setValue('VENTE')">
+            <span class="type-icon">&#x1F4E4;</span>
+            <div>
+              <div class="type-label">Facture de Vente</div>
+              <div class="type-hint">Vous êtes vendeur — le client vous paie</div>
+            </div>
+          </button>
+          <button type="button" class="type-btn type-achat" [class.active]="form.get('invoiceType')?.value === 'ACHAT'"
+            (click)="form.get('invoiceType')!.setValue('ACHAT')">
+            <span class="type-icon">&#x1F4E5;</span>
+            <div>
+              <div class="type-label">Facture d'Achat</div>
+              <div class="type-hint">Vous êtes acheteur — vous payez le fournisseur</div>
+            </div>
+          </button>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>N° Facture</label>
+            <input type="text" formControlName="invoiceNumber" placeholder="INV-001">
+          </div>
+          <div class="form-group">
+            <label>Date d'émission</label>
+            <input type="date" formControlName="issueDate">
+          </div>
+        </div>
+
+        <!-- VENTE : on réenseigne le client (acheteur) -->
+        <div *ngIf="form.get('invoiceType')?.value === 'VENTE'" class="fiscal-section fiscal-section-vente">
+          <div class="fiscal-section-title">&#x1F6D2; Client (Acheteur)</div>
+          <div class="fiscal-hint">Vous êtes le vendeur. Indiquez votre client.
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Raison sociale client</label>
+              <select formControlName="clientName"
+                style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-family:'Inter', sans-serif;">
+                <option value="" disabled selected>Sélectionnez un client...</option>
+                <option *ngFor="let ent of globalEnterprises" [value]="ent.companyName">{{ ent.companyName }}</option>
+              </select>
+              <div class="error-msg"
+                *ngIf="form.get('clientName')?.hasError('companyNotFound') && form.get('clientName')?.touched"
+                style="color:#ef4444; font-size:11px; margin-top:4px;">
+                Cette entreprise n'existe pas sur la plateforme. Veuillez sélectionner une entreprise existante.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Article fiscal client <span class="optional-tag">optionnel</span></label>
+              <input type="text" formControlName="buyerArticleFiscal" placeholder="Ex: 1234567/A/M/000">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Votre raison sociale (vendeur)
+                <span class="auto-filled-tag">🔒 Auto</span>
+              </label>
+              <input type="text" formControlName="sellerName" readonly
+                style="background:rgba(5,150,105,0.06);border-color:#059669;color:#059669;font-weight:600;cursor:not-allowed">
+            </div>
+            <div class="form-group">
+              <label>Votre article fiscal <span class="optional-tag">optionnel</span></label>
+              <input type="text" formControlName="sellerArticleFiscal" placeholder="Ex: 9876543/B/P/000">
+            </div>
+          </div>
+        </div>
+
+        <!-- ACHAT : on réenseigne le fournisseur (vendeur) -->
+        <div *ngIf="form.get('invoiceType')?.value === 'ACHAT'" class="fiscal-section fiscal-section-achat">
+          <div class="fiscal-section-title">&#x1F3EA; Fournisseur (Vendeur)</div>
+          <div class="fiscal-hint">Vous êtes l'acheteur. Indiquez votre fournisseur.
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Raison sociale fournisseur</label>
+              <select formControlName="sellerName"
+                style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; background:#f8fafc; color:#0f172a; font-family:'Inter', sans-serif;">
+                <option value="" disabled selected>Sélectionnez un fournisseur...</option>
+                <option *ngFor="let ent of globalEnterprises" [value]="ent.companyName">{{ ent.companyName }}</option>
+              </select>
+              <div class="error-msg"
+                *ngIf="form.get('sellerName')?.hasError('companyNotFound') && form.get('sellerName')?.touched"
+                style="color:#ef4444; font-size:11px; margin-top:4px;">
+                Cette entreprise n'existe pas sur la plateforme. Veuillez sélectionner une entreprise existante.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Article fiscal fournisseur <span class="optional-tag">optionnel</span></label>
+              <input type="text" formControlName="sellerArticleFiscal" placeholder="Ex: 1234567/A/M/000">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Votre raison sociale (acheteur)
+                <span class="auto-filled-tag">🔒 Auto</span>
+              </label>
+              <input type="text" formControlName="clientName" readonly
+                style="background:rgba(2,132,199,0.06);border-color:#0284c7;color:#0284c7;font-weight:600;cursor:not-allowed">
+            </div>
+            <div class="form-group">
+              <label>Votre article fiscal <span class="optional-tag">optionnel</span></label>
+              <input type="text" formControlName="buyerArticleFiscal" placeholder="Ex: 9876543/B/P/000">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Projet</label>
+            <input type="text" formControlName="project" placeholder="Nom du projet">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Montant HT (TND)</label>
+            <input type="number" formControlName="amountHT" placeholder="0.000" step="0.001">
+          </div>
+          <div class="form-group">
+            <label>TVA (%)</label>
+            <input type="number" formControlName="tva" placeholder="19" min="0" max="100">
+          </div>
+        </div>
+
+        <div class="ttc-preview">
+          <span class="ttc-label">Montant TTC calculé</span>
+          <span class="ttc-value">{{ previewTTC | number:'1.3-3' }} TND</span>
+        </div>
+
+        <div class="form-group" style="margin-top:12px">
+          <label>Statut</label>
+          <select formControlName="status">
+            <option value="UNPAID">⏳ Impayée</option>
+            <option value="PAID">✅ Payée</option>
+          </select>
+        </div>
+
+        <div class="delivery-link-section">
+          <div class="delivery-link-title">🚚 Liaison Livraison <span class="optional-tag">optionnel</span></div>
+          <p class="delivery-link-hint">Liaison à renseigner quand la facture est liée à une commande.</p>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label>ID Commande / Livraison</label>
+              <input type="number" formControlName="deliveryOrderId" placeholder="Ex: 42">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>ID Escrow lié</label>
+              <input type="number" formControlName="linkedEscrowId" placeholder="Ex: 7">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" (click)="closeForm()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!form.valid">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== MODAL PREVIEW ====== -->
+  <div *ngIf="previewInvoice" class="modal-overlay" (click)="closePreview()">
+    <div class="modal preview-modal" (click)="$event.stopPropagation()">
+      <div class="invoice-preview">
+        <div class="inv-header">
+          <div class="inv-brand">
+            <div class="inv-logo">🌿</div>
+            <div>
+              <div class="inv-company">EcoRessource B2B</div>
+              <div class="inv-tagline">Plateforme de ressources durables</div>
+            </div>
+          </div>
+          <div class="inv-meta">
+            <div class="inv-title-lbl">FACTURE</div>
+            <div class="inv-num-lbl">{{ previewInvoice.invoiceNumber }}</div>
+            <span class="badge" [class.badge-success]="previewInvoice.status==='PAID'"
+              [class.badge-danger]="previewInvoice.status==='UNPAID'">
+              {{ previewInvoice.status === 'PAID' ? '✓ Payée' : '⏳ Impayée' }}
+            </span>
+          </div>
+        </div>
+        <div class="inv-divider"></div>
+
+        <!-- ── Parties: Vendeur + Acheteur ── -->
+        <div class="inv-parties-row">
+          <!-- Vendeur -->
+          <div class="inv-party-block">
+            <div class="inv-party-label">🏢 VENDEUR</div>
+            <div class="inv-party-name">{{ previewInvoice.sellerName || 'EcoRessource B2B' }}</div>
+            <div class="inv-party-tagline">Plateforme de ressources durables</div>
+            <div class="inv-fiscal-row" *ngIf="previewInvoice.sellerArticleFiscal">
+              <span class="inv-fiscal-lbl">Article fiscal :</span>
+              <code class="inv-fiscal-code">{{ previewInvoice.sellerArticleFiscal }}</code>
+            </div>
+            <div class="inv-fiscal-row inv-fiscal-empty" *ngIf="!previewInvoice.sellerArticleFiscal">
+              <span class="inv-fiscal-lbl">Article fiscal :</span>
+              <span class="inv-fiscal-na">—</span>
+            </div>
+          </div>
+
+          <div class="inv-party-sep"></div>
+
+          <!-- Acheteur -->
+          <div class="inv-party-block">
+            <div class="inv-party-label">🛒 ACHETEUR</div>
+            <div class="inv-party-name">{{ previewInvoice.clientName }}</div>
+            <div class="inv-party-tagline">Client facturation</div>
+            <div class="inv-fiscal-row" *ngIf="previewInvoice.buyerArticleFiscal">
+              <span class="inv-fiscal-lbl">Article fiscal :</span>
+              <code class="inv-fiscal-code">{{ previewInvoice.buyerArticleFiscal }}</code>
+            </div>
+            <div class="inv-fiscal-row inv-fiscal-empty" *ngIf="!previewInvoice.buyerArticleFiscal">
+              <span class="inv-fiscal-lbl">Article fiscal :</span>
+              <span class="inv-fiscal-na">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Infos facture ── -->
+        <div class="inv-info-row">
+          <div>
+            <div class="inv-info-lbl">Projet</div>
+            <div class="inv-info-val">{{ previewInvoice.project }}</div>
+          </div>
+          <div>
+            <div class="inv-info-lbl">Date d'émission</div>
+            <div class="inv-info-val">{{ previewInvoice.issueDate }}</div>
+          </div>
+          <div>
+            <div class="inv-info-lbl">N° Facture</div>
+            <div class="inv-info-val">{{ previewInvoice.invoiceNumber }}</div>
+          </div>
+        </div>
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="tr">Montant HT</th>
+              <th class="tr">TVA ({{ previewInvoice.tva }}%)</th>
+              <th class="tr">Montant TTC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ previewInvoice.project }}</td>
+              <td class="tr">{{ previewInvoice.amountHT | number:'1.3-3' }} TND</td>
+              <td class="tr">{{ (previewInvoice!.amountTTC - previewInvoice!.amountHT) | number:'1.3-3' }} TND</td>
+              <td class="tr"><strong>{{ previewInvoice!.amountTTC | number:'1.3-3' }} TND</strong></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="3"><strong>TOTAL À PAYER</strong></td>
+              <td class="tr total-val">{{ previewInvoice!.amountTTC | number:'1.3-3' }} TND</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="inv-footer-note">Merci pour votre confiance — EcoRessource B2B</div>
+        <div class="modal-footer" style="border:none;padding-top:14px">
+          <button class="btn btn-outline" (click)="closePreview()">Fermer</button>
+          <button class="btn btn-ghost" (click)="exportInvoicePDF(previewInvoice!)">Telecharger PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== ONGLET IA SOLVABILITE AVANCEE ====== -->
+  <div *ngIf="activeInvTab==='ai'" class="tab-content ai-risk-tab">
+
+    <!-- Loading -->
+    <div *ngIf="aiLoading" class="ai-loading">
+      <div class="ai-spinner"></div>
+      <p class="ai-loading-text">Analyse de solvabilite en cours...</p>
+    </div>
+
+    <!-- Erreur -->
+    <div *ngIf="aiError && !aiLoading" class="ai-error-box">
+      <p>Impossible de contacter le backend. Verifiez que le serveur tourne sur le port 9090.</p>
+      <button class="btn btn-primary btn-sm" (click)="loadSolvabilityReport()">Reessayer</button>
+    </div>
+
+    <ng-container *ngIf="solvabilityReport && !aiLoading">
+
+      <!-- ══ HEADER : SANTE DU PORTEFEUILLE ══ -->
+      <div class="solv-header-row">
+
+        <!-- Rating global -->
+        <div class="solv-rating-card">
+          <div class="solv-rating-label">Rating Portefeuille</div>
+          <div class="solv-rating-badge"
+            [style.background]="getRatingBg(solvabilityReport.portfolioHealth.portfolioRating)"
+            [style.border-color]="getRatingColor(solvabilityReport.portfolioHealth.portfolioRating)"
+            [style.color]="getRatingColor(solvabilityReport.portfolioHealth.portfolioRating)">
+            {{ solvabilityReport.portfolioHealth.portfolioRating }}
+          </div>
+          <div class="solv-rating-score">
+            {{ solvabilityReport.portfolioHealth.avgSolvabilityScore }}/100
+          </div>
+          <div class="solv-rating-sub">Score moyen de solvabilite</div>
+          <button class="ai-refresh-btn" (click)="loadSolvabilityReport()" style="position:static;margin-top:12px">
+            &#x1F504; Rafraichir
+          </button>
+        </div>
+
+        <!-- KPIs financiers -->
+        <div class="solv-kpi-row">
+          <div class="solv-kpi-card">
+            <div class="solv-kpi-icon">&#x1F4CA;</div>
+            <div class="solv-kpi-val">{{ solvabilityReport.portfolioHealth.totalClients }}</div>
+            <div class="solv-kpi-lbl">Clients analyses</div>
+          </div>
+          <div class="solv-kpi-card critical" *ngIf="solvabilityReport.portfolioHealth.criticalClients > 0">
+            <div class="solv-kpi-icon">&#x26A0;&#xFE0F;</div>
+            <div class="solv-kpi-val" style="color:#ef4444">{{ solvabilityReport.portfolioHealth.criticalClients }}
+            </div>
+            <div class="solv-kpi-lbl">Clients B/CCC</div>
+          </div>
+          <div class="solv-kpi-card good">
+            <div class="solv-kpi-icon">&#x2705;</div>
+            <div class="solv-kpi-val" style="color:#059669">{{ solvabilityReport.portfolioHealth.excellentClients }}
+            </div>
+            <div class="solv-kpi-lbl">Clients AAA/AA</div>
+          </div>
+          <div class="solv-kpi-card">
+            <div class="solv-kpi-icon">&#x1F4B8;</div>
+            <div class="solv-kpi-val" style="color:#f97316">{{ solvabilityReport.portfolioHealth.atRiskAmount |
+              number:'1.0-0' }} TND</div>
+            <div class="solv-kpi-lbl">Montant a risque fort</div>
+          </div>
+          <div class="solv-kpi-card">
+            <div class="solv-kpi-icon">&#x1F4C8;</div>
+            <div class="solv-kpi-val" style="color:#3b82f6">{{ solvabilityReport.portfolioHealth.expectedInflow |
+              number:'1.0-0' }} TND</div>
+            <div class="solv-kpi-lbl">Encaissements prevus</div>
+          </div>
+          <div class="solv-kpi-card">
+            <div class="solv-kpi-icon">&#x1F911;</div>
+            <div class="solv-kpi-val">{{ solvabilityReport.portfolioHealth.collectedRevenue | number:'1.0-0' }}</div>
+            <div class="solv-kpi-lbl">Recouvres (TND)</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══ CONSEILS STRATEGIQUES ══ -->
+      <div class="solv-section" *ngIf="solvabilityReport.strategicAdvices.length > 0">
+        <div class="solv-section-title">Conseils Strategiques IA</div>
+        <div class="solv-advice-list">
+          <div class="solv-advice-card" *ngFor="let a of solvabilityReport.strategicAdvices"
+            [style.border-left-color]="getAdviceColor(a.severity)">
+            <div class="solv-advice-header">
+              <span class="solv-advice-severity" [style.background]="getAdviceColor(a.severity) + '20'"
+                [style.color]="getAdviceColor(a.severity)">
+                {{ a.severity }}
+              </span>
+              <span class="solv-advice-title">{{ a.title }}</span>
+              <span class="solv-advice-action" [style.background]="getAdviceColor(a.severity)" [style.color]="'white'">
+                {{ a.action }}
+              </span>
+            </div>
+            <p class="solv-advice-desc">{{ a.description }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PROFILS DE SOLVABILITE CLIENTS ══ -->
+      <div class="solv-section">
+        <div class="solv-section-title">Profils de Solvabilite Clients — Credit Rating</div>
+        <div class="solv-client-grid">
+          <div class="solv-client-card" *ngFor="let c of solvabilityReport.clientProfiles"
+            [style.border-top-color]="getRatingColor(c.creditRating)">
+
+            <!-- Header carte client -->
+            <div class="solv-client-header">
+              <div class="solv-client-name">{{ c.clientName }}</div>
+              <div class="solv-rating-tag" [style.background]="getRatingBg(c.creditRating)"
+                [style.color]="getRatingColor(c.creditRating)" [style.border-color]="getRatingColor(c.creditRating)">
+                {{ c.creditRating }}
+              </div>
+            </div>
+
+            <!-- Score solvabilite -->
+            <div class="solv-client-score-row">
+              <span class="solv-client-score-val" [style.color]="getRatingColor(c.creditRating)">
+                {{ c.solvabilityScore }}
+              </span>
+              <span class="solv-client-score-unit">/100</span>
+              <div class="solv-prob-badge" [style.background]="getProbabilityColor(c.paymentProbability) + '20'"
+                [style.color]="getProbabilityColor(c.paymentProbability)">
+                {{ c.paymentProbability }}% prob. paiement
+              </div>
+            </div>
+
+            <!-- Barre score -->
+            <div class="ai-card-bar-track">
+              <div class="ai-card-bar-fill" [style.width]="c.solvabilityScore + '%'"
+                [style.background]="getRatingColor(c.creditRating)">
+              </div>
+            </div>
+
+            <!-- Description rating -->
+            <div class="solv-rating-desc">{{ c.ratingDescription }}</div>
+
+            <!-- Metriques -->
+            <div class="solv-metrics-grid">
+              <div class="solv-metric">
+                <div class="solv-metric-val">{{ c.avgDso | number:'1.0-0' }}j</div>
+                <div class="solv-metric-lbl">DSO moyen</div>
+              </div>
+              <div class="solv-metric">
+                <div class="solv-metric-val" [style.color]="c.recoveryRate >= 80 ? '#059669' : '#ef4444'">
+                  {{ c.recoveryRate }}%
+                </div>
+                <div class="solv-metric-lbl">Recouvrement</div>
+              </div>
+              <div class="solv-metric">
+                <div class="solv-metric-val">{{ c.paidInvoices }}/{{ c.totalInvoices }}</div>
+                <div class="solv-metric-lbl">Factures paiees</div>
+              </div>
+              <div class="solv-metric">
+                <div class="solv-metric-val" [style.color]="c.debtRatio > 50 ? '#ef4444' : 'inherit'">
+                  {{ c.debtRatio }}%
+                </div>
+                <div class="solv-metric-lbl">Ratio dette</div>
+              </div>
+            </div>
+
+            <!-- Montant impaye -->
+            <div class="solv-client-unpaid" *ngIf="c.unpaidAmount > 0" style="color:#f97316">
+              {{ c.unpaidAmount | number:'1.0-0' }} TND impayes
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PREDICTIONS DE PAIEMENT PAR FACTURE ══ -->
+      <div class="solv-section">
+        <div class="solv-section-header">
+          <div class="solv-section-title">Prediction de Paiement par Facture</div>
+          <div class="ai-filter-bar">
+            <button *ngFor="let f of ['ALL','CRITIQUE','HAUTE','MOYENNE','FAIBLE']" class="ai-filter-btn"
+              [class.active]="predictionFilter === f" (click)="predictionFilter = f">
+              {{ f === 'ALL' ? 'Toutes' : f }}
+            </button>
+          </div>
+        </div>
+
+        <div class="ai-empty" *ngIf="filteredPredictions.length === 0">
+          Aucune facture impayee
+        </div>
+
+        <div class="solv-prediction-list">
+          <div class="solv-prediction-card" *ngFor="let p of filteredPredictions"
+            [style.border-left-color]="getUrgencyColor(p.urgency)">
+
+            <div class="solv-pred-top">
+              <div class="solv-pred-left">
+                <code class="inv-num">{{ p.invoiceNumber }}</code>
+                <span class="solv-urgency-badge" [style.background]="getUrgencyColor(p.urgency) + '20'"
+                  [style.color]="getUrgencyColor(p.urgency)">
+                  {{ p.urgency }}
+                </span>
+                <span class="solv-rating-micro" [style.background]="getRatingBg(p.clientRating)"
+                  [style.color]="getRatingColor(p.clientRating)">
+                  {{ p.clientRating }}
+                </span>
+              </div>
+              <div class="solv-pred-amount">{{ p.amount | number:'1.0-0' }} TND</div>
+            </div>
+
+            <div class="solv-pred-info">
+              <span>{{ p.clientName }}</span>
+              <span>{{ p.project }}</span>
+              <span>{{ p.daysOverdue }}j impaye</span>
+              <span *ngIf="p.estimatedPaymentDate !== 'Non prevu' && p.estimatedPaymentDate !== 'Inconnu'">
+                Paiement estime : {{ p.estimatedPaymentDate }}
+              </span>
+            </div>
+
+            <!-- Jauge probabilite -->
+            <div class="solv-prob-row">
+              <span class="solv-prob-label">Probabilite de paiement</span>
+              <div class="solv-prob-bar">
+                <div class="solv-prob-fill" [style.width]="p.paymentProbability + '%'"
+                  [style.background]="getProbabilityColor(p.paymentProbability)">
+                </div>
+              </div>
+              <span class="solv-prob-pct" [style.color]="getProbabilityColor(p.paymentProbability)">
+                {{ p.paymentProbability }}%
+              </span>
+            </div>
+
+            <!-- Prediction texte -->
+            <div class="solv-pred-text" [style.color]="getUrgencyColor(p.urgency)">
+              {{ p.prediction }}
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <app-invoice-chat></app-invoice-chat>
+    </ng-container>
+  </div><!-- /AI TAB -->
+
+</div>

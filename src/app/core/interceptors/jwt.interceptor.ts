@@ -15,12 +15,22 @@ export class JwtInterceptor implements HttpInterceptor {
     req: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
+
+    // Ne pas forcer l'Authorization sur l'auth (login/register).
+    if (req.url.includes('/auth/login') || req.url.includes('/auth/register')) {
+      return next.handle(req);
+    }
+
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
       return next.handle(req);
     }
+
     const authReq = req.clone({
-      setHeaders: { Authorization: `Bearer ${token}` }
+      setHeaders: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
     });
     return next.handle(authReq);
   }

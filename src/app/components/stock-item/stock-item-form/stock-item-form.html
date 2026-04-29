@@ -1,0 +1,224 @@
+<div class="form-container">
+  <div class="form-card">
+    <!-- Header -->
+    <div class="form-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <i class="fas fa-boxes"></i>
+        </div>
+        <div class="header-text">
+          <h1>{{ isEditMode ? 'Edit Stock Item' : 'Create New Stock Item' }}</h1>
+          <p>{{ isEditMode ? 'Update inventory information' : 'Add new product to inventory' }}</p>
+        </div>
+      </div>
+      <div class="header-badge" *ngIf="isEditMode">
+        <i class="fas fa-edit"></i> Edit Mode
+      </div>
+    </div>
+
+    <form #stockForm="ngForm" (ngSubmit)="save(stockForm)" class="stock-form">
+      
+      <!-- Two Column Layout for better organization -->
+      <div class="form-grid">
+        
+        <!-- Left Column -->
+        <div class="form-column">
+          <!-- Product Selection -->
+          <div class="form-group" [class.error]="product.invalid && (product.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-tag"></i>
+              Product *
+            </label>
+            <select [(ngModel)]="stockItem.product" [compareWith]="compareProducts"
+                    name="product" required #product="ngModel"
+                    class="form-control form-select">
+              <option [ngValue]="null" disabled>-- Select a product --</option>
+              <option *ngFor="let p of products" [ngValue]="p">{{ p.name }}</option>
+            </select>
+            <div class="form-error" *ngIf="product.invalid && (product.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i> Product is required
+            </div>
+          </div>
+
+          <!-- Company ID -->
+          <div class="form-group" [class.error]="companyId.invalid && (companyId.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-building"></i>
+              Company ID *
+            </label>
+            <input type="number" [(ngModel)]="stockItem.companyId" name="companyId"
+                   required min="1" #companyId="ngModel"
+                   class="form-control" placeholder="Enter company identifier">
+            <div class="form-error" *ngIf="companyId.invalid && (companyId.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i>
+              <span *ngIf="companyId.errors?.['required']">Company ID is required</span>
+              <span *ngIf="companyId.errors?.['min']">Must be greater than 0</span>
+            </div>
+          </div>
+
+          <!-- Quantity -->
+          <div class="form-group" [class.error]="quantity.invalid && (quantity.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-chart-line"></i>
+              Quantity *
+            </label>
+            <input type="number" [(ngModel)]="stockItem.quantity" name="quantity"
+                   required min="1" #quantity="ngModel"
+                   class="form-control" placeholder="Enter stock quantity">
+            <div class="form-error" *ngIf="quantity.invalid && (quantity.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i>
+              <span *ngIf="quantity.errors?.['required']">Quantity is required</span>
+              <span *ngIf="quantity.errors?.['min']">Quantity must be greater than 0</span>
+            </div>
+          </div>
+
+          <!-- Unit Price -->
+          <div class="form-group" [class.error]="unitPrice.invalid && (unitPrice.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-dollar-sign"></i>
+              Unit Price (DT) *
+            </label>
+            <div class="price-input-wrapper">
+              <span class="currency-symbol">DT</span>
+              <input type="number" [(ngModel)]="stockItem.unitPrice" name="unitPrice"
+                     required min="0.01" step="0.01" #unitPrice="ngModel"
+                     class="form-control" placeholder="0.00">
+            </div>
+            <div class="form-error" *ngIf="unitPrice.invalid && (unitPrice.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i>
+              <span *ngIf="unitPrice.errors?.['required']">Unit price is required</span>
+              <span *ngIf="unitPrice.errors?.['min']">Must be greater than 0</span>
+            </div>
+          </div>
+
+          <!-- Unit -->
+          <div class="form-group" [class.error]="unit.invalid && (unit.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-ruler"></i>
+              Unit *
+            </label>
+            <input type="text" [(ngModel)]="stockItem.unit" name="unit"
+                   required #unit="ngModel"
+                   class="form-control" placeholder="e.g., pieces, kg, liters">
+            <div class="form-error" *ngIf="unit.invalid && (unit.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i> Unit is required
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="form-column">
+          <!-- Status -->
+          <div class="form-group" [class.error]="status.invalid && (status.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-info-circle"></i>
+              Status *
+            </label>
+            <select [(ngModel)]="stockItem.status" name="status"
+                    required #status="ngModel"
+                    class="form-control form-select">
+              <option value="" disabled>-- Select status --</option>
+              <option value="AVAILABLE">Available</option>
+              <option value="LOW">Low Stock</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="RESERVED">Reserved</option>
+            </select>
+            <div class="form-error" *ngIf="status.invalid && (status.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i> Status is required
+            </div>
+          </div>
+
+          <!-- Location -->
+          <div class="form-group" [class.error]="location.invalid && (location.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-map-marker-alt"></i>
+              Location *
+            </label>
+            <input type="text" [(ngModel)]="stockItem.location" name="location"
+                   required #location="ngModel"
+                   class="form-control" placeholder="Warehouse, shelf number">
+            <div class="form-error" *ngIf="location.invalid && (location.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i> Location is required
+            </div>
+          </div>
+
+          <!-- Expiration Date -->
+          <div class="form-group" [class.error]="expirationDate.invalid && (expirationDate.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-calendar-alt"></i>
+              Expiration Date *
+            </label>
+            <input type="date" [(ngModel)]="stockItem.expirationDate" name="expirationDate"
+                   required [min]="minDate" #expirationDate="ngModel"
+                   class="form-control">
+            <div class="form-error" *ngIf="expirationDate.invalid && (expirationDate.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i>
+              <span *ngIf="expirationDate.errors?.['required']">Expiration date is required</span>
+              <span *ngIf="expirationDate.errors?.['min']">Date must be in the future</span>
+            </div>
+          </div>
+
+          <!-- Condition -->
+          <div class="form-group" [class.error]="condition.invalid && (condition.touched || submitted)">
+            <label class="form-label">
+              <i class="fas fa-clipboard-list"></i>
+              Condition *
+            </label>
+            <select [(ngModel)]="stockItem.condition" name="condition"
+                    required #condition="ngModel"
+                    class="form-control form-select">
+              <option value="" disabled>-- Select condition --</option>
+              <option value="Excellent">Excellent</option>
+              <option value="Good">Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Poor">Poor</option>
+            </select>
+            <div class="form-error" *ngIf="condition.invalid && (condition.touched || submitted)">
+              <i class="fas fa-exclamation-circle"></i> Condition is required
+            </div>
+          </div>
+
+          <!-- Image Upload -->
+          <div class="form-group">
+            <label class="form-label">
+              <i class="fas fa-image"></i>
+              Product Image
+            </label>
+            <div class="image-upload-area" (click)="fileInput.click()">
+              <input type="file" #fileInput accept="image/*" (change)="onFileSelected($event)" style="display: none">
+              <div *ngIf="!imagePreviewUrl" class="upload-placeholder">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to upload image</p>
+                <small>Supported formats: JPG, PNG, GIF</small>
+              </div>
+              <div *ngIf="imagePreviewUrl" class="image-preview">
+                <img [src]="imagePreviewUrl" alt="Preview">
+                <button type="button" class="remove-image" (click)="removeImage($event)">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Messages -->
+      <div class="error-alert" *ngIf="serverErrors">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ serverErrors }}
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()">
+          <i class="fas fa-times"></i>
+          Cancel
+        </button>
+        <button type="submit" class="btn-submit" [disabled]="stockForm.invalid">
+          <i class="fas" [class.fa-plus]="!isEditMode" [class.fa-save]="isEditMode"></i>
+          {{ isEditMode ? 'Update Stock Item' : 'Create Stock Item' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

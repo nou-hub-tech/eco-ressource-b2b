@@ -1,0 +1,111 @@
+<div class="page-wrapper">
+  <div class="tx-form-shell">
+    <div class="card">
+                <div class="card-header">
+                    <h3>
+                        <i class="bi" [class.bi-pencil-square]="isEditMode" [class.bi-plus-circle]="!isEditMode"></i>
+                        {{ isEditMode ? 'Modifier' : 'Nouvelle' }} commande
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Message d'erreur -->
+                    <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show">
+                        <i class="bi bi-exclamation-triangle"></i> {{ errorMessage }}
+                        <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+                    </div>
+
+                    <!-- Indicateur de chargement -->
+                    <div *ngIf="isLoading" class="empty-state">
+                        <div class="spinner-border" role="status"></div>
+                        <p class="mt-2" style="color:var(--text3)">Traitement en cours…</p>
+                    </div>
+
+                    <!-- Formulaire -->
+                    <form [formGroup]="deliveryOrderForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
+                        <!-- Champ Nom Client -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nom du client *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   formControlName="nomClient"
+                                   [class.is-invalid]="nomClient?.invalid && nomClient?.touched"
+                                   placeholder="Entrez le nom complet du client">
+                            <div class="invalid-feedback">
+                                <div *ngIf="nomClient?.errors?.['required']">Le nom du client est requis</div>
+                                <div *ngIf="nomClient?.errors?.['minlength']">Minimum 2 caractères</div>
+                                <div *ngIf="nomClient?.errors?.['maxlength']">Maximum 100 caractères</div>
+                            </div>
+                        </div>
+
+                        <!-- Champ Téléphone -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Téléphone *</label>
+                            <input type="tel" 
+                                   class="form-control" 
+                                   formControlName="telephoneClient"
+                                   [class.is-invalid]="telephoneClient?.invalid && telephoneClient?.touched"
+                                   placeholder="ex: 0612345678 ou 0123456789">
+                            <div class="invalid-feedback">
+                                <div *ngIf="telephoneClient?.errors?.['required']">Le numéro de téléphone est requis</div>
+                                <div *ngIf="telephoneClient?.errors?.['pattern']">8 à 15 chiffres uniquement (sans espace ni tiret)</div>
+                            </div>
+                            <small class="text-muted">Format: 8 à 15 chiffres</small>
+                        </div>
+
+                        <!-- Champ Adresse -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Adresse de livraison *</label>
+                            <textarea rows="3" 
+                                      class="form-control" 
+                                      formControlName="adresseLivraison"
+                                      [class.is-invalid]="adresseLivraison?.invalid && adresseLivraison?.touched"
+                                      placeholder="Adresse complète de livraison (rue, ville, code postal)"></textarea>
+                            <div class="invalid-feedback">
+                                <div *ngIf="adresseLivraison?.errors?.['required']">L'adresse de livraison est requise</div>
+                                <div *ngIf="adresseLivraison?.errors?.['minlength']">Minimum 5 caractères</div>
+                            </div>
+                        </div>
+
+                        <!-- Champ Date -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Date prévue de livraison *</label>
+                            <input type="datetime-local" 
+                                   class="form-control" 
+                                   formControlName="datePrevue"
+                                   [min]="today"
+                                   [class.is-invalid]="datePrevue?.invalid && datePrevue?.touched">
+                            <div class="invalid-feedback">
+                                <div *ngIf="datePrevue?.errors?.['required']">La date prévue est requise</div>
+                                <div *ngIf="datePrevue?.errors?.['invalidDate']">Format de date invalide</div>
+                                <div *ngIf="datePrevue?.errors?.['pastDate']">La date doit être dans le futur</div>
+                                <div *ngIf="datePrevue?.errors?.['invalidYear']">Année invalide (entre 1900 et 2100)</div>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar-event"></i> Utilisez le calendrier pour sélectionner une date et heure
+                            </small>
+                        </div>
+
+                        <!-- Champ Statut -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Statut</label>
+                            <select class="form-select" formControlName="statut">
+                                <option *ngFor="let statut of statuts" [value]="statut">{{ statut }}</option>
+                            </select>
+                            <small class="text-muted">Statut initial: EN_ATTENTE</small>
+                        </div>
+
+                        <!-- Boutons -->
+                        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px">
+                            <button type="button" class="btn btn-outline" (click)="onCancel()">
+                                <i class="bi bi-x-circle"></i> Annuler
+                            </button>
+                            <button type="submit" class="btn btn-primary" [disabled]="deliveryOrderForm.invalid">
+                                <i class="bi bi-check-circle"></i>
+                                {{ isEditMode ? 'Modifier' : 'Créer' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+  </div>
+</div>

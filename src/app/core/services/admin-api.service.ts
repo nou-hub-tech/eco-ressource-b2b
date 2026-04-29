@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   ReservationDto,
@@ -18,7 +19,7 @@ export interface AdminUserDto {
   phone: string;
   city: string;
   joined: string;
-  date: string; 
+  date: string;
   listings: number;
   orders: number;
   revenue: string;
@@ -103,9 +104,33 @@ export interface SolidarityDto {
   mission: string;
   members: number;
   donations: number;
-  status: string;
-  ai: string;
+  statusLabel: string;
+  aiInsight: string;
+  goalAmount?: number;
+  userId?: number;
 }
+
+export interface SolidarityAssociationRequest {
+  name: string;
+  mission: string;
+  members: number;
+  donations: number;
+  statusLabel: string;
+  aiInsight?: string;
+  goalAmount?: number;
+}
+
+export interface DonationDto {
+  id?: number;
+  amount: number;
+  message?: string;
+  associationId: number;
+  userId?: number;
+  userName?: string;
+  createdAt?: string;
+}
+
+const REQUEST_TIMEOUT_MS = 10_000;
 export interface GenerateDescriptionRequest {
   title: string;
   typeLabel: string;
@@ -118,28 +143,54 @@ export interface GenerateDescriptionRequest {
 export class AdminApiService {
   private readonly apiUrl = environment.apiUrl;
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly http: HttpClient) { }
+
+  private withTimeout<T>(obs: Observable<T>, label: string): Observable<T> {
+    return obs.pipe(
+      timeout({
+        each: REQUEST_TIMEOUT_MS,
+        with: () => throwError(() => ({
+          status: 0,
+          error: { message: `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s` }
+        }))
+      }),
+      catchError((err: HttpErrorResponse | any) => {
+        if (err?.status === 0) {
+          console.error(`[AdminAPI] ${label} — Backend unreachable or request timed out.`, err);
+        } else {
+          console.error(`[AdminAPI] ${label} — HTTP ${err?.status}`, err?.error ?? err);
+        }
+        return throwError(() => err);
+      })
+    );
+  }
 
   getUsers(): Observable<AdminUserDto[]> {
-    return this.http.get<AdminUserDto[]>(`${this.apiUrl}/users`);
+    return this.withTimeout(
+      this.http.get<AdminUserDto[]>(`${this.apiUrl}/users`),
+      'GET /users'
+    );
   }
 
   updateUserStatus(id: number, status: string): Observable<AdminUserDto> {
-    return this.http.patch<AdminUserDto>(
-      `${this.apiUrl}/users/${id}/status`,
-      { status }
+    return this.withTimeout(
+      this.http.patch<AdminUserDto>(`${this.apiUrl}/users/${id}/status`, { status }),
+      `PATCH /users/${id}/status`
     );
   }
 
   deleteUser(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/users/${id}`);
+    return this.withTimeout(
+      this.http.delete<void>(`${this.apiUrl}/users/${id}`),
+      `DELETE /users/${id}`
+    );
   }
 
-  /** Parse USR-001 -> 1 */
   static parseUserNumericId(displayId: string): number {
     const n = displayId.replace(/^USR-/, '');
     return parseInt(n, 10);
   }
+
 
   getEvents(): Observable<EventDto[]> {
     return this.http.get<EventDto[]>(`${this.apiUrl}/admin/events`);
@@ -223,37 +274,179 @@ export class AdminApiService {
     );
   }
 
+  getPlatformEvents(): Observable<PlatformEventDto[]> {
+    return this.http.get<PlatformEventDto[]>(`${this.apiUrl}/platform-events`);
+  }
+
+  getPlatformEvent(id: number): Observable<PlatformEventDto> {
+    return this.http.get<PlatformEventDto>(
+      `${this.apiUrl}/platform-events/${id}`
+    );
+  }
+
+  createPlatformEvent(
+    body: PlatformEventRequestPayload
+  ): Observable<PlatformEventDto> {
+    return this.http.post<PlatformEventDto>(
+      `${this.apiUrl}/platform-events`,
+      body
+    );
+  }
+
+  updatePlatformEvent(
+    id: number,
+    body: PlatformEventRequestPayload
+  ): Observable<PlatformEventDto> {
+    return this.http.put<PlatformEventDto>(
+      `${this.apiUrl}/platform-events/${id}`,
+      body
+    );
+  }
+
+  deletePlatformEvent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/platform-events/${id}`);
+  }
+
+  uploadEventDocument(eventId: number, file: File): Observable<EventDocumentDto> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<EventDocumentDto>(
+      `${this.apiUrl}/platform-events/${eventId}/documents`,
+      formData
+    );
+  }
+
+  getEventDocuments(eventId: number): Observable<EventDocumentDto[]> {
+    return this.http.get<EventDocumentDto[]>(
+      `${this.apiUrl}/platform-events/${eventId}/documents`
+    );
+  }
+
+  deleteEventDocument(documentId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/platform-events/documents/${documentId}`
+    );
+  }
+
+  getNearbyEvents(
+    latitude: number,
+    longitude: number,
+    radius: number = 50.0
+  ): Observable<PlatformEventDto[]> {
+    return this.http.get<PlatformEventDto[]>(
+      `${this.apiUrl}/platform-events/nearby`,
+      {
+        params: {
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          radius: radius.toString()
+        }
+      }
+    );
+  }
+
+  searchEvents(searchRequest: EventSearchRequest): Observable<EventSearchResponse> {
+    return this.http.post<EventSearchResponse>(
+      `${this.apiUrl}/platform-events/search`,
+      searchRequest
+    );
+  }
+
   getReservations(): Observable<ReservationDto[]> {
-    return this.http.get<ReservationDto[]>(
-      `${this.apiUrl}/admin/reservations`
+    return this.withTimeout(
+      this.http.get<ReservationDto[]>(`${this.apiUrl}/reservations`),
+      'GET /reservations'
     );
   }
 
   getSolidarity(): Observable<SolidarityDto[]> {
-    return this.http.get<SolidarityDto[]>(`${this.apiUrl}/admin/solidarity`);
+    return this.withTimeout(
+      this.http.get<SolidarityDto[]>(`${this.apiUrl}/solidarity-associations`),
+      'GET /solidarity-associations'
+    );
+  }
+
+  createAssociation(data: SolidarityAssociationRequest): Observable<SolidarityDto> {
+    return this.withTimeout(
+      this.http.post<SolidarityDto>(`${this.apiUrl}/solidarity-associations`, data),
+      'POST /solidarity-associations'
+    );
+  }
+
+  updateAssociation(id: number, data: SolidarityAssociationRequest): Observable<SolidarityDto> {
+    return this.withTimeout(
+      this.http.put<SolidarityDto>(`${this.apiUrl}/solidarity-associations/${id}`, data),
+      `PUT /solidarity-associations/${id}`
+    );
+  }
+
+  deleteAssociation(id: number): Observable<void> {
+    return this.withTimeout(
+      this.http.delete<void>(`${this.apiUrl}/solidarity-associations/${id}`),
+      `DELETE /solidarity-associations/${id}`
+    );
+  }
+
+  createDonation(data: DonationDto): Observable<DonationDto> {
+    return this.withTimeout(
+      this.http.post<DonationDto>(`${this.apiUrl}/donations`, data),
+      'POST /donations'
+    );
+  }
+
+  getDonationsByAssociation(associationId: number): Observable<DonationDto[]> {
+    return this.withTimeout(
+      this.http.get<DonationDto[]>(`${this.apiUrl}/donations/association/${associationId}`),
+      `GET /donations/association/${associationId}`
+    );
+  }
+
+  deleteDonation(id: number): Observable<void> {
+    return this.withTimeout(
+      this.http.delete<void>(`${this.apiUrl}/donations/${id}`),
+      `DELETE /donations/${id}`
+    );
   }
 
   getTreasuryTransactions(): Observable<WalletTransactionDto[]> {
-    return this.http.get<WalletTransactionDto[]>(
-      `${this.apiUrl}/admin/treasury/transactions`
+    return this.withTimeout(
+      this.http.get<WalletTransactionDto[]>(`${this.apiUrl}/wallet-transactions`),
+      'GET /wallet-transactions'
     );
   }
 
   getStockItems(): Observable<StockItemDto[]> {
-    return this.http.get<StockItemDto[]>(`${this.apiUrl}/admin/stock/items`);
+    return this.withTimeout(
+      this.http.get<StockItemDto[]>(`${this.apiUrl}/stock-items`),
+      'GET /stock-items'
+    );
   }
 
   generateDescription(req: GenerateDescriptionRequest): Observable<{ description: string }> {
-  return this.http.post<{ description: string }>(
-    `${this.apiUrl}/ai/generate-description`,
-    req
-  );
-}
+    return this.http.post<{ description: string }>(
+      `${this.apiUrl}/ai/generate-description`,
+      req
+    );
+  }
 
   publishToFacebook(eventId: number, imageBlob: Blob): Observable<string> {
     const formData = new FormData();
     formData.append('image', imageBlob, 'poster.png');
-    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, formData, 
+    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, formData,
+      { responseType: 'text' });
+  }
+
+  generateDescription(req: GenerateDescriptionRequest): Observable<{ description: string }> {
+    return this.http.post<{ description: string }>(
+      `${this.apiUrl}/ai/generate-description`,
+      req
+    );
+  }
+
+  publishToFacebook(eventId: number, imageBlob: Blob): Observable<string> {
+    const formData = new FormData();
+    formData.append('image', imageBlob, 'poster.png');
+    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, formData,
       { responseType: 'text' });
   }
 }

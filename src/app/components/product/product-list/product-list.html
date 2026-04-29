@@ -1,0 +1,121 @@
+<!-- product-list.component.html -->
+<div class="page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>Products</h1>
+      <p>Manage your product catalog — browse, search, and organize inventory</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" (click)="openInventoryScanner()">
+        📦 Inventory Scanner
+      </button>
+      <button class="btn btn-outline" (click)="openChatbot()">
+        🤖 AI Product Finder
+      </button>
+      <button class="btn btn-outline" (click)="openBrokenProduct()">
+        🔧 Broken Product Detection
+      </button>
+      <button class="btn btn-primary" (click)="addProduct()">
+        <span>+</span> Add Product
+      </button>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <span style="color:var(--muted);font-size:14px">🔍</span>
+      <input type="text" placeholder="Search by name..." [(ngModel)]="searchName" (ngModelChange)="search()" />
+    </div>
+    <div class="search-box" style="max-width:200px">
+      <span style="color:var(--muted);font-size:14px">📦</span>
+      <input type="text" placeholder="Category..." [(ngModel)]="searchCategory" (ngModelChange)="search()" />
+    </div>
+    <div class="search-box" style="max-width:200px">
+      <span style="color:var(--muted);font-size:14px">🧱</span>
+      <input type="text" placeholder="Material..." [(ngModel)]="searchMaterialType" (ngModelChange)="search()" />
+    </div>
+    <button class="btn btn-outline btn-sm" (click)="resetSearch()">↺ Reset</button>
+    <div class="spacer"></div>
+    <select class="filter-select" [(ngModel)]="pageSize" (ngModelChange)="changePageSize()">
+      <option [ngValue]="5">5 / page</option>
+      <option [ngValue]="10">10 / page</option>
+      <option [ngValue]="20">20 / page</option>
+    </select>
+    <span class="toolbar-count">{{ totalElements }} product(s)</span>
+  </div>
+
+  <!-- Table Card -->
+  <div class="card" style="padding:0;margin-bottom:18px">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:50px">ID</th>
+          <th style="cursor:pointer" (click)="sort('name')">Name <span class="sort-icon">{{ getSortIcon('name') }}</span></th>
+          <th style="cursor:pointer" (click)="sort('category')">Category <span class="sort-icon">{{ getSortIcon('category') }}</span></th>
+          <th style="cursor:pointer" (click)="sort('materialType')">Material <span class="sort-icon">{{ getSortIcon('materialType') }}</span></th>
+          <th style="width:100px">Recyclable</th>
+          <th>Description</th>
+          <th style="width:80px">Image</th>
+          <th style="width:120px;text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of products">
+          <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#{{ p.id_product }}</span></td>
+          <td><strong style="color:var(--text);font-size:13px">{{ p.name }}</strong></td>
+          <td><span class="badge badge-neutral">{{ p.category }}</span></td>
+          <td><span class="badge badge-info">{{ p.materialType }}</span></td>
+          <td>
+            <span class="badge" [ngClass]="p.recyclable ? 'badge-success' : 'badge-danger'">
+              {{ p.recyclable ? '✔ Yes' : '✘ No' }}
+            </span>
+          </td>
+          <td>
+            <span style="font-size:12px;color:var(--text3);max-width:200px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              {{ p.description || '—' }}
+            </span>
+          </td>
+          <!-- Image column – corrected -->
+          <td>
+            <div class="product-thumb" *ngIf="getImageUrl(p.image)">
+              <img [src]="getImageUrl(p.image)" [alt]="p.name"
+                   style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--border)"
+                   (error)="handleImageError(p)">
+            </div>
+            <span *ngIf="!getImageUrl(p.image)" class="no-img">No img</span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;justify-content:flex-end">
+              <button class="btn btn-ghost btn-sm btn-icon-sq" title="View" (click)="detailProduct(p.id_product!)">🔍</button>
+              <button class="btn btn-outline btn-sm btn-icon-sq" title="Edit" (click)="editProduct(p.id_product!)">✏️</button>
+              <button class="btn btn-danger btn-sm btn-icon-sq" title="Delete" (click)="deleteProduct(p.id_product!)">🗑</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="products.length === 0">
+      <span class="empty-icon">📦</span>
+      <h3>No products found</h3>
+      <p>Try adjusting your search filters or add a new product</p>
+    </div>
+  </div>
+
+  <!-- Pagination Footer -->
+  <div class="pagination-bar">
+    <span class="pagination-info">
+      Page <strong>{{ currentPage + 1 }}</strong> of <strong>{{ totalPages }}</strong>
+    </span>
+    <div class="pagination-controls">
+      <button class="pag-btn" (click)="goToPage(0)" [disabled]="currentPage === 0" title="First">⏮</button>
+      <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0" title="Previous">◀</button>
+      <button *ngFor="let p of getPages()" class="pag-btn" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p + 1 }}</button>
+      <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1" title="Next">▶</button>
+      <button class="pag-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1" title="Last">⏭</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,168 @@
+<div class="stock-detail-container">
+  <!-- Loading State -->
+  <div *ngIf="!stockItem" class="loading-state">
+    <div class="pulse-loader"></div>
+    <p>Loading stock item details...</p>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="stockItem" class="detail-card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <div class="header-left">
+        <button class="back-btn" (click)="back()">
+          <i class="fas fa-arrow-left"></i> Back to Inventory
+        </button>
+        <h2>
+          <i class="fas fa-boxes"></i> 
+          Stock Item Details
+          <span class="item-id-badge">#{{ stockItem.idStock }}</span>
+        </h2>
+      </div>
+      <div class="header-right">
+        <span class="status-badge" [class]="getStatusClass(stockItem.status)">
+          <i class="fas" [class]="getStatusIcon(stockItem.status)"></i>
+          {{ stockItem.status }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Image Section -->
+    <div class="image-wrapper">
+      <img *ngIf="getImageUrl(stockItem.image)" 
+           [src]="getImageUrl(stockItem.image)" 
+           [alt]="stockItem.product?.name"
+           (error)="handleImageError()">
+      <div *ngIf="!getImageUrl(stockItem.image)" class="no-image-placeholder">
+        <i class="fas fa-image"></i>
+        <p>No Image Available</p>
+      </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div class="info-grid">
+      <div class="info-row">
+        <div class="info-label">
+          <i class="fas fa-tag"></i>
+          <span>Product Name</span>
+        </div>
+        <div class="info-value highlight">
+          {{ stockItem.product?.name || 'N/A' }}
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <i class="fas fa-building"></i>
+          <span>Company ID</span>
+        </div>
+        <div class="info-value">
+          {{ stockItem.companyId || 'N/A' }}
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <i class="fas fa-chart-line"></i>
+          <span>Quantity</span>
+        </div>
+        <div class="info-value quantity-value" [class.low-stock]="stockItem.quantity < 100">
+          {{ stockItem.quantity | number }}
+          <span class="unit">{{ stockItem.unit }}</span>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <i class="fas fa-ruler-combined"></i>
+          <span>Unit of Measure</span>
+        </div>
+        <div class="info-value">
+          {{ stockItem.unit || 'N/A' }}
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <i class="fas fa-map-marker-alt"></i>
+          <span>Storage Location</span>
+        </div>
+        <div class="info-value">
+          <i class="fas fa-location-dot"></i>
+          {{ stockItem.location || 'N/A' }}
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <i class="fas fa-calendar-alt"></i>
+          <span>Expiration Date</span>
+        </div>
+        <div class="info-value" [class.expiring-soon]="isExpiringSoon(stockItem.expirationDate)">
+          <i class="fas" [class]="getExpiryIcon(stockItem.expirationDate)"></i>
+          {{ formatDate(stockItem.expirationDate) }}
+          <span *ngIf="isExpiringSoon(stockItem.expirationDate)" class="warning-badge">
+            Expiring Soon
+          </span>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <i class="fas fa-clipboard-list"></i>
+          <span>Condition</span>
+        </div>
+        <div class="info-value">
+          <span class="condition-badge" [class]="getConditionClass(stockItem.condition)">
+            {{ stockItem.condition || 'N/A' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <i class="fas fa-info-circle"></i>
+          <span>Last Updated</span>
+        </div>
+        <div class="info-value">
+          {{ getLastUpdated() }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Info Cards -->
+    <div class="additional-info">
+      <div class="info-card">
+        <i class="fas fa-chart-simple"></i>
+        <div class="info-card-content">
+          <h4>Stock Level</h4>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="getStockPercentage(stockItem.quantity)"></div>
+          </div>
+          <p>{{ getStockLevelText(stockItem.quantity) }}</p>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <i class="fas fa-truck-fast"></i>
+        <div class="info-card-content">
+          <h4>Reorder Status</h4>
+          <p>{{ getReorderStatus(stockItem.quantity) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="btn btn-secondary" (click)="back()">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <button class="btn btn-primary" (click)="edit()">
+        <i class="fas fa-edit"></i> Edit Item
+      </button>
+      <button class="btn btn-danger" (click)="delete()">
+        <i class="fas fa-trash-alt"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>

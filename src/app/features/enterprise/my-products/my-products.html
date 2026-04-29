@@ -1,0 +1,206 @@
+<div class="page-wrapper">
+
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1>My Products</h1>
+      <p>Manage your enterprise product catalogue</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-outline" routerLink="/enterprise/my-inventory">
+        📦 Inventory
+      </button>
+      <button class="btn btn-outline" routerLink="/enterprise/product-finder">
+        🔍 Product Finder
+      </button>
+      <button class="btn btn-outline" routerLink="/enterprise/market-chatbot"
+        style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none">
+        🤖 AI Assistant
+      </button>
+      <button class="btn btn-primary" (click)="openAdd()">+ Add Product</button>
+    </div>
+  </div>
+
+  <div *ngIf="error" style="color:red;margin-bottom:12px">{{ error }}</div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" placeholder="Search by name or category..." [(ngModel)]="search">
+    </div>
+    <span class="toolbar-count">{{ filtered.length }} products</span>
+  </div>
+
+  <div *ngIf="loading" class="empty-state">Loading…</div>
+
+  <div *ngIf="!loading && filtered.length === 0" class="empty-state">
+    No products yet. Click <strong>+ Add Product</strong> to get started.
+  </div>
+
+  <!-- Cards Grid -->
+  <div class="stock-grid" *ngIf="!loading && filtered.length > 0">
+    <div class="stock-card" *ngFor="let p of filtered">
+
+      <div class="stock-card-bar" [style.background]="
+        p.category === 'Metal'       ? '#0056d2' :
+        p.category === 'Plastic'     ? '#0a7c4f' :
+        p.category === 'Paper'       ? '#92400e' :
+        p.category === 'Glass'       ? '#4c1d95' :
+        p.category === 'Textile'     ? '#a78bfa' :
+        p.category === 'Electronics' ? '#0891b2' :
+        p.category === 'Wood'        ? '#78350f' :
+        p.category === 'Chemical'    ? '#dc2626' : '#6b7280'">
+      </div>
+
+      <div class="stock-card-img" *ngIf="p.image && p.image !== 'default.png'">
+        <img [src]="p.image" alt="{{ p.name }}" style="width:100%;height:140px;object-fit:cover;">
+      </div>
+      <div class="stock-card-img-placeholder" *ngIf="!p.image || p.image === 'default.png'">
+        <span>📦</span>
+      </div>
+
+      <div class="stock-card-body">
+        <div class="stock-card-top">
+          <span class="stock-product-name">{{ p.name }}</span>
+          <span class="stock-status-badge" style="background:#eff6ff;color:#2563eb">{{ p.category }}</span>
+        </div>
+
+        <div class="stock-stats">
+          <div class="stock-stat">
+            <span class="stock-stat-label">Material</span>
+            <span class="stock-stat-value" style="font-size:13px">{{ p.materialType }}</span>
+          </div>
+          <div class="stock-stat">
+            <span class="stock-stat-label">Recyclable</span>
+            <span class="stock-stat-value" style="font-size:13px"
+              [style.color]="p.recyclable ? '#16a34a' : 'var(--text3)'">
+              {{ p.recyclable ? '♻ Yes' : 'No' }}
+            </span>
+          </div>
+          <div class="stock-stat">
+            <span class="stock-stat-label">Barcode</span>
+            <span class="stock-stat-value" style="font-size:11px;color:var(--text3)">{{ p.barcode || '—' }}</span>
+          </div>
+        </div>
+
+        <div class="stock-details">
+          <div class="stock-detail-item" style="font-size:12px;color:var(--text2)">
+            {{ p.description ? (p.description.length > 80 ? (p.description.slice(0,80) + '…') : p.description) : '' }}
+          </div>
+        </div>
+
+        <div class="stock-card-actions">
+          <button class="stock-btn stock-btn-edit" (click)="openEdit(p)"><span>✏️</span> Edit</button>
+          <button class="stock-btn stock-btn-delete" (click)="confirmDelete(p.id_product!)"><span>🗑</span>
+            Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()" style="max-width:560px">
+    <div class="modal-header">
+      <h2>{{ editMode ? 'Edit Product' : 'Add Product' }}</h2>
+      <button class="btn btn-icon" (click)="closeModal()">✕</button>
+    </div>
+
+    <!-- NAME + CATEGORY -->
+    <div class="form-row">
+      <div class="form-group" [class.has-error]="nameError">
+        <label>NAME <span class="required">*</span></label>
+        <input type="text" [(ngModel)]="form.name" placeholder="e.g. Aluminium Scrap" [class.input-error]="nameError"
+          maxlength="100">
+        <div class="field-hint">{{ (form.name?.trim()?.length || 0) }}/100 characters</div>
+        <div class="error-msg" *ngIf="nameError">⚠ {{ nameError }}</div>
+      </div>
+      <div class="form-group" [class.has-error]="categoryError">
+        <label>CATEGORY <span class="required">*</span></label>
+        <select [(ngModel)]="form.category" [class.input-error]="categoryError">
+          <option value="">— Select —</option>
+          <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+        </select>
+        <div class="error-msg" *ngIf="categoryError">⚠ {{ categoryError }}</div>
+      </div>
+    </div>
+
+    <!-- MATERIAL TYPE + RECYCLABLE -->
+    <div class="form-row">
+      <div class="form-group" [class.has-error]="materialTypeError">
+        <label>MATERIAL TYPE <span class="required">*</span></label>
+        <select [(ngModel)]="form.materialType" [class.input-error]="materialTypeError">
+          <option value="">— Select —</option>
+          <option *ngFor="let m of materialTypes" [value]="m">{{ m }}</option>
+        </select>
+        <div class="error-msg" *ngIf="materialTypeError">⚠ {{ materialTypeError }}</div>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:24px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" [(ngModel)]="form.recyclable" style="width:16px;height:16px">
+          RECYCLABLE ♻
+        </label>
+      </div>
+    </div>
+
+    <!-- DESCRIPTION -->
+    <div class="form-group" [class.has-error]="descriptionError">
+      <label>DESCRIPTION <span class="required">*</span></label>
+      <textarea [(ngModel)]="form.description" rows="3" placeholder="Describe this product (min. 10 characters)…"
+        [class.input-error]="descriptionError" maxlength="500" style="resize:vertical"></textarea>
+      <div class="field-hint">{{ (form.description?.trim()?.length || 0) }}/500 characters</div>
+      <div class="error-msg" *ngIf="descriptionError">⚠ {{ descriptionError }}</div>
+    </div>
+
+    <!-- IMAGE UPLOAD -->
+    <div class="form-group">
+      <label>PRODUCT IMAGE</label>
+      <div class="upload-zone" (click)="fileInput.click()">
+        <input #fileInput type="file" accept="image/*" style="display:none" (change)="onImageSelected($event)">
+
+        <div *ngIf="!form.image && !uploading" class="upload-placeholder">
+          <span style="font-size:28px">📁</span>
+          <span>Click to upload an image from your PC</span>
+          <span style="font-size:11px;color:var(--text3)">JPG, PNG, WEBP accepted</span>
+        </div>
+
+        <div *ngIf="uploading" class="upload-placeholder">
+          <span style="font-size:24px">⏳</span>
+          <span>Uploading…</span>
+        </div>
+
+        <div *ngIf="form.image && !uploading" class="upload-preview">
+          <img [src]="form.image" alt="preview" style="width:100%;height:120px;object-fit:cover;border-radius:8px">
+          <button type="button" class="upload-remove" (click)="$event.stopPropagation(); form.image = ''">✕
+            Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VALIDATION SUMMARY (shown only on submit attempt) -->
+    <div class="validation-summary" *ngIf="submitted && !isFormValid">
+      ⚠ Please fix the errors above before saving.
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving || uploading">
+        {{ saving ? 'Saving…' : (editMode ? 'Update Product' : 'Add Product') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm -->
+<div class="modal-overlay" *ngIf="deleteConfirmId !== null" (click)="cancelDelete()">
+  <div class="modal" (click)="$event.stopPropagation()" style="max-width:400px">
+    <div class="modal-header">
+      <h2>Confirm Delete</h2>
+    </div>
+    <p style="padding:0 24px 16px">This will also delete all stock items linked to this product.</p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="cancelDelete()">Cancel</button>
+      <button class="btn btn-danger" (click)="doDelete()">Delete</button>
+    </div>
+  </div>
+</div>

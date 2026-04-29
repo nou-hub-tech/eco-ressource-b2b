@@ -1,1 +1,399 @@
-/* theme */
+
+/* ══════════════════════════════════════════════
+   MY STOCK — Enterprise Theme
+   ══════════════════════════════════════════════ */
+
+.stock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 4px 0 24px;
+}
+
+.stock-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.stock-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.stock-card.selected {
+  border: 2px solid #6366f1;
+  box-shadow: 0 4px 12px rgba(99,102,241,0.2);
+}
+
+/* Coloured accent bar */
+.stock-card-bar { height: 4px; width: 100%; }
+
+/* Image area */
+.stock-card-img { overflow: hidden; max-height: 140px; }
+
+.stock-card-img-placeholder {
+  height: 80px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: var(--text3);
+}
+
+/* Body */
+.stock-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stock-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stock-product-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stock-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Stats block */
+.stock-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.stock-stat { display: flex; flex-direction: column; gap: 3px; }
+
+.stock-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text3);
+  font-weight: 600;
+}
+
+.stock-stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stock-stat-value small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text3);
+}
+
+/* Details list */
+.stock-details { display: flex; flex-direction: column; gap: 6px; }
+
+.stock-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.stock-detail-icon { font-size: 13px; width: 18px; text-align: center; }
+
+/* Card actions */
+.stock-card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.stock-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.stock-btn:hover { opacity: 0.85; transform: scale(0.98); }
+
+.stock-btn-details {
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.stock-btn-edit {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.stock-btn-delete {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* ── Checkbox selection ── */
+.stock-card-checkbox {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+}
+
+.stock-card-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #6366f1;
+}
+
+/* ── Toolbar bulk ── */
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: #eef2ff;
+  border-radius: 8px;
+  height: 36px;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--text2);
+  transition: background 0.15s;
+}
+.btn-icon:hover { background: var(--border); }
+
+/* ── Select-all bar ── */
+.select-all-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+}
+
+.select-all-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text2);
+}
+
+.select-all-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #6366f1;
+}
+
+/* ── Danger button ── */
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: white !important;
+  border: none !important;
+}
+.btn-danger:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  transform: translateY(-1px);
+}
+
+/* ── Detail modal rows ── */
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.detail-value {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ── Upload zone ── */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+}
+.upload-zone:hover {
+  border-color: var(--accent, #6366f1);
+  background: var(--surface2);
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  color: var(--text2);
+  font-size: 13px;
+  text-align: center;
+}
+
+.upload-preview { position: relative; }
+
+.upload-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.upload-remove:hover { background: #dc2626; }
+
+/* ── Validation ── */
+.required { color: #ef4444; margin-left: 2px; }
+.has-error label { color: #ef4444; }
+
+.input-error {
+  border-color: #ef4444 !important;
+  background: rgba(239,68,68,0.04) !important;
+}
+.input-error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important; }
+
+.error-msg {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: fadeInErr 0.2s ease;
+}
+
+.field-hint {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text3);
+  text-align: right;
+}
+
+.validation-summary {
+  margin: 8px 0 4px;
+  padding: 10px 14px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* Reclamation modal – selected items list */
+.selected-products-list {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+.selected-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.selected-items { max-height: 120px; overflow-y: auto; }
+.selected-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.selected-item:last-child { border-bottom: none; }
+.item-name     { font-weight: 500; color: var(--text); }
+.item-location { color: var(--text3); font-size: 11px; }
+
+/* Quick issue tags */
+.quick-issues { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.quick-issue-tag {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text2);
+}
+.quick-issue-tag:hover {
+  background: var(--border);
+  transform: scale(1.02);
+}
+
+@keyframes fadeInErr {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+

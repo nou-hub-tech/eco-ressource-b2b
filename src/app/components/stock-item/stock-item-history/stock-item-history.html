@@ -1,0 +1,303 @@
+<div class="history-page">
+  <!-- Header Section -->
+  <div class="history-header">
+    <div class="header-content">
+      <div class="header-left">
+        <button class="back-btn" (click)="back()">
+          <span class="back-icon">←</span>
+          <span>Back to Stock Items</span>
+        </button>
+        <div class="title-section">
+          <div class="stock-badge">
+            <span class="stock-icon">📋</span>
+            <span class="stock-id">Stock Item #{{ stockId }}</span>
+          </div>
+          <h1 class="page-title">Movement History</h1>
+          <p class="page-subtitle">Complete transaction log with advanced analytics</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="last-updated">
+          <span class="update-icon">🔄</span>
+          <span class="update-text">Live Data</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Loading movement history...</p>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading" class="history-content">
+    <!-- Summary Cards with Advanced Stats -->
+    <div class="summary-grid">
+      <div class="summary-card" [class.card-in]="summary.totalIn > 0">
+        <div class="summary-icon in-icon">📥</div>
+        <div class="summary-info">
+          <div class="summary-value">{{ summary.totalIn | number }}</div>
+          <div class="summary-label">Total In</div>
+          <div class="summary-detail">Avg: {{ summary.avgIn | number }} units</div>
+        </div>
+        <div class="summary-trend" *ngIf="summary.largestIn > 0">
+          <span class="trend-icon">🏆</span>
+          <span class="trend-value">{{ summary.largestIn | number }}</span>
+        </div>
+      </div>
+      
+      <div class="summary-card" [class.card-out]="summary.totalOut > 0">
+        <div class="summary-icon out-icon">📤</div>
+        <div class="summary-info">
+          <div class="summary-value">{{ summary.totalOut | number }}</div>
+          <div class="summary-label">Total Out</div>
+          <div class="summary-detail">Avg: {{ summary.avgOut | number }} units</div>
+        </div>
+        <div class="summary-trend" *ngIf="summary.largestOut > 0">
+          <span class="trend-icon">⚠️</span>
+          <span class="trend-value">{{ summary.largestOut | number }}</span>
+        </div>
+      </div>
+      
+      <div class="summary-card" [class.positive]="summary.netChange > 0" [class.negative]="summary.netChange < 0">
+        <div class="summary-icon net-icon">
+          {{ summary.netChange > 0 ? '▲' : (summary.netChange < 0 ? '▼' : '●') }}
+        </div>
+        <div class="summary-info">
+          <div class="summary-value" [class.positive]="summary.netChange > 0" [class.negative]="summary.netChange < 0">
+            {{ summary.netChange | number }}
+          </div>
+          <div class="summary-label">Net Change</div>
+          <div class="summary-detail">Balance Status</div>
+        </div>
+        <div class="summary-trend">
+          <span class="trend-icon" *ngIf="getTrendPercentage() !== 0">
+            {{ getTrendPercentage() > 0 ? '📈' : '📉' }}
+          </span>
+          <span class="trend-value">{{ getTrendPercentage() > 0 ? '+' : '' }}{{ getTrendPercentage() }}%</span>
+        </div>
+      </div>
+      
+      <div class="summary-card">
+        <div class="summary-icon total-icon">🔄</div>
+        <div class="summary-info">
+          <div class="summary-value">{{ summary.totalMovements | number }}</div>
+          <div class="summary-label">Total Movements</div>
+          <div class="summary-detail">Transaction Count</div>
+        </div>
+        <div class="summary-trend">
+          <span class="trend-icon">⏱️</span>
+          <span class="trend-value">{{ getAverageMovementSize() | number }} avg</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-card">
+      <div class="filters-header">
+        <div class="filters-title">
+          <span class="filter-icon">🔍</span>
+          <h3>Filter Movements</h3>
+        </div>
+        <button class="reset-btn" (click)="resetFilters()">
+          <span>⟳</span>
+          <span>Reset</span>
+        </button>
+      </div>
+      
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label>Search</label>
+          <input type="text" [(ngModel)]="searchTerm" (input)="applyFilters()" 
+                 placeholder="Search by description or quantity..." class="filter-input">
+        </div>
+        
+        <div class="filter-group">
+          <label>Movement Type</label>
+          <select [(ngModel)]="selectedType" (change)="applyFilters()" class="filter-select">
+            <option value="all">All Movements</option>
+            <option value="IN">Stock In ▼</option>
+            <option value="OUT">Stock Out ▲</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label>From Date</label>
+          <input type="date" [(ngModel)]="dateRange.start" (change)="applyFilters()" class="filter-input">
+        </div>
+        
+        <div class="filter-group">
+          <label>To Date</label>
+          <input type="date" [(ngModel)]="dateRange.end" (change)="applyFilters()" class="filter-input">
+        </div>
+      </div>
+      
+      <div class="active-filters" *ngIf="searchTerm || selectedType !== 'all' || dateRange.start || dateRange.end">
+        <span class="filter-badge" *ngIf="selectedType !== 'all'">
+          Type: {{ selectedType }}
+          <button class="remove-filter" (click)="selectedType = 'all'; applyFilters()">×</button>
+        </span>
+        <span class="filter-badge" *ngIf="searchTerm">
+          Search: "{{ searchTerm }}"
+          <button class="remove-filter" (click)="searchTerm = ''; applyFilters()">×</button>
+        </span>
+        <!-- FIXED: Changed *ngif to *ngIf -->
+        <span class="filter-badge" *ngIf="dateRange.start">
+          From: {{ dateRange.start | date }}
+          <button class="remove-filter" (click)="dateRange.start = null; applyFilters()">×</button>
+        </span>
+        <span class="filter-badge" *ngIf="dateRange.end">
+          To: {{ dateRange.end | date }}
+          <button class="remove-filter" (click)="dateRange.end = null; applyFilters()">×</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- Chart Visualization -->
+    <div class="chart-card" *ngIf="history.length > 0">
+      <div class="chart-header">
+        <div class="chart-title">
+          <span class="chart-icon">📊</span>
+          <h3>Movement Trend Analysis</h3>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-item in-legend">Stock In</span>
+          <span class="legend-item out-legend">Stock Out</span>
+        </div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-bars">
+          <div *ngFor="let label of chartData.labels; let i = index" class="chart-column">
+            <div class="bar-group">
+              <div class="bar in-bar" [style.height.%]="(chartData.inValues[i] / getMaxValueForChart()) * 100">
+                <span class="bar-value" *ngIf="chartData.inValues[i] > 0">{{ chartData.inValues[i] }}</span>
+              </div>
+              <div class="bar out-bar" [style.height.%]="(chartData.outValues[i] / getMaxValueForChart()) * 100">
+                <span class="bar-value" *ngIf="chartData.outValues[i] > 0">{{ chartData.outValues[i] }}</span>
+              </div>
+            </div>
+            <div class="bar-label">{{ label | date:'dd MMM' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="history-card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-icon">📜</div>
+          <div>
+            <h3 class="card-title">Transaction History</h3>
+            <p class="card-subtitle">{{ filteredHistory.length }} movements found</p>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="export-btn" (click)="exportToCSV()" title="Export to CSV">
+            <span>📥</span>
+            <span>Export</span>
+          </button>
+          <button class="refresh-btn" (click)="loadHistory()" title="Refresh history">
+            <span>🔄</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div *ngIf="filteredHistory.length === 0" class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p class="empty-text">No movements found</p>
+          <p class="empty-hint">Try adjusting your filters or add new stock movements</p>
+        </div>
+
+        <div *ngIf="filteredHistory.length > 0" class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th class="sortable" (click)="sortBy('date')">
+                  Date & Time
+                  <span class="sort-icon">{{ getSortIcon('date') }}</span>
+                </th>
+                <th>Type</th>
+                <th class="sortable" (click)="sortBy('quantity')">
+                  Quantity
+                  <span class="sort-icon">{{ getSortIcon('quantity') }}</span>
+                </th>
+                <th>Description</th>
+                <th>Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let h of filteredHistory; let i = index" 
+                  class="history-row" 
+                  [class.row-in]="h.movementType === 'IN'" 
+                  [class.row-out]="h.movementType === 'OUT'">
+                <td class="date-cell">
+                  <div class="date-primary">{{ h.movementDate | date:'dd MMM yyyy' }}</div>
+                  <div class="date-secondary">{{ h.movementDate | date:'HH:mm:ss' }}</div>
+                </td>
+                <td class="type-cell">
+                  <span class="movement-badge" [class]="getBadgeClass(h.movementType)">
+                    <span class="badge-icon">{{ getBadgeIcon(h.movementType) }}</span>
+                    <span class="badge-text">{{ h.movementType }}</span>
+                  </span>
+                </td>
+                <td class="quantity-cell" [class.positive]="h.movementType === 'IN'" [class.negative]="h.movementType === 'OUT'">
+                  <span class="quantity-sign">{{ h.movementType === 'IN' ? '+' : '-' }}</span>
+                  {{ h.quantity | number }}
+                  <span class="quantity-unit">units</span>
+                </td>
+                <td class="description-cell">
+                  <div class="description-text">{{ h.description || 'No description provided' }}</div>
+                </td>
+                <td class="reference-cell">
+                  <span class="reference-id">#{{ h.id }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advanced Insights -->
+    <div class="insights-card" *ngIf="history.length > 0">
+      <div class="insights-header">
+        <div class="insights-icon">🎯</div>
+        <h4 class="insights-title">Advanced Analytics</h4>
+      </div>
+      <div class="insights-grid">
+        <div class="insight-item">
+          <div class="insight-icon-small">📅</div>
+          <div class="insight-content">
+            <div class="insight-label">Most Active Period</div>
+            <div class="insight-value">{{ getMostActivePeriod() || 'Not enough data' }}</div>
+          </div>
+        </div>
+        <div class="insight-item">
+          <div class="insight-icon-small">⚖️</div>
+          <div class="insight-content">
+            <div class="insight-label">Average Movement Size</div>
+            <div class="insight-value">{{ getAverageMovementSize() | number }} units</div>
+          </div>
+        </div>
+        <div class="insight-item">
+          <div class="insight-icon-small">⏰</div>
+          <div class="insight-content">
+            <div class="insight-label">Last Activity</div>
+            <div class="insight-value">{{ getLastMovementDateFormatted() || 'No activity' }}</div>
+          </div>
+        </div>
+        <div class="insight-item">
+          <div class="insight-icon-small">📊</div>
+          <div class="insight-content">
+            <div class="insight-label">Movement Frequency</div>
+            <div class="insight-value">{{ (summary.totalMovements / 30) | number:'1.0-1' }} per day</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

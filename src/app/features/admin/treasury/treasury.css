@@ -1,0 +1,4 @@
+/* Admin Treasury — basic styles */
+.stat-unit { font-size: 12px; font-weight: 400; color: var(--text3, #94a3b8); }
+.stat-change.up   { color: #059669; }
+.stat-change.down { color: #dc2626; }

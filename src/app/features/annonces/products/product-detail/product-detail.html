@@ -1,0 +1,62 @@
+<div class="page-wrapper">
+  <div class="pd-loading" *ngIf="loading">
+    <div class="spinner-lg"></div>
+    <p>Chargement du produit...</p>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && error">
+    <span class="empty-icon">⚠️</span>
+    <h3>{{ error }}</h3>
+    <a class="btn btn-primary" routerLink="/enterprise/annonces/products">Retour à la liste</a>
+  </div>
+
+  <div class="pd-page" *ngIf="!loading && product as p">
+    <a routerLink="/enterprise/annonces/products" class="btn btn-ghost btn-sm pd-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Retour à la liste
+    </a>
+
+    <div class="pd-layout">
+      <div class="pd-visual card">
+        <img *ngIf="p.image" [src]="p.image" [alt]="p.name" class="pd-img">
+        <div class="pd-visual-placeholder" *ngIf="!p.image">📦</div>
+      </div>
+
+      <div class="pd-main">
+        <div class="pd-header">
+          <div class="pd-badges">
+            <span class="pd-badge pd-badge-muted" *ngIf="p.category">{{ p.category }}</span>
+            <span class="pd-badge pd-badge-ok" *ngIf="p.recyclable">Recyclable</span>
+            <span class="pd-badge pd-badge-warn" *ngIf="!p.recyclable">Non recyclable</span>
+          </div>
+          <h1 class="pd-title">{{ p.name }}</h1>
+          <p class="pd-id">Réf. produit #{{ p.idProduct }}</p>
+        </div>
+
+        <div class="pd-section card" *ngIf="p.description">
+          <h2>Description</h2>
+          <p class="pd-desc">{{ p.description }}</p>
+        </div>
+
+        <div class="pd-info-grid">
+          <div class="pd-info card" *ngIf="p.materialType">
+            <span class="pd-info-label">Type de matériau</span>
+            <span class="pd-info-value">{{ p.materialType }}</span>
+          </div>
+          <div class="pd-info card" *ngIf="p.companyId !== null">
+            <span class="pd-info-label">Entreprise (ID)</span>
+            <span class="pd-info-value">{{ p.companyId }}</span>
+          </div>
+        </div>
+
+        <div class="pd-actions">
+          <a class="btn btn-primary" [routerLink]="['/enterprise/annonces/products', p.idProduct, 'edit']">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Modifier
+          </a>
+          <a class="btn btn-outline" routerLink="/enterprise/annonces/products">Voir tous les produits</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

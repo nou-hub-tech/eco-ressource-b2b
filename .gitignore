@@ -42,4 +42,15 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local spec / notes (not versioned)
+/FRONTEND-ANGULAR-SPEC-MODULE-ANNONCES.md
+/module-gestion-annonces-final.md
+/docx/
+/guide code/
+/docs/
+
+# Local runtime artifacts
+*.log
+*.lnk
 .env

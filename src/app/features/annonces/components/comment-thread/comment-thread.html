@@ -1,0 +1,96 @@
+<div class="ct-section">
+  <h3 class="ct-heading">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    Commentaires
+    <span class="ct-count">{{ totalCommentCount }}</span>
+  </h3>
+
+  <!-- Loading -->
+  <div class="ct-loading" *ngIf="loading">
+    <div class="spinner"></div>
+    <span>Chargement des commentaires...</span>
+  </div>
+
+  <!-- Empty -->
+  <div class="ct-empty" *ngIf="!loading && comments.length === 0">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    <p>Aucun commentaire. Soyez le premier à commenter !</p>
+  </div>
+
+  <!-- Comments tree -->
+  <div class="ct-list" *ngIf="!loading">
+    <ng-container *ngFor="let c of comments">
+      <ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: c, depth: 0 }"></ng-container>
+    </ng-container>
+  </div>
+
+  <!-- Form -->
+  <div class="ct-form">
+    <div class="ct-reply-bar" *ngIf="replyTo">
+      <span>Réponse à <strong>{{replyTo.userFullName}}</strong></span>
+      <button class="btn btn-ghost btn-sm" (click)="cancelReply()">✕ Annuler</button>
+    </div>
+    <div class="ct-edit-bar" *ngIf="editingComment">
+      <span>Modification du commentaire</span>
+      <button class="btn btn-ghost btn-sm" (click)="cancelReply()">✕ Annuler</button>
+    </div>
+    <div class="form-error" *ngIf="editContentError">{{ editContentError }}</div>
+    <div class="ct-input-row">
+      <textarea [formControl]="commentCtrl" placeholder="Écrire un commentaire..." rows="2" class="ct-textarea"></textarea>
+      <button class="btn btn-primary ct-send"
+              [disabled]="commentCtrl.invalid || antiSpam || sending || !commentCtrl.value?.trim()"
+              (click)="submit()">
+        <svg *ngIf="!sending" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <span *ngIf="sending" class="spinner-sm"></span>
+        {{editingComment ? 'Modifier' : 'Envoyer'}}
+      </button>
+    </div>
+    <div class="ct-spam-msg" *ngIf="antiSpam">Veuillez patienter 3 secondes...</div>
+    <div class="form-error" *ngIf="commentCtrl.hasError('maxlength')">Maximum 2000 caractères</div>
+  </div>
+</div>
+
+<!-- Recursive comment template -->
+<ng-template #commentTpl let-c let-depth="depth">
+  <div class="ct-item"
+       [style.marginLeft.px]="depth * 24"
+       [class.ct-reply]="depth > 0"
+       [class.ct-masked]="c.moderationStatus === 'MASKED'"
+       [class.ct-blocked]="c.moderationStatus === 'BLOCKED'">
+    <div class="ct-avatar">{{c.userFullName?.charAt(0) || '?'}}</div>
+    <div class="ct-content">
+      <div class="ct-header">
+        <span class="ct-author">{{c.userFullName}}</span>
+        <span class="ct-date">{{timeAgo(c.createdAt)}}</span>
+        <span class="ct-mod-badge ct-mod-masked" *ngIf="c.moderationStatus === 'MASKED'">
+          Masque
+        </span>
+        <span class="ct-mod-badge ct-mod-blocked" *ngIf="c.moderationStatus === 'BLOCKED'">
+          Modere
+        </span>
+      </div>
+      <p class="ct-text"
+         [class.ct-click-edit]="c.moderationStatus === 'MASKED' && canEdit(c)"
+         (click)="maybeEditMasked(c)">
+        {{c.content}}
+      </p>
+      <div class="ct-mod-meta" *ngIf="c.moderationStatus && c.moderationStatus !== 'VISIBLE'">
+        <span *ngIf="c.toxicityScore !== undefined">Score {{ c.toxicityScore | number:'1.2-2' }}</span>
+        <span *ngIf="c.moderationReason">{{ c.moderationReason }}</span>
+      </div>
+      <div class="ct-actions">
+        <button class="btn btn-ghost btn-sm" *ngIf="canReply(c)" (click)="startReply(c)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>
+          Répondre
+        </button>
+        <button class="btn btn-ghost btn-sm" *ngIf="canEdit(c)" (click)="startEdit(c)">Modifier</button>
+        <button class="btn btn-ghost btn-sm ct-delete" *ngIf="canDelete(c)" (click)="deleteComment(c.id)">Supprimer</button>
+      </div>
+    </div>
+  </div>
+  <ng-container *ngIf="c.replies?.length && depth < 3">
+    <ng-container *ngFor="let r of c.replies">
+      <ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: r, depth: depth + 1 }"></ng-container>
+    </ng-container>
+  </ng-container>
+</ng-template>

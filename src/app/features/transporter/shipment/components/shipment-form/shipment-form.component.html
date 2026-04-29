@@ -1,0 +1,112 @@
+<div class="page-wrapper">
+    <div class="tx-form-shell">
+        <div class="card">
+            <div class="card-header">
+                <h3>
+                    <i class="bi" [class.bi-pencil-square]="isEditMode" [class.bi-plus-circle]="!isEditMode"></i>
+                    {{ isEditMode ? 'Modifier' : 'Nouvelle' }} Shipment
+                </h3>
+            </div>
+            <div class="card-body">
+                <!-- Message d'erreur -->
+                <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show">
+                    <i class="bi bi-exclamation-triangle"></i> {{ errorMessage }}
+                    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+                </div>
+
+                <!-- Indicateur de chargement -->
+                <div *ngIf="isLoading" class="empty-state">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2" style="color:var(--text3)">Processing in progress…</p>
+                </div>
+
+                <!-- Formulaire -->
+                <form [formGroup]="shipmentForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
+                    <!-- Commande associée - CORRIGÉ -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Associated order *</label>
+                        <select class="form-select" formControlName="deliveryOrderId"
+                            [class.is-invalid]="deliveryOrderId?.invalid && deliveryOrderId?.touched">
+                            <option [ngValue]="null" disabled>Select an order</option>
+                            <option *ngFor="let order of deliveryOrders" [ngValue]="order.idDelivery">
+                                #{{ order.idDelivery }} - {{ order.nomClient }}
+                            </option>
+                        </select>
+                        <div class="invalid-feedback" *ngIf="deliveryOrderId?.invalid && deliveryOrderId?.touched">
+                            The order is required
+                        </div>
+                        <small class="text-muted" *ngIf="deliveryOrders.length === 0">
+                            <i class="bi bi-info-circle"></i> No orders available. Please create an order first.
+                        </small>
+                    </div>
+
+                    <!-- Produit ID -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Product ID *</label>
+                        <input type="number" class="form-control" formControlName="produitId"
+                            [class.is-invalid]="produitId?.invalid && produitId?.touched" placeholder="ex: 101">
+                        <div class="invalid-feedback">
+                            <div *ngIf="produitId?.errors?.['required']">ID produit requis</div>
+                            <div *ngIf="produitId?.errors?.['min']">ID must be positive</div>
+                        </div>
+                    </div>
+
+                    <!-- Quantité -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Quantity *</label>
+                        <input type="number" step="0.01" class="form-control" formControlName="quantite"
+                            [class.is-invalid]="quantite?.invalid && quantite?.touched" placeholder="ex: 15.5">
+                        <div class="invalid-feedback">
+                            <div *ngIf="quantite?.errors?.['required']">Quantity required</div>
+                            <div *ngIf="quantite?.errors?.['min']">Minimum quantity: 0.1</div>
+                        </div>
+                    </div>
+
+                    <!-- Transporteur ID -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Carrier ID *</label>
+                        <input type="number" class="form-control" formControlName="idTransporter"
+                            [class.is-invalid]="idTransporter?.invalid && idTransporter?.touched"
+                            placeholder="ex: 1001">
+                        <div class="invalid-feedback">
+                            <div *ngIf="idTransporter?.errors?.['required']">Carrier ID required</div>
+                            <div *ngIf="idTransporter?.errors?.['min']">ID must be positive</div>
+                        </div>
+                    </div>
+
+                    <!-- Date départ -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Departure Date *</label>
+                        <input type="datetime-local" class="form-control" formControlName="dateDepart" [min]="today"
+                            [class.is-invalid]="dateDepart?.invalid && dateDepart?.touched">
+                        <div class="invalid-feedback">
+                            <div *ngIf="dateDepart?.errors?.['required']">Date required</div>
+                            <div *ngIf="dateDepart?.errors?.['invalidDate']">Invalid format</div>
+                        </div>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar-event"></i> Use the calendar to select a date
+                        </small>
+                    </div>
+
+                    <!-- Statut -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Statut</label>
+                        <select class="form-select" formControlName="statut">
+                            <option *ngFor="let statut of statuts" [value]="statut">{{ statut }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Boutons -->
+                    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px">
+                        <button type="button" class="btn btn-outline" (click)="onCancel()">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" [disabled]="shipmentForm.invalid">
+                            <i class="bi bi-check-circle"></i> {{ isEditMode ? 'Modifier' : 'Créer' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

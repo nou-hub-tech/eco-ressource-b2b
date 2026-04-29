@@ -1,7 +1,7 @@
-import { Component, OnInit, Renderer2 } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, Renderer2 } from '@angular/core';
 import { AuthService, User } from '../../../core/services/auth';
 import { Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import { filter } from 'rxjs';
 import { ThemeService } from '../../../core/services/theme';
 
 @Component({
@@ -44,7 +44,8 @@ export class Layout implements OnInit {
     private authService: AuthService,
     private router: Router,
     private renderer: Renderer2,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private cd: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -61,6 +62,7 @@ export class Layout implements OnInit {
         this.pageTitle = this.titleMap[last] || '';
         /* Auto-collapse sidebar on navigation (mobile-friendly) */
         this.sidebarCollapsed = true;
+        this.cd.detectChanges();
       });
   }
 
@@ -72,5 +74,6 @@ export class Layout implements OnInit {
 
   toggleSidebar(): void {
     this.sidebarCollapsed = !this.sidebarCollapsed;
+    this.cd.detectChanges();
   }
 }

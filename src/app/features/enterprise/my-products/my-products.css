@@ -1,0 +1,201 @@
+.stock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 4px 0 24px;
+}
+
+.stock-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.stock-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.stock-card-bar { height: 4px; width: 100%; }
+
+.stock-card-img { overflow: hidden; max-height: 140px; }
+
+.stock-card-img-placeholder {
+  height: 80px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.stock-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stock-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stock-product-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.stock-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.stock-stat { display: flex; flex-direction: column; gap: 3px; }
+
+.stock-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text3);
+  font-weight: 600;
+}
+
+.stock-stat-value { font-size: 13px; font-weight: 700; color: var(--text); }
+
+.stock-details { font-size: 12px; color: var(--text2); }
+
+.stock-card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.stock-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.stock-btn:hover { opacity: 0.8; }
+
+.stock-btn-edit { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.stock-btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* Upload styles */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.upload-zone:hover {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  color: var(--text2);
+  font-size: 13px;
+  text-align: center;
+}
+
+.upload-preview { position: relative; }
+
+.upload-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.upload-remove:hover { background: #dc2626; }
+
+/* ── Validation styles ─────────────────────────── */
+.required { color: #ef4444; margin-left: 2px; }
+
+.has-error label { color: #ef4444; }
+
+.input-error {
+  border-color: #ef4444 !important;
+  background: rgba(239,68,68,0.04) !important;
+}
+.input-error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important; }
+
+.error-msg {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: fadeInErr 0.2s ease;
+}
+
+.field-hint {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text3, #9ca3af);
+  text-align: right;
+}
+
+.validation-summary {
+  margin: 8px 0 4px;
+  padding: 10px 14px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+@keyframes fadeInErr {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* ─────────────────────────────────────────────── */

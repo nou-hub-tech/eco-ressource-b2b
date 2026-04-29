@@ -1,0 +1,25 @@
+<div class="lang-switcher-container">
+  <button class="lang-trigger" (click)="toggleDropdown($event)">
+    <span class="lang-flag">{{ currentFlag }}</span>
+    <span class="lang-code">{{ currentLangCode }}</span>
+    <span class="lang-chevron" [class.rotated]="isOpen">▼</span>
+  </button>
+  
+  <div class="lang-dropdown-modern" *ngIf="isOpen">
+    <div class="lang-dropdown-header">
+      <span>🌐 Select Language</span>
+    </div>
+    <div class="lang-dropdown-items">
+      <button 
+        *ngFor="let lang of languages" 
+        class="lang-option-modern" 
+        [class.active]="lang.code === selectedLang"
+        (click)="changeLanguage(lang.code)">
+        <span class="lang-option-flag">{{ lang.flag }}</span>
+        <span class="lang-option-name">{{ lang.name }}</span>
+        <span class="lang-option-code">{{ lang.shortCode }}</span>
+        <span class="check-mark" *ngIf="lang.code === selectedLang">✓</span>
+      </button>
+    </div>
+  </div>
+</div>

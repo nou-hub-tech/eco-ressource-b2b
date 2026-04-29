@@ -1,0 +1,14 @@
+.fl-page{max-width:720px;margin:0 auto}
+.fl-loading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:80px 24px;color:var(--text3)}
+.fl-list{display:flex;flex-direction:column;gap:8px}
+.fl-item{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--card);border-radius:14px;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.fl-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-1px)}
+.fl-icon{font-size:18px;color:#ef4444}
+.fl-info{flex:1;min-width:0}
+.fl-title{font-size:14px;font-weight:600;color:var(--text);text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-title:hover{color:var(--primary)}
+.fl-id{font-size:11px;color:var(--muted);margin-top:2px;display:block}
+.fl-remove{color:var(--text3)!important;flex-shrink:0;opacity:.6;transition:opacity .15s}
+.fl-remove:hover{opacity:1;color:var(--danger,#ef4444)!important}
+.spinner-lg{width:32px;height:32px;border:2.5px solid var(--bg3,#f1f5f9);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}

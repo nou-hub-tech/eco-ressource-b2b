@@ -1,0 +1,466 @@
+/* ==================== MODAL OVERLAY ==================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* ==================== MODAL CONTENT ==================== */
+.modal-content {
+    background: linear-gradient(135deg, #faf8f5 0%, #f5f0e8 100%);
+    border-radius: 24px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== MODAL HEADER ==================== */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #d4a574 0%, #c49a6c 100%);
+    border-radius: 24px 24px 0 0;
+    color: white;
+}
+
+.modal-header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-header-info i {
+    font-size: 28px;
+}
+
+.modal-header-info h4 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.modal-subtitle {
+    margin: 4px 0 0;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.btn-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.btn-close i {
+    color: white;
+    font-size: 16px;
+}
+
+/* ==================== MODAL BODY ==================== */
+.modal-body {
+    padding: 24px;
+}
+
+/* ==================== ORDER INFO CARD ==================== */
+.order-info-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e9ecef;
+}
+
+.info-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+    font-weight: 600;
+    color: #8B7355;
+}
+
+.info-header i {
+    color: #d4a574;
+    font-size: 18px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-item label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #6c757d;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #212529;
+}
+
+/* ==================== QR CODE SECTION ==================== */
+.qr-section-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.qr-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-weight: 500;
+    color: #8B7355;
+}
+
+.qr-header i {
+    color: #d4a574;
+    font-size: 18px;
+}
+
+.qr-code-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.qr-code-wrapper {
+    background: white;
+    padding: 12px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.qr-code-wrapper img {
+    display: block;
+    width: 180px;
+    height: 180px;
+}
+
+/* ==================== QR ACTIONS ==================== */
+.qr-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btn-download {
+    background: #f8f9fa;
+    color: #d4a574;
+    border: 1px solid #dee2e6;
+}
+
+.btn-download:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.btn-print {
+    background: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.btn-print:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+/* ==================== DIVIDER ==================== */
+.divider-custom {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+}
+
+.divider-custom::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #dee2e6, #dee2e6, transparent);
+}
+
+.divider-custom span {
+    background: #f5f0e8;
+    padding: 0 12px;
+    position: relative;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* ==================== CONFIRM BUTTON ==================== */
+.confirm-section {
+    margin-bottom: 20px;
+}
+
+.btn-confirm {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #d4a574 0%, #c49a6c 100%);
+    color: white;
+    border: none;
+    border-radius: 40px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-confirm:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(212, 165, 116, 0.3);
+}
+
+.btn-confirm:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-confirm i:first-child {
+    font-size: 18px;
+}
+
+.btn-confirm i:last-child {
+    font-size: 18px;
+    transition: transform 0.2s;
+}
+
+.btn-confirm:hover:not(:disabled) i:last-child {
+    transform: translateX(4px);
+}
+
+/* ==================== LINK SECTION ==================== */
+.link-section-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 16px;
+}
+
+.link-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.link-header i {
+    font-size: 14px;
+}
+
+.link-content {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.link-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 11px;
+    background: white;
+    color: #495057;
+    font-family: monospace;
+}
+
+.link-input:focus {
+    outline: none;
+    border-color: #d4a574;
+}
+
+.btn-copy {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-copy:hover {
+    background: #e9ecef;
+    border-color: #d4a574;
+}
+
+.btn-copy i {
+    font-size: 16px;
+    color: #d4a574;
+}
+
+/* ==================== ERROR ALERT ==================== */
+.alert-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 12px;
+    color: #721c24;
+    margin-top: 16px;
+    font-size: 13px;
+}
+
+.alert-error i {
+    font-size: 18px;
+}
+
+/* ==================== MODAL FOOTER ==================== */
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: transparent;
+    border: none;
+    color: #8B7355;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 40px;
+}
+
+.btn-footer:hover {
+    background: #f8f9fa;
+    color: #d4a574;
+}
+
+.btn-footer i {
+    font-size: 16px;
+}
+
+/* ==================== STATUS BADGES ==================== */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 40px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.bg-warning {
+    background: #ffc107;
+    color: #000;
+}
+
+.bg-info {
+    background: #0dcaf0;
+    color: #000;
+}
+
+.bg-success {
+    background: #198754;
+    color: #fff;
+}
+
+.bg-secondary {
+    background: #6c757d;
+    color: #fff;
+}
+
+/* ==================== SCROLLBAR ==================== */
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #d4a574;
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #c49a6c;
+}

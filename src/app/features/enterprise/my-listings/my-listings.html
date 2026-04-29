@@ -1,53 +1,172 @@
-<div class="page-wrapper">
-  <div class="page-header-row">
-    <div class="page-header" style="margin:0"><h1>My Listings</h1><p>Manage your posted surplus and materials</p></div>
-    <button class="btn btn-primary" (click)="openModal()">+ New Listing</button>
+
+<div class="ml-page">
+
+  <!-- Header -->
+  <div class="ml-header-row">
+    <div class="ml-header">
+      <h1>My Listings</h1>
+      <p>Manage your posted surplus materials and products</p>
+    </div>
+    <button class="ml-btn ml-btn-primary" (click)="openCreate()">+ New Listing</button>
   </div>
-  <div class="grid-2" style="margin-bottom:20px">
-    <div class="card" *ngFor="let l of listings" style="padding:18px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">{{l.title}}</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <span class="badge badge-neutral">{{l.category}}</span>
-            <span style="font-size:11px;color:var(--text3)">Posted {{l.posted}}</span>
+
+  <!-- Stats bar -->
+  <div class="ml-stats" *ngIf="!loading && !error">
+    <div class="ml-stat">
+      <span class="ml-stat-val">{{ listings.length }}</span>
+      <span class="ml-stat-lbl">Total Listings</span>
+    </div>
+    <div class="ml-stat ml-stat-success">
+      <span class="ml-stat-val">{{ activeCount }}</span>
+      <span class="ml-stat-lbl">Active</span>
+    </div>
+    <div class="ml-stat">
+      <span class="ml-stat-val">{{ totalViews }}</span>
+      <span class="ml-stat-lbl">Total Views</span>
+    </div>
+    <div class="ml-stat ml-stat-primary">
+      <span class="ml-stat-val">{{ totalEnquiries }}</span>
+      <span class="ml-stat-lbl">Enquiries</span>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="ml-loading" *ngIf="loading">
+    <div class="ml-spinner"></div>
+    <span>Loading your listings...</span>
+  </div>
+
+  <!-- Error -->
+  <div class="ml-alert-error" *ngIf="error && !loading">
+    ⚠️ {{ error }}
+    <button class="ml-btn ml-btn-sm ml-btn-outline" (click)="load()">Retry</button>
+  </div>
+
+  <!-- Empty -->
+  <div class="ml-empty" *ngIf="!loading && !error && listings.length === 0">
+    <span class="ml-empty-icon">📋</span>
+    <h3>No listings yet</h3>
+    <p>Post your surplus materials so other enterprises can find and buy them.</p>
+    <button class="ml-btn ml-btn-primary" (click)="openCreate()">Post First Listing</button>
+  </div>
+
+  <!-- Delete confirm banner -->
+  <div class="ml-delete-confirm" *ngIf="deleteConfirmId">
+    <span>⚠️ Are you sure you want to delete this listing? This cannot be undone.</span>
+    <div class="ml-delete-actions">
+      <button class="ml-btn ml-btn-sm ml-btn-outline" (click)="cancelDelete()">Cancel</button>
+      <button class="ml-btn ml-btn-sm ml-btn-danger" (click)="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
+
+  <!-- Listings grid -->
+  <div class="ml-grid" *ngIf="!loading && !error && listings.length > 0">
+    <div class="ml-card" *ngFor="let l of listings" [class.ml-card-deleting]="deletingId === l.id">
+
+      <!-- Top row -->
+      <div class="ml-card-top">
+        <div class="ml-card-title-block">
+          <div class="ml-card-title">{{ l.title }}</div>
+          <div class="ml-card-meta">
+            <span class="ml-cat-chip">{{ l.category }}</span>
+            <span class="ml-posted">{{ formatDate(l.posted) }}</span>
           </div>
         </div>
-        <span class="badge" [ngClass]="l.status==='active'?'badge-success':l.status==='pending'?'badge-warning':l.status==='draft'?'badge-neutral':'badge-danger'">{{l.status}}</span>
+        <span class="ml-badge" [ngClass]="statusClass(l.status)">{{ l.status.toUpperCase() || 'DRAFT' }}</span>
       </div>
-      <div style="display:flex;gap:20px;margin-bottom:14px">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--primary)">{{l.price}} <span style="font-size:12px;font-weight:500;opacity:.6">TND</span></div>
-          <div style="font-size:11px;color:var(--text3)">{{l.qty}}</div>
+
+      <!-- Stats row -->
+      <div class="ml-card-stats">
+        <div class="ml-stat-block">
+          <div class="ml-price">{{ l.price }} <span class="ml-price-unit">TND</span></div>
+          <div class="ml-qty">{{ l.qty || '—' }}</div>
         </div>
-        <div style="margin-left:auto;text-align:right">
-          <div style="font-size:12px;color:var(--text3)">👁 {{l.views}} views</div>
-          <div style="font-size:12px;color:var(--text2);font-weight:600;margin-top:2px">💬 {{l.enquiries}} enquiries</div>
+        <div class="ml-engagement">
+          <span class="ml-views">👁 {{ l.views || 0 }} views</span>
+          <span class="ml-enq">💬 {{ l.enquiries || 0 }} enquiries</span>
         </div>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-outline btn-sm">Edit</button>
-        <button class="btn btn-primary btn-sm" *ngIf="l.status==='draft'">Publish</button>
-        <button class="btn btn-danger btn-sm">Delete</button>
+
+      <!-- AI insight -->
+      <div class="ml-ai-insight" *ngIf="l.ai">
+        <span class="ml-ai-icon">🤖</span>
+        <span class="ml-ai-text">{{ l.ai }}</span>
       </div>
+
+      <!-- Actions -->
+      <div class="ml-card-actions">
+        <button class="ml-btn ml-btn-sm ml-btn-outline" (click)="openEdit(l)">✏️ Edit</button>
+        <button class="ml-btn ml-btn-sm ml-btn-primary" *ngIf="(l.status || '').toUpperCase() === 'DRAFT'" (click)="publish(l)">
+          🚀 Publish
+        </button>
+        <button class="ml-btn ml-btn-sm ml-btn-danger ml-btn-ghost" (click)="askDelete(l.id)"
+          [disabled]="deletingId === l.id">
+          {{ deletingId === l.id ? '...' : '🗑 Delete' }}
+        </button>
+
+
+
+
+<!-- ══ CREATE / EDIT MODAL ══ -->
+<div class="ml-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="ml-modal" (click)="$event.stopPropagation()">
+
+    <div class="ml-modal-header">
+      <h2>{{ modalMode === 'create' ? '+ New Listing' : '✏️ Edit Listing' }}</h2>
+      <button class="ml-modal-close" (click)="closeModal()">✕</button>
     </div>
-  </div>
-</div>
-<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-header"><h2>New Listing</h2><button class="btn btn-icon" (click)="closeModal()">✕</button></div>
-    <div class="form-row">
-      <div class="form-group"><label>Title</label><input type="text" placeholder="e.g. Aluminum Scrap 2T"></div>
-      <div class="form-group"><label>Category</label><select><option>Metal</option><option>Plastic</option><option>Paper</option><option>Glass</option><option>Textile</option></select></div>
+
+    <div class="ml-modal-body">
+      <div class="ml-form-row">
+        <div class="ml-form-group">
+          <label>Title <span class="ml-req">*</span></label>
+          <input type="text" class="ml-input" [(ngModel)]="form.title"
+            placeholder="e.g. Aluminum Scrap 2T" />
+        </div>
+        <div class="ml-form-group">
+          <label>Category <span class="ml-req">*</span></label>
+          <select class="ml-input" [(ngModel)]="form.category">
+            <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ml-form-row">
+        <div class="ml-form-group">
+          <label>Price (TND) <span class="ml-req">*</span></label>
+          <input type="number" class="ml-input" [(ngModel)]="form.price" placeholder="0" min="0" />
+        </div>
+        <div class="ml-form-group">
+          <label>Quantity <span class="ml-req">*</span></label>
+          <input type="text" class="ml-input" [(ngModel)]="form.quantityLabel"
+            placeholder="e.g. 2,000 kg" />
+        </div>
+      </div>
+
+      <div class="ml-form-row">
+        <div class="ml-form-group">
+          <label>Status</label>
+          <select class="ml-input" [(ngModel)]="form.status">
+            <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+        <div class="ml-form-group">
+          <label>AI Insight <em>(optional)</em></label>
+          <input type="text" class="ml-input" [(ngModel)]="form.aiInsight"
+            placeholder="Optional note or AI recommendation" />
+        </div>
+      </div>
+
+      <div class="ml-alert-error" *ngIf="saveError">⚠️ {{ saveError }}</div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Price (TND)</label><input type="number" placeholder="0"></div>
-      <div class="form-group"><label>Quantity (kg)</label><input type="number" placeholder="0"></div>
-    </div>
-    <div class="form-group"><label>Description</label><textarea placeholder="Describe your surplus material..."></textarea></div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" (click)="closeModal()">Save Draft</button>
-      <button class="btn btn-primary" (click)="closeModal()">Publish Now</button>
+
+    <div class="ml-modal-footer">
+      <button class="ml-btn ml-btn-outline" (click)="closeModal()" [disabled]="saving">Cancel</button>
+      <button class="ml-btn ml-btn-primary" (click)="save()" [disabled]="saving">
+        <span *ngIf="saving" class="ml-spinner-sm"></span>
+        {{ saving ? 'Saving...' : (modalMode === 'create' ? 'Create Listing' : 'Save Changes') }}
+      </button>
+
     </div>
   </div>
 </div>

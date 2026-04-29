@@ -1,0 +1,221 @@
+<div class="page-wrapper">
+  <div class="page-header-row">
+    <div class="page-header" style="margin:0">
+      <h1><i class="bi bi-truck"></i> Shipments</h1>
+      <p>Tracking of order-related shipments</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="button" class="btn btn-outline" (click)="toggleStats()">
+        <i class="bi bi-graph-up"></i> Statistics
+      </button>
+      <button type="button" class="btn btn-danger" (click)="generateAllPDFs()" *ngIf="filteredShipments.length > 0"
+        title="Exporter toutes les expéditions filtrées">
+        <i class="bi bi-file-pdf"></i> Export all
+      </button>
+      <!-- BOUTON "NOUVELLE EXPÉDITION" SUPPRIMÉ -->
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header"
+      style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <h3><i class="bi bi-search"></i> Search</h3>
+      <span *ngIf="rechercheActive" class="badge badge-info">Active search</span>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="searchForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product (ID)</label>
+            <input type="number" formControlName="produitId" placeholder="ex. 101">
+          </div>
+          <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" formControlName="quantite" placeholder="ex. 15.5">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Statut</label>
+            <select formControlName="statut">
+              <option value="">All</option>
+              <option *ngFor="let statut of statuts" [value]="statut">{{ statut }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Departure date</label>
+            <input type="date" formControlName="dateDepart">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button type="button" class="btn btn-outline" (click)="resetFilters()">
+            <i class="bi bi-eraser"></i> Reset
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div *ngIf="rechercheActive && isLoading" class="alert alert-success" style="border-color:rgba(52,211,153,.3)">
+    <i class="bi bi-search"></i> Search in progress…
+  </div>
+
+  <div *ngIf="showStats && statistiques" class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <h3><i class="bi bi-graph-up"></i> Statistics</h3>
+    </div>
+    <div class="card-body">
+      <div class="stats-grid">
+        <div class="stat-card text-center">
+          <div class="stat-value">{{ statistiques.total || 0 }}</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--warning)">{{ statistiques.parStatut?.EN_ATTENTE || 0 }}</div>
+          <div class="stat-label">Pending</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-warning" [style.width]="getProgressWidth('EN_ATTENTE')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_EN_ATTENTE | number:'1.0-0' }}%</small>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--info)">{{ statistiques.parStatut?.EN_COURS || 0 }}</div>
+          <div class="stat-label">In progress</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-info" [style.width]="getProgressWidth('EN_COURS')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_EN_COURS | number:'1.0-0' }}%</small>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" style="color:var(--success)">{{ statistiques.parStatut?.LIVREE || 0 }}</div>
+          <div class="stat-label">Delivered</div>
+          <div class="progress mt-1">
+            <div class="progress-bar bg-success" [style.width]="getProgressWidth('LIVREE')"></div>
+          </div>
+          <small style="color:var(--text3)">{{ statistiques.pourcentage_LIVREE | number:'1.0-0' }}%</small>
+        </div>
+      </div>
+      <p *ngIf="statistiques.quantiteTotale" class="text-center"
+        style="margin-top:14px;color:var(--text2);font-size:14px">
+        Total quantity transported : <strong style="color:var(--accent)">{{ statistiques.quantiteTotale | number:'1.0-2'
+          }}</strong>
+      </p>
+    </div>
+  </div>
+
+  <div class="tx-sort-row">
+    <div class="tx-sort-group">
+      <button type="button" class="tx-sort-btn" [class.active]="sortBy === 'date'" (click)="sortByField('date')">
+        <i class="bi bi-calendar"></i> Departure date
+        <i *ngIf="sortBy === 'date'" [class]="sortOrder === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+      </button>
+      <button type="button" class="tx-sort-btn" [class.active]="sortBy === 'quantite'"
+        (click)="sortByField('quantite')">
+        <i class="bi bi-bar-chart"></i> Quantity
+        <i *ngIf="sortBy === 'quantite'" [class]="sortOrder === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"></i>
+      </button>
+    </div>
+    <span style="font-size:12px;color:var(--text3)">{{ filteredShipments.length }} Shipment(S)</span>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+
+  <div *ngIf="isLoading && !rechercheActive" class="empty-state">
+    <div class="spinner-border" role="status"></div>
+    <p class="mt-2" style="color:var(--text3)">Loading shipments…</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="card" style="padding:0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Transport</th>
+            <th>Departure</th>
+            <th>Statut</th>
+            <th style="width:80px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let shipment of paginatedShipments">
+            <td><code style="font-size:11px;color:var(--text3)">{{ shipment.id }}</code></td>
+            <td>#{{ shipment.deliveryOrder.idDelivery }}</td>
+            <td style="font-size:12px;color:var(--text2)">{{ getClientName(shipment.deliveryOrder.idDelivery) }}</td>
+            <td>{{ shipment.produitId }}</td>
+            <td>{{ shipment.quantite }}</td>
+            <td>{{ shipment.idTransporter }}</td>
+            <td style="font-size:12px;color:var(--text3)">{{ shipment.dateDepart | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><span [class]="getStatutClass(shipment.statut)">{{ shipment.statut }}</span></td>
+            <td>
+              <div class="btn-group" role="group" style="display: flex; gap: 5px;">
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Voir détails"
+                  (click)="onViewDetail(shipment.id)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <!-- BOUTON MODIFIER (EDIT) SUPPRIMÉ -->
+                <!-- BOUTON SUPPRIMER (DELETE) SUPPRIMÉ -->
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Générer PDF"
+                  (click)="onGeneratePDF(shipment.id)">
+                  <i class="bi bi-file-pdf"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredShipments.length === 0">
+            <td colspan="9" class="text-center" style="padding:32px;color:var(--text3)">
+              <i class="bi bi-inbox" style="font-size:2rem;opacity:.4;display:block;margin-bottom:8px"></i>
+              No delivery
+              <!-- BOUTON CRÉER SUPPRIMÉ -->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========== PAGINATION ========== -->
+  <div *ngIf="!isLoading && filteredShipments.length > 0" class="pagination-container">
+    <div class="pagination-info">
+      <span>
+        Displaying {{ getStartIndex() }} to {{ getEndIndex() }} of {{ totalItems }} shipment(s)
+      </span>
+    </div>
+
+    <div class="pagination-controls">
+      <!-- Bouton Première page -->
+      <button class="pagination-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="Première page">
+        <i class="bi bi-chevron-bar-left"></i>
+      </button>
+
+      <!-- Bouton Page précédente -->
+      <button class="pagination-btn" (click)="previousPage()" [disabled]="currentPage === 1" title="Page précédente">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+
+      <!-- Numéros de pages -->
+      <div class="page-numbers">
+        <button *ngFor="let page of getPageNumbers()" class="page-number" [class.active]="currentPage === page"
+          (click)="goToPage(page)">
+          {{ page }}
+        </button>
+      </div>
+
+      <!-- Bouton Page suivante -->
+      <button class="pagination-btn" (click)="nextPage()" [disabled]="currentPage === getTotalPages()"
+        title="Page suivante">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
+      <!-- Bouton Dernière page -->
+      <button class="pagination-btn" (click)="goToPage(getTotalPages())" [disabled]="currentPage === getTotalPages()"
+        title="Dernière page">
+        <i class="bi bi-chevron-bar-right"></i>
+      </button>
+    </div>
+  </div>
+</div>

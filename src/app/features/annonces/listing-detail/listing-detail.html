@@ -1,0 +1,213 @@
+<div class="page-wrapper">
+  <!-- Premier chargement ou changement d’annonce uniquement (évite de démonter tout le bloc et le fil). -->
+  <div class="ld-loading" *ngIf="loading && !listing">
+    <div class="spinner-lg"></div>
+    <p>Chargement de l'annonce...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="empty-state" *ngIf="!loading && error && !listing">
+    <span class="empty-icon">⚠️</span>
+    <h3>{{error}}</h3>
+    <a class="btn btn-primary" routerLink="/enterprise/annonces">Retour aux annonces</a>
+  </div>
+
+  <div class="ld-page" *ngIf="listing">
+    <a [routerLink]="listBackRoute" class="btn btn-ghost btn-sm ld-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Retour
+    </a>
+
+    <div class="rt-notices" *ngIf="realtimeNotices.length">
+      <button type="button" *ngFor="let notice of realtimeNotices; let i = index" (click)="dismissNotice(i)">
+        {{ notice }}
+      </button>
+    </div>
+
+    <div class="ld-grid">
+      <!-- Left column: main content -->
+      <div class="ld-main">
+        <!-- Galerie type marketplace : grande photo + ruban de vignettes -->
+        <div class="ld-gallery">
+          <div class="ld-gallery-main">
+            <img [src]="displayGalleryUrls[currentImageIndex]" [alt]="listing.title">
+            <button type="button" class="ld-gallery-nav ld-nav-prev" *ngIf="displayGalleryUrls.length > 1" (click)="prevImage()" aria-label="Photo précédente">‹</button>
+            <button type="button" class="ld-gallery-nav ld-nav-next" *ngIf="displayGalleryUrls.length > 1" (click)="nextImage()" aria-label="Photo suivante">›</button>
+            <div class="ld-gallery-counter" *ngIf="displayGalleryUrls.length > 1">
+              {{ currentImageIndex + 1 }} / {{ displayGalleryUrls.length }}
+            </div>
+          </div>
+          <div class="ld-gallery-strip" *ngIf="displayGalleryUrls.length > 1">
+            <button type="button" class="ld-gallery-thumb" *ngFor="let url of displayGalleryUrls; let i = index"
+                    [class.active]="i === currentImageIndex"
+                    (click)="selectGalleryImage(i)">
+              <img [src]="url" alt="" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Header -->
+        <div class="ld-header">
+          <div class="ld-badges">
+            <span class="lc-type" [ngClass]="typeClass">{{typeLabel}}</span>
+            <span class="badge" [ngClass]="statusBadge">{{listing.status}}</span>
+          </div>
+          <h1 class="ld-title">{{listing.title}}</h1>
+          <div class="ld-owner">
+            <div class="ld-owner-avatar">{{ ownerInitial }}</div>
+            <div class="ld-owner-copy">
+              <span class="ld-owner-name">{{ ownerDisplayName }}</span>
+              <span class="ld-owner-sub">{{ ownerSubtitle }}</span>
+            </div>
+          </div>
+          <div class="ld-meta">
+            <span class="ld-meta-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              {{listing.productName}} ({{listing.productCategory}})
+            </span>
+            <span class="ld-meta-item" *ngIf="listing.location">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {{listing.location}}
+            </span>
+            <span class="ld-meta-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {{timeAgo(listing.createdAt)}}
+            </span>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="ld-section">
+          <h3>Description</h3>
+          <p class="ld-desc">{{listing.description}}</p>
+        </div>
+
+        <div class="ld-section ld-map-section" *ngIf="hasCoordinates">
+          <div class="ld-section-head">
+            <h3>Localisation</h3>
+            <span>{{ listing.location || 'Coordonnees annonce' }}</span>
+          </div>
+          <app-listing-map
+            [listings]="mapListings"
+            [height]="280"
+            (listingSelected)="openListing($event)">
+          </app-listing-map>
+        </div>
+
+        <!-- Info cards -->
+        <div class="ld-info-grid">
+          <div class="ld-info-card">
+            <span class="ld-info-label">Quantité</span>
+            <span class="ld-info-value">{{listing.quantity}} {{listing.unit}}</span>
+          </div>
+          <div class="ld-info-card">
+            <span class="ld-info-label">Prix</span>
+            <span class="ld-info-value" *ngIf="listing.price !== null">{{listing.price | number:'1.0-2'}} TND</span>
+            <span class="ld-info-value ld-negotiable" *ngIf="listing.price === null">Négociable</span>
+          </div>
+          <div class="ld-info-card">
+            <span class="ld-info-label">Favoris</span>
+            <span class="ld-info-value">❤ {{ displayFavs }}</span>
+          </div>
+          <div class="ld-info-card">
+            <span class="ld-info-label">Commentaires</span>
+            <span class="ld-info-value">💬 {{ displayComments }}</span>
+          </div>
+        </div>
+
+        <!-- Group Purchase Panel -->
+        <app-group-purchase-panel
+          *ngIf="listing.type === 'GROUP_BUYING' && listing.groupPurchase"
+          [listing]="listing"
+          [group]="listing.groupPurchase"
+          (groupUpdated)="onGroupPurchaseUpdated($event)">
+        </app-group-purchase-panel>
+
+        <!-- Comments -->
+        <app-comment-thread
+          [listingId]="listing.id"
+          [listingCompanyId]="listing.companyId"
+          (commentCountUpdated)="onCommentCountUpdated($event)">
+        </app-comment-thread>
+
+        <div class="ld-section ld-match-section">
+          <div class="ld-section-head">
+            <h3>Recommandations IA</h3>
+            <span *ngIf="matches.length">{{ matches.length }} suggestion{{ matches.length > 1 ? 's' : '' }}</span>
+          </div>
+          <div class="ld-match-loading" *ngIf="matchesLoading">Recherche des annonces pertinentes...</div>
+          <div class="ld-match-empty" *ngIf="!matchesLoading && !matches.length">
+            Aucune recommandation pertinente pour le moment.
+          </div>
+          <button
+            type="button"
+            class="ld-match-card"
+            *ngFor="let match of matches"
+            (click)="openMatch(match)">
+            <div>
+              <strong>{{ match.listing.title }}</strong>
+              <span>{{ match.listing.productCategory }} - {{ match.listing.location || 'Localisation non precisee' }}</span>
+              <small>{{ match.reason }}</small>
+            </div>
+            <b>{{ match.score | number:'1.0-0' }}%</b>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right sidebar -->
+      <div class="ld-sidebar">
+        <!-- Owner actions -->
+        <div class="ld-actions-card" *ngIf="isOwner">
+          <h4>Actions</h4>
+          <a class="btn btn-primary ld-action-btn" *ngIf="canEdit" [routerLink]="['/enterprise/annonces', listing.id, 'edit']">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Modifier
+          </a>
+          <button class="btn btn-outline ld-action-btn" (click)="duplicate()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Dupliquer
+          </button>
+          <button class="btn btn-danger ld-action-btn" (click)="deleteListing()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            Supprimer l'annonce
+          </button>
+        </div>
+
+        <div class="ld-actions-card" *ngIf="isAdmin">
+          <h4>Administration</h4>
+          <button class="btn btn-danger ld-action-btn" *ngIf="!isOwner" (click)="deleteListingAsAdmin()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            Supprimer l'annonce
+          </button>
+        </div>
+
+        <!-- Favorite -->
+        <div class="ld-fav-card">
+          <app-favorite-button
+            [listingId]="listing.id"
+            [isFavorite]="isFavorite"
+            [count]="displayFavs"
+            [showCount]="true"
+            (toggled)="onFavoriteToggled($event)">
+          </app-favorite-button>
+        </div>
+
+        <!-- Error display -->
+        <div class="alert alert-danger" *ngIf="error" style="margin-top:12px">{{error}}</div>
+      </div>
+    </div>
+  </div>
+
+  <app-confirm-dialog
+    [visible]="showDeleteConfirm"
+    title="Supprimer cette annonce ?"
+    [message]="deleteConfirmMessage"
+    confirmLabel="Oui, supprimer"
+    cancelLabel="Garder l'annonce"
+    [danger]="true"
+    [loading]="deleteLoading"
+    [errorMessage]="error"
+    (confirmed)="confirmDeleteListing()"
+    (cancelled)="cancelDeleteListing()">
+  </app-confirm-dialog>
+</div>
