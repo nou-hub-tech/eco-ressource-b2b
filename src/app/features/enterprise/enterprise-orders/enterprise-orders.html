@@ -1,12 +1,12 @@
 <div class="page-wrapper">
   <div class="page-header">
     <h1>Enterprise Orders</h1>
-    <p>Orders related to reservations made on your enterprise slots.</p>
+    <p>Provider view for your orders and consumer view for creating orders from other enterprises’ reservations.</p>
   </div>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:16px">
     <div class="card">
-      <h2 style="margin:0 0 10px">CO2 Dashboard</h2>
+      <h2 style="margin:0 0 10px">CO2 Summary</h2>
       <div style="display:flex;justify-content:space-between;color:var(--text2)">
         <span>Total CO2 saved</span>
         <strong>{{ totalCo2Saved }}</strong>
@@ -18,7 +18,7 @@
     </div>
 
     <div class="card">
-      <h2 style="margin:0 0 10px">Eco Impact Score</h2>
+      <h2 style="margin:0 0 10px">Eco Score</h2>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="badge badge-neutral">Grade {{ ecoImpactScore.grade }}</span>
         <strong>{{ ecoImpactScore.averageCo2 }} CO2</strong>
@@ -27,7 +27,7 @@
     </div>
 
     <div class="card">
-      <h2 style="margin:0 0 10px">Lifecycle Tracker</h2>
+      <h2 style="margin:0 0 10px">Lifecycle Tracking</h2>
       <div style="display:flex;justify-content:space-between;color:var(--text2)">
         <span>Created</span>
         <strong>{{ lifecycleSummary.created }}</strong>
@@ -43,16 +43,121 @@
     </div>
   </div>
 
-  <div class="card" style="padding:0">
-    <div class="table-header">
-      <h2>Related Orders</h2>
-      <span>{{ visibleOrders.length }} order(s)</span>
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0 0 8px">My Data</h2>
+        <p style="margin:0;color:var(--text2)">Full CRUD for orders owned by your enterprise.</p>
+      </div>
+      <button class="btn btn-primary" type="button" (click)="openCreate()">Create Order</button>
+    </div>
+
+    <div class="card" *ngIf="showForm" style="margin-top:16px;padding:16px;background:#f8fafc">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+        <div>
+          <h3 style="margin:0 0 6px">{{ editMode ? 'Update Order' : 'Create Order' }}</h3>
+          <p style="margin:0;color:var(--text2)">The eco score uses backend `co2Saved` values and solar context from marketplace reservations when available.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" type="button" (click)="closeForm()" [disabled]="savingForm">
+          Close
+        </button>
+      </div>
+
+      <div class="form-row" style="margin-top:16px">
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" name="companyName" [(ngModel)]="form.companyName" />
+        </div>
+
+        <div class="form-group">
+          <label>Material</label>
+          <input type="text" name="material" [(ngModel)]="form.material" />
+        </div>
+
+        <div class="form-group">
+          <label>Supplier</label>
+          <input type="text" name="supplier" [(ngModel)]="form.supplier" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quantity (kg)</label>
+          <input type="number" min="1" name="qtyKg" [(ngModel)]="form.qtyKg" (ngModelChange)="recomputeOrderMetrics()" />
+        </div>
+
+        <div class="form-group">
+          <label>Distance (km)</label>
+          <input type="number" min="0" name="distanceKm" [(ngModel)]="form.distanceKm" (ngModelChange)="recomputeOrderMetrics()" />
+        </div>
+
+        <div class="form-group">
+          <label>Order Date</label>
+          <input type="date" name="orderDate" [(ngModel)]="form.orderDate" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status" [(ngModel)]="form.status">
+            <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>CO2 Saved</label>
+          <input type="number" name="co2Saved" [(ngModel)]="form.co2Saved" (ngModelChange)="recomputeOrderMetrics()" />
+        </div>
+
+        <div class="form-group">
+          <label>Water Saved</label>
+          <input type="number" name="waterSaved" [(ngModel)]="form.waterSaved" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Waste Avoided</label>
+          <input type="number" name="wasteAvoided" [(ngModel)]="form.wasteAvoided" />
+        </div>
+
+        <div class="form-group">
+          <label>Grade</label>
+          <input type="text" [value]="formEcoScore.grade" disabled />
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label>Solar Source</label>
+          <label class="toggle-row">
+            <input type="checkbox" name="sourceSolar" [(ngModel)]="form.sourceSolar" (ngModelChange)="recomputeOrderMetrics()" />
+            <span>Reservation source used solar</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;margin-bottom:12px">
+        <strong>AI Eco Score</strong>
+        <div style="margin-top:6px;color:var(--text2)">Grade {{ formEcoScore.grade }} — {{ formEcoScore.message }}</div>
+      </div>
+
+      <div class="message error" *ngIf="error">{{ error }}</div>
+      <div class="message success" *ngIf="success">{{ success }}</div>
+
+      <div class="actions-row">
+        <button class="btn btn-primary" type="button" (click)="saveOrder()" [disabled]="savingForm">
+          {{ savingForm ? 'Saving...' : (editMode ? 'Update Order' : 'Create Order') }}
+        </button>
+        <button class="btn btn-outline" type="button" (click)="closeForm()" [disabled]="savingForm">
+          Cancel
+        </button>
+      </div>
     </div>
 
     <div class="table-state error" *ngIf="error">{{ error }}</div>
     <div class="table-state" *ngIf="loading">Loading orders...</div>
 
-    <table class="data-table" *ngIf="!loading && visibleOrders.length">
+    <table class="data-table" *ngIf="!loading && myOrders.length" style="margin-top:16px">
       <thead>
         <tr>
           <th>Reference</th>
@@ -63,11 +168,11 @@
           <th>Impact</th>
           <th>Status</th>
           <th>Grade</th>
-          <th>Update</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let order of visibleOrders">
+        <tr *ngFor="let order of myOrders">
           <td>{{ order.ref }}</td>
           <td>{{ order.companyName }}</td>
           <td>{{ order.material }}</td>
@@ -92,17 +197,21 @@
           <td><span class="badge badge-neutral">{{ order.status }}</span></td>
           <td>{{ order.grade }}</td>
           <td>
-            <div class="status-actions">
+            <div class="status-actions" style="flex-wrap:wrap">
               <select [(ngModel)]="statusDrafts[order.id]" [name]="'status-' + order.id">
                 <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
               </select>
-              <button
-                class="btn btn-primary btn-sm"
-                type="button"
-                (click)="saveStatus(order)"
-                [disabled]="savingId === order.id"
-              >
+              <button class="btn btn-primary btn-sm" type="button" (click)="saveStatus(order)" [disabled]="savingId === order.id">
                 Save
+              </button>
+              <button class="btn btn-outline btn-sm" type="button" (click)="openEdit(order)">Edit</button>
+              <button
+                class="btn btn-outline btn-sm"
+                type="button"
+                (click)="cancelOrder(order)"
+                [disabled]="savingId === order.id || order.status === 'cancelled'"
+              >
+                Cancel
               </button>
             </div>
           </td>
@@ -110,8 +219,51 @@
       </tbody>
     </table>
 
-    <div class="table-state" *ngIf="!loading && !visibleOrders.length">
-      No related orders found for your enterprise.
+    <div class="table-state" *ngIf="!loading && !myOrders.length" style="margin-top:16px">
+      No orders found for your enterprise.
     </div>
-  </div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0 0 8px">Marketplace</h2>
+        <p style="margin:0;color:var(--text2)">Create a new order from reservations owned by other enterprises. Marketplace data is read-only.</p>
+      </div>
+      <div style="color:var(--text2)">{{ marketplaceReservations.length }} reservation(s) available</div>
+    </div>
+
+    <table class="data-table" *ngIf="marketplaceReservations.length" style="margin-top:16px">
+      <thead>
+        <tr>
+          <th>Enterprise ID</th>
+          <th>Company</th>
+          <th>Machine</th>
+          <th>Date</th>
+          <th>Hours</th>
+          <th>Solar</th>
+          <th>Create Order</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let reservation of marketplaceReservations">
+          <td>{{ reservation.enterprise?.id ?? reservation.enterpriseId }}</td>
+          <td>{{ reservation.company }}</td>
+          <td>{{ reservation.machine }}</td>
+          <td>{{ reservation.date }}</td>
+          <td>{{ reservation.hours }}</td>
+          <td>{{ reservation.solar ? 'Yes' : 'No' }}</td>
+          <td>
+            <button class="btn btn-primary btn-sm" type="button" (click)="createFromReservation(reservation)">
+              Create Order
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="table-state" *ngIf="!marketplaceReservations.length" style="margin-top:16px">
+      No marketplace reservations are available for order creation.
+    </div>
+  </section>
 </div>

@@ -1,11 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import {
   BackendReservationSlot,
   ReservationSlotApiService,
   SlotRequest,
 } from '../../../pages/moduleReservation/shared/api/reservation-slot-api.service';
+import {
+  BackendReservation,
+  ReservationApiService,
+  ReservationCreateRequest,
+} from '../../../pages/moduleReservation/shared/api/reservation-api.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 type SlotFormModel = {
@@ -26,6 +32,16 @@ type SmartSlotSuggestion = {
   reason: string;
 };
 
+type HeatmapBucket = {
+  date: string;
+  label: string;
+  startHour: number;
+  endHour: number;
+  color: 'red' | 'green' | 'yellow' | 'blue';
+  text: string;
+  reservationCount: number;
+};
+
 @Component({
   selector: 'app-enterprise-slots',
   standalone: true,
@@ -36,22 +52,25 @@ type SmartSlotSuggestion = {
 export class EnterpriseSlots implements OnInit {
   loading = true;
   saving = false;
+  reserveSavingId: number | null = null;
   error = '';
   success = '';
 
   editingId: number | null = null;
   currentEnterpriseId: number | null = null;
   slots: BackendReservationSlot[] = [];
+  reservations: BackendReservation[] = [];
 
   form: SlotFormModel = this.createEmptyForm();
 
   constructor(
     private readonly slotApi: ReservationSlotApiService,
+    private readonly reservationApi: ReservationApiService,
     private readonly auth: AuthService,
   ) {}
 
   ngOnInit(): void {
-    this.loadSlots();
+    this.loadData();
   }
 
   get durationHours(): number {
@@ -59,7 +78,14 @@ export class EnterpriseSlots implements OnInit {
   }
 
   get mine(): BackendReservationSlot[] {
-    return this.slots.filter(slot => slot.enterprise?.id === this.currentEnterpriseId);
+    return this.slots.filter(slot => this.enterpriseIdForSlot(slot) === this.currentEnterpriseId);
+  }
+
+  get marketplaceSlots(): BackendReservationSlot[] {
+    return this.slots
+      .filter(slot => this.enterpriseIdForSlot(slot) !== this.currentEnterpriseId)
+      .filter(slot => slot.status === 'open')
+      .sort((a, b) => a.date.localeCompare(b.date) || a.startHour - b.startHour);
   }
 
   get bookedSlotsCount(): number {
@@ -76,63 +102,60 @@ export class EnterpriseSlots implements OnInit {
   }
 
   get smartSuggestion(): SmartSlotSuggestion | null {
-    const futureSlots = this.mine
-      .filter(slot => slot.date >= new Date().toISOString().slice(0, 10))
-      .sort((a, b) => a.date.localeCompare(b.date) || a.startHour - b.startHour);
+    const candidate = this.mine
+      .filter(slot => slot.status === 'open')
+      .map(slot => ({ slot, density: this.slotDemandDensity(slot) }))
+      .sort((a, b) => {
+        if (a.density !== b.density) {
+          return a.density - b.density;
+        }
+        if (a.slot.solar !== b.slot.solar) {
+          return a.slot.solar ? -1 : 1;
+        }
+        return a.slot.date.localeCompare(b.slot.date) || a.slot.startHour - b.slot.startHour;
+      })[0];
 
-    if (!futureSlots.length) {
+    if (!candidate) {
       return null;
     }
 
-    const grouped = new Map<string, BackendReservationSlot[]>();
-    for (const slot of futureSlots) {
-      const list = grouped.get(slot.date) ?? [];
-      list.push(slot);
-      grouped.set(slot.date, list);
-    }
-
-    let bestGap: { date: string; startHour: number; endHour: number } | null = null;
-
-    for (const [date, slots] of grouped) {
-      const ordered = [...slots].sort((a, b) => a.startHour - b.startHour);
-      let cursor = 8;
-      for (const slot of ordered) {
-        if (slot.startHour - cursor >= 2) {
-          const endHour = Math.min(cursor + 4, slot.startHour);
-          const candidate = { date, startHour: cursor, endHour };
-          if (!bestGap || (candidate.endHour - candidate.startHour) > (bestGap.endHour - bestGap.startHour)) {
-            bestGap = candidate;
-          }
-        }
-        cursor = Math.max(cursor, slot.endHour);
-      }
-
-      if (18 - cursor >= 2) {
-        const candidate = { date, startHour: cursor, endHour: Math.min(cursor + 4, 18) };
-        if (!bestGap || (candidate.endHour - candidate.startHour) > (bestGap.endHour - bestGap.startHour)) {
-          bestGap = candidate;
-        }
-      }
-    }
-
-    if (!bestGap) return null;
-
-    const density = futureSlots.filter(slot =>
-      slot.date === bestGap?.date &&
-      slot.startHour < bestGap.endHour &&
-      slot.endHour > bestGap.startHour,
-    ).length;
-    const solarLikely = bestGap.startHour >= 10 && bestGap.endHour <= 16;
-    const recommendedDiscountPct = Math.min(30, Math.max(5, 12 + (solarLikely ? 6 : 0) - density * 2));
-
+    const duration = Math.max(1, candidate.slot.endHour - candidate.slot.startHour);
     return {
-      ...bestGap,
-      recommendedDiscountPct,
-      solarLikely,
-      reason: density === 0
-        ? 'Large availability gap detected in your schedule.'
-        : 'This window keeps your slot plan balanced and easier to fill.',
+      date: candidate.slot.date,
+      startHour: candidate.slot.startHour,
+      endHour: candidate.slot.endHour,
+      recommendedDiscountPct: Math.min(30, Math.max(5, 10 + (candidate.slot.solar ? 8 : 0) - candidate.density * 2)),
+      solarLikely: candidate.slot.solar,
+      reason: candidate.density === 0
+        ? 'This slot is open with no nearby reservation pressure.'
+        : 'This slot stays the least congested among your available windows.',
     };
+  }
+
+  get bestMarketplaceSlot(): BackendReservationSlot | null {
+    const candidate = this.marketplaceSlots
+      .map(slot => ({ slot, density: this.slotDemandDensity(slot) }))
+      .sort((a, b) => {
+        const scoreA = this.marketplaceScore(a.slot, a.density);
+        const scoreB = this.marketplaceScore(b.slot, b.density);
+        return scoreB - scoreA;
+      })[0];
+
+    return candidate?.slot ?? null;
+  }
+
+  get heatmapRows(): HeatmapBucket[][] {
+    const sourceDates = [...new Set(this.slots.map(slot => slot.date))].sort().slice(0, 7);
+    const buckets = [
+      { startHour: 0, endHour: 6, label: '00-06' },
+      { startHour: 6, endHour: 12, label: '06-12' },
+      { startHour: 12, endHour: 18, label: '12-18' },
+      { startHour: 18, endHour: 24, label: '18-24' },
+    ];
+
+    return sourceDates.map(date =>
+      buckets.map(bucket => this.buildHeatmapBucket(date, bucket.label, bucket.startHour, bucket.endHour)),
+    );
   }
 
   save(): void {
@@ -143,12 +166,10 @@ export class EnterpriseSlots implements OnInit {
       this.error = 'Unable to resolve enterprise ID from backend data.';
       return;
     }
-
     if (!this.form.machine.trim() || !this.form.date) {
       this.error = 'Machine and date are required.';
       return;
     }
-
     if (this.form.endHour <= this.form.startHour) {
       this.error = 'End hour must be after start hour.';
       return;
@@ -174,11 +195,47 @@ export class EnterpriseSlots implements OnInit {
       next: () => {
         this.success = this.editingId ? 'Slot updated.' : 'Slot created.';
         this.resetForm();
-        this.loadSlots();
+        this.loadData();
       },
-      error: (err) => {
+      error: err => {
         this.error = err?.error?.message ?? 'Failed to save slot.';
         this.saving = false;
+      },
+    });
+  }
+
+  reserve(slot: BackendReservationSlot): void {
+    if (this.currentEnterpriseId == null) {
+      this.error = 'Unable to resolve enterprise identity for the reservation.';
+      return;
+    }
+
+    const payload: ReservationCreateRequest = {
+      company: this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? 'Enterprise',
+      machine: slot.machine,
+      date: slot.date,
+      hours: Math.max(1, slot.endHour - slot.startHour),
+      startHour: slot.startHour,
+      status: 'PENDING',
+      solar: slot.solar,
+      slotId: slot.id,
+      enterpriseId: this.currentEnterpriseId,
+      co2Saved: this.estimatedCo2Saved(slot),
+    };
+
+    this.error = '';
+    this.success = '';
+    this.reserveSavingId = slot.id;
+
+    this.reservationApi.create(payload).subscribe({
+      next: () => {
+        this.success = `Reservation created for slot ${slot.machine} on ${slot.date}.`;
+        this.reserveSavingId = null;
+        this.loadData();
+      },
+      error: err => {
+        this.error = err?.error?.message ?? 'Failed to reserve marketplace slot.';
+        this.reserveSavingId = null;
       },
     });
   }
@@ -225,9 +282,9 @@ export class EnterpriseSlots implements OnInit {
         if (this.editingId === slot.id) {
           this.resetForm();
         }
-        this.loadSlots();
+        this.loadData();
       },
-      error: (err) => {
+      error: err => {
         this.error = err?.error?.message ?? 'Failed to delete slot.';
       },
     });
@@ -238,27 +295,115 @@ export class EnterpriseSlots implements OnInit {
     this.form = this.createEmptyForm();
   }
 
-  private loadSlots(): void {
+  heatmapBackground(bucket: HeatmapBucket): string {
+    if (bucket.color === 'red') return '#ef4444';
+    if (bucket.color === 'yellow') return '#facc15';
+    if (bucket.color === 'blue') return '#3b82f6';
+    return '#22c55e';
+  }
+
+  heatmapTextColor(bucket: HeatmapBucket): string {
+    return bucket.color === 'yellow' ? '#111827' : '#ffffff';
+  }
+
+  private loadData(): void {
     this.loading = true;
-    this.slotApi.list(false).subscribe({
-      next: (rows) => {
-        this.currentEnterpriseId = this.resolveEnterpriseId(rows);
-        this.slots = rows.filter(slot => !slot.deleted);
+    this.currentEnterpriseId = this.readCurrentEnterpriseId();
+
+    forkJoin({
+      slots: this.slotApi.list(false),
+      reservations: this.reservationApi.list(false),
+    }).subscribe({
+      next: ({ slots, reservations }) => {
+        this.slots = slots.filter(slot => !slot.deleted);
+        this.reservations = reservations.filter(reservation => !reservation.deleted);
         this.loading = false;
         this.saving = false;
+        this.reserveSavingId = null;
       },
-      error: (err) => {
+      error: err => {
         this.error = err?.error?.message ?? 'Failed to load slots.';
         this.loading = false;
         this.saving = false;
+        this.reserveSavingId = null;
       },
     });
   }
 
-  private resolveEnterpriseId(rows: BackendReservationSlot[]): number | null {
-    const company = this.auth.currentUser?.company?.trim().toLowerCase() || '';
-    const match = rows.find(slot => (slot.enterprise?.companyName ?? '').trim().toLowerCase() === company);
-    return match?.enterprise?.id ?? null;
+  private readCurrentEnterpriseId(): number | null {
+    const raw = (this.auth.currentUser as { enterprise?: { id?: number | string } } | null)?.enterprise?.id
+      ?? this.auth.currentUser?.id;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private enterpriseIdForSlot(slot: BackendReservationSlot): number | null {
+    return slot.enterprise?.id ?? slot.enterpriseId ?? null;
+  }
+
+  private enterpriseIdForReservation(reservation: BackendReservation): number | null {
+    return reservation.enterprise?.id ?? reservation.enterpriseId ?? null;
+  }
+
+  private slotDemandDensity(slot: BackendReservationSlot): number {
+    return this.reservations.filter(reservation => {
+      if (reservation.slotId != null) {
+        return reservation.slotId === slot.id;
+      }
+      return (
+        reservation.machine === slot.machine &&
+        reservation.date === slot.date &&
+        (reservation.startHour ?? 0) < slot.endHour &&
+        ((reservation.startHour ?? 0) + (reservation.hours ?? 1)) > slot.startHour
+      );
+    }).length;
+  }
+
+  private buildHeatmapBucket(date: string, label: string, startHour: number, endHour: number): HeatmapBucket {
+    const bucketSlots = this.slots.filter(slot =>
+      slot.date === date &&
+      slot.startHour < endHour &&
+      slot.endHour > startHour,
+    );
+    const reservationCount = this.reservations.filter(reservation =>
+      reservation.date === date &&
+      (reservation.startHour ?? 0) < endHour &&
+      ((reservation.startHour ?? 0) + (reservation.hours ?? 1)) > startHour,
+    ).length;
+
+    let color: HeatmapBucket['color'] = 'green';
+    if (bucketSlots.some(slot => slot.status !== 'open')) {
+      color = 'red';
+    } else if (bucketSlots.some(slot => slot.solar) && reservationCount === 0) {
+      color = 'blue';
+    } else if (reservationCount > 0) {
+      color = 'yellow';
+    }
+
+    return {
+      date,
+      label,
+      startHour,
+      endHour,
+      color,
+      text: bucketSlots.length ? `${bucketSlots.length} slot(s)` : 'No slots',
+      reservationCount,
+    };
+  }
+
+  private marketplaceScore(slot: BackendReservationSlot, density: number): number {
+    let score = 0;
+    if (slot.solar) score += 3;
+    if (density === 0) score += 3;
+    if (density === 1) score += 1;
+    score += Math.max(0, 20 - (slot.discountPct ?? 0));
+    return score;
+  }
+
+  private estimatedCo2Saved(slot: BackendReservationSlot): number {
+    const hours = Math.max(1, slot.endHour - slot.startHour);
+    const base = hours * 12;
+    return slot.solar ? Math.round(base * 0.6) : Math.round(base * 0.25);
   }
 
   private createEmptyForm(): SlotFormModel {

@@ -1,7 +1,7 @@
 <div class="page-wrapper">
   <div class="page-header">
     <h1>Enterprise Reservations</h1>
-    <p>Reservations booked on the slots owned by your enterprise.</p>
+    <p>Provider view for incoming reservations and consumer view for marketplace slot booking.</p>
   </div>
 
   <div class="card">
@@ -20,9 +20,7 @@
         <label>Status</label>
         <select name="statusFilter" [(ngModel)]="statusFilter">
           <option value="">All</option>
-          <option value="PENDING">PENDING</option>
-          <option value="CONFIRMED">CONFIRMED</option>
-          <option value="CANCELLED">CANCELLED</option>
+          <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
         </select>
       </div>
 
@@ -45,40 +43,120 @@
       </div>
     </div>
 
-    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px">
+      <button class="btn btn-primary" type="button" (click)="openCreateForMySlot()" [disabled]="!mySlots.length">
+        Create For My Slot
+      </button>
       <button class="btn btn-outline" type="button" (click)="exportPdf()">Export PDF</button>
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" *ngIf="showForm">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0 0 6px">{{ editMode ? 'Update Reservation' : 'Create Reservation' }}</h2>
+        <p style="margin:0;color:var(--text2)">This form is used for both provider-side management and marketplace reservations.</p>
+      </div>
+      <button class="btn btn-outline btn-sm" type="button" (click)="closeForm()" [disabled]="savingForm">
+        Close
+      </button>
+    </div>
+
+    <div class="form-row" style="margin-top:16px">
+      <div class="form-group">
+        <label>Company</label>
+        <input type="text" name="formCompany" [(ngModel)]="form.company" />
+      </div>
+
+      <div class="form-group">
+        <label>Slot ID</label>
+        <input type="number" name="formSlotId" [(ngModel)]="form.slotId" (ngModelChange)="syncFormFromSlot()" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Machine</label>
+        <input type="text" name="formMachine" [(ngModel)]="form.machine" />
+      </div>
+
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" name="formDate" [(ngModel)]="form.date" />
+      </div>
+
+      <div class="form-group">
+        <label>Start Hour</label>
+        <input type="number" min="0" max="23" name="formStartHour" [(ngModel)]="form.startHour" />
+      </div>
+
+      <div class="form-group">
+        <label>Hours</label>
+        <input type="number" min="1" max="24" name="formHours" [(ngModel)]="form.hours" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status</label>
+        <select name="formStatus" [(ngModel)]="form.status">
+          <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
+        </select>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label>Solar</label>
+        <label class="toggle-row">
+          <input type="checkbox" name="formSolar" [(ngModel)]="form.solar" />
+          <span>Solar-supported reservation</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="message error" *ngIf="error">{{ error }}</div>
+    <div class="message success" *ngIf="success">{{ success }}</div>
+
+    <div class="actions-row">
+      <button class="btn btn-primary" type="button" (click)="saveReservation()" [disabled]="savingForm">
+        {{ savingForm ? 'Saving...' : (editMode ? 'Update Reservation' : 'Create Reservation') }}
+      </button>
+      <button class="btn btn-outline" type="button" (click)="closeForm()" [disabled]="savingForm">
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <section class="card">
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div>
-        <h2 style="margin:0 0 8px">Booking Intelligence Panel</h2>
-        <p style="margin:0;color:var(--text2)">Urgency and recommendation computed from reservation date proximity and booking duration.</p>
+        <h2 style="margin:0 0 8px">My Data</h2>
+        <p style="margin:0;color:var(--text2)">Incoming reservations on slots owned by your enterprise.</p>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <span class="badge badge-neutral">High: {{ intelligenceSummary.high }}</span>
-        <span class="badge badge-neutral">Medium: {{ intelligenceSummary.medium }}</span>
-        <span class="badge badge-neutral">Low: {{ intelligenceSummary.low }}</span>
+        <span class="badge badge-neutral">Reservations: {{ myReservationCount }}</span>
+        <span class="badge badge-neutral">Hours: {{ myReservationHours }}</span>
       </div>
     </div>
 
     <div style="margin-top:16px;padding:14px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb">
-      <strong style="display:block;margin-bottom:6px">Recommendation</strong>
-      <span class="badge badge-neutral">{{ intelligenceSummary.recommendation }}</span>
-    </div>
-  </div>
-
-  <div class="card" style="padding:0">
-    <div class="table-header">
-      <h2>My Slot Reservations</h2>
-      <span>{{ visibleReservations.length }} reservation(s)</span>
+      <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <strong style="display:block;margin-bottom:6px">Priority Summary</strong>
+          <span class="badge badge-neutral">High: {{ intelligenceSummary.high }}</span>
+          <span class="badge badge-neutral" style="margin-left:8px">Medium: {{ intelligenceSummary.medium }}</span>
+          <span class="badge badge-neutral" style="margin-left:8px">Low: {{ intelligenceSummary.low }}</span>
+        </div>
+        <div>
+          <strong style="display:block;margin-bottom:6px">Recommendation</strong>
+          <span class="badge badge-neutral">{{ intelligenceSummary.recommendation }}</span>
+        </div>
+      </div>
     </div>
 
     <div class="table-state error" *ngIf="error">{{ error }}</div>
     <div class="table-state" *ngIf="loading">Loading reservations...</div>
 
-    <table class="data-table" *ngIf="!loading && visibleReservations.length">
+    <table class="data-table" *ngIf="!loading && incomingReservations.length" style="margin-top:16px">
       <thead>
         <tr>
           <th>Company</th>
@@ -86,21 +164,18 @@
           <th>Date</th>
           <th>Hours</th>
           <th>Status</th>
-          <th>Urgency</th>
+          <th>Priority</th>
           <th>Recommendation</th>
           <th>Solar</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let reservation of visibleReservations">
+        <tr *ngFor="let reservation of incomingReservations">
           <td>{{ reservation.company }}</td>
           <td>{{ reservation.machine }}</td>
           <td>{{ reservation.date }}</td>
-          <td>
-            {{ reservation.startHour ?? 0 }}:00 -
-            {{ (reservation.startHour ?? 0) + durationHours(reservation) }}:00
-          </td>
+          <td>{{ reservation.startHour }}:00 - {{ (reservation.startHour ?? 0) + durationHours(reservation) }}:00</td>
           <td><span class="badge badge-neutral">{{ reservation.status }}</span></td>
           <td>
             <span
@@ -113,21 +188,76 @@
           <td>{{ recommendationFor(reservation) }}</td>
           <td>{{ reservation.solar ? 'Yes' : 'No' }}</td>
           <td>
-            <button
-              class="btn btn-outline btn-sm"
-              type="button"
-              (click)="cancel(reservation)"
-              [disabled]="reservation.status === 'CANCELLED'"
-            >
-              Cancel
+            <div class="row-actions">
+              <button class="btn btn-outline btn-sm" type="button" (click)="openEdit(reservation)">Edit</button>
+              <button
+                class="btn btn-outline btn-sm"
+                type="button"
+                (click)="cancel(reservation)"
+                [disabled]="reservation.status === 'CANCELLED'"
+              >
+                Cancel
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="table-state" *ngIf="!loading && !incomingReservations.length" style="margin-top:16px">
+      No incoming reservations found for your enterprise.
+    </div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0 0 8px">Marketplace</h2>
+        <p style="margin:0;color:var(--text2)">Reserve open slots published by other enterprises.</p>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div class="form-group" style="margin:0;min-width:180px">
+          <label>Marketplace From</label>
+          <input type="date" name="marketplaceDateFrom" [(ngModel)]="marketplaceDateFrom" />
+        </div>
+        <div class="form-group" style="margin:0;min-width:180px">
+          <label>Marketplace To</label>
+          <input type="date" name="marketplaceDateTo" [(ngModel)]="marketplaceDateTo" />
+        </div>
+      </div>
+    </div>
+
+    <table class="data-table" *ngIf="marketplaceSlots.length" style="margin-top:16px">
+      <thead>
+        <tr>
+          <th>Provider ID</th>
+          <th>Machine</th>
+          <th>Date</th>
+          <th>Window</th>
+          <th>Solar</th>
+          <th>Discount</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let slot of marketplaceSlots">
+          <td>{{ slot.enterprise?.id ?? slot.enterpriseId }}</td>
+          <td>{{ slot.machine }}</td>
+          <td>{{ slot.date }}</td>
+          <td>{{ slot.startHour }}:00 - {{ slot.endHour }}:00</td>
+          <td>{{ slot.solar ? 'Yes' : 'No' }}</td>
+          <td>{{ slot.discountPct || 0 }}%</td>
+          <td>
+            <button class="btn btn-primary btn-sm" type="button" (click)="reserveMarketplaceSlot(slot)">
+              Reserve
             </button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <div class="table-state" *ngIf="!loading && !visibleReservations.length">
-      No reservations found on your slots.
+    <div class="table-state" *ngIf="!marketplaceSlots.length" style="margin-top:16px">
+      No marketplace slots are open in the selected range.
     </div>
-  </div>
+  </section>
 </div>
