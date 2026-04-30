@@ -193,7 +193,12 @@ export class EnterpriseOrders implements OnInit {
       orderDate: reservation.date,
       status: 'draft',
       grade: 'C',
-      co2Saved: reservation.co2Saved ?? this.derivedCo2Saved(Math.max(1, reservation.hours * 10), 0, reservation.solar),
+      co2Saved: reservation.co2Saved ?? this.derivedCo2Saved(
+        Math.max(1, reservation.hours * 10),
+        0,
+        reservation.solar,
+        reservation.hours ?? 1,
+      ),
       waterSaved: Math.max(0, Math.round(reservation.hours * 8)),
       wasteAvoided: Math.max(0, Math.round(reservation.hours * 4)),
       sourceSolar: reservation.solar,
