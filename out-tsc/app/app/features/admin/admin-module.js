@@ -13,6 +13,7 @@ import { Listings } from './listings/listings';
 import { Treasury } from './treasury/treasury';
 import { Solidarity } from './solidarity/solidarity';
 import { EcoLeaderboardComponent } from '../reservation-center/components/eco-leaderboard/eco-leaderboard.component';
+import { AiInsightsPanel } from '../reservation-center/components/ai-insights-panel/ai-insights-panel';
 import * as i0 from "@angular/core";
 import * as i1 from "@angular/router";
 const routes = [
@@ -47,13 +48,13 @@ const routes = [
 export class AdminModule {
     static ɵfac = function AdminModule_Factory(__ngFactoryType__) { return new (__ngFactoryType__ || AdminModule)(); };
     static ɵmod = /*@__PURE__*/ i0.ɵɵdefineNgModule({ type: AdminModule });
-    static ɵinj = /*@__PURE__*/ i0.ɵɵdefineInjector({ imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, RouterModule.forChild(routes)] });
+    static ɵinj = /*@__PURE__*/ i0.ɵɵdefineInjector({ imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, AiInsightsPanel, RouterModule.forChild(routes)] });
 }
 (() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(AdminModule, [{
         type: NgModule,
         args: [{
                 declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Treasury, Solidarity],
-                imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, RouterModule.forChild(routes)]
+                imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, AiInsightsPanel, RouterModule.forChild(routes)]
             }]
     }], null, null); })();
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(AdminModule, { declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Treasury, Solidarity], imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, i1.RouterModule] }); })();
+(function () { (typeof ngJitMode === "undefined" || ngJitMode) && i0.ɵɵsetNgModuleScope(AdminModule, { declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Treasury, Solidarity], imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, AiInsightsPanel, i1.RouterModule] }); })();

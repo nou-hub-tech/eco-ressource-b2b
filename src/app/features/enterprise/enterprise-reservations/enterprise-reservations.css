@@ -175,7 +175,8 @@
 .rc-request-head,
 .rc-request-label,
 .rc-request-meta,
-.rc-row-actions {
+.rc-row-actions,
+.rc-check {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -189,6 +190,12 @@
 
 .rc-request-label {
   align-items: center;
+}
+
+.rc-check {
+  align-items: center;
+  color: var(--text3);
+  font-size: 12px;
 }
 
 .rc-resource-token {

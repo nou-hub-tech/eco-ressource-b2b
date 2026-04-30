@@ -48,6 +48,7 @@ export class EnterpriseSlots implements OnInit {
   calendarAnchor = new Date();
   form: SlotFormModel = this.createForm();
   selectedCalendarDate = '';
+  selectedSlotId: number | null = null;
   readonly resourceKinds: ResourceKind[] = ['Machine', 'Space', 'Tool', 'Other'];
 
   constructor(
@@ -356,6 +357,14 @@ export class EnterpriseSlots implements OnInit {
       .sort((left, right) => left.startHour - right.startHour);
   }
 
+  get selectedSlot(): BackendReservationSlot | null {
+    return this.ownedSlots.find(slot => slot.id === this.selectedSlotId) ?? null;
+  }
+
+  get selectedSlotReservationCount(): number {
+    return this.selectedSlot ? this.relatedReservations.filter(item => item.slotId === this.selectedSlot?.id).length : 0;
+  }
+
   heatmapTooltip(cell: { date: string; occupancy: number; reservationCount: number }): string {
     return `${cell.reservationCount} reservations · ${cell.occupancy}% utilization · peak ${this.peakHoursForDate(cell.date)}`;
   }
@@ -373,5 +382,33 @@ export class EnterpriseSlots implements OnInit {
 
     const [hour] = [...counts.entries()].sort((left, right) => right[1] - left[1])[0];
     return this.workspace.formatHour(hour);
+  }
+
+  inspectSlot(slot: BackendReservationSlot): void {
+    this.selectedSlotId = slot.id;
+  }
+
+  forceSlotStatus(slot: BackendReservationSlot): void {
+    const nextStatus = slot.status === 'blocked' ? 'open' : 'blocked';
+    const payload: SlotRequest = {
+      machine: slot.machine,
+      date: slot.date,
+      startHour: slot.startHour,
+      endHour: slot.endHour,
+      solar: slot.solar,
+      discountPct: slot.discountPct,
+      enterpriseId: slot.enterprise?.id ?? slot.enterpriseId ?? this.context.enterpriseId,
+      status: nextStatus,
+    };
+
+    this.state.updateSlot(slot.id, payload).subscribe({
+      next: () => {
+        this.success = nextStatus === 'blocked' ? 'Slot blocked.' : 'Slot reopened.';
+        this.refresh();
+      },
+      error: error => {
+        this.error = error?.error?.message ?? 'Failed to override slot status.';
+      },
+    });
   }
 }

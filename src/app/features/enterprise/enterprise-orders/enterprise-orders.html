@@ -75,8 +75,8 @@
     <article class="card" *ngIf="selectedOrder">
       <div class="rc-section-head">
         <div>
-          <h2>Price breakdown</h2>
-          <p>Eco-aware pricing and credits for order #{{ selectedOrder.ref || selectedOrder.id }}.</p>
+          <h2>{{ context.isAdmin ? 'Order inspection' : 'Price breakdown' }}</h2>
+          <p>{{ context.isAdmin ? 'Full eco-order detail for override, inspection, and lifecycle supervision.' : 'Eco-aware pricing and credits for order #' + (selectedOrder.ref || selectedOrder.id) + '.' }}</p>
         </div>
         <app-status-chip [label]="selectedOrder.status" [variant]="statusVariant(selectedOrder.status)" />
       </div>
@@ -89,6 +89,25 @@
         <div class="rc-breakdown-row total">
           <span>Total</span>
           <strong>{{ selectedGrandTotal }}</strong>
+        </div>
+      </div>
+
+      <div class="rc-trends rc-order-inspect" *ngIf="context.isAdmin">
+        <div class="rc-trend">
+          <strong>Reference</strong>
+          <span>{{ selectedOrder.ref }}</span>
+        </div>
+        <div class="rc-trend">
+          <strong>Supplier</strong>
+          <span>{{ selectedOrder.supplier }}</span>
+        </div>
+        <div class="rc-trend">
+          <strong>Distance</strong>
+          <span>{{ selectedOrder.distanceKm }} km</span>
+        </div>
+        <div class="rc-trend">
+          <strong>Grade</strong>
+          <span>{{ selectedOrder.grade }}</span>
         </div>
       </div>
     </article>
@@ -190,6 +209,14 @@
         <h2>{{ context.isAdmin ? 'All orders' : 'My orders' }}</h2>
         <p>{{ context.isAdmin ? 'Admin can update, advance, cancel, or inspect any order.' : 'Orders owned by your enterprise.' }}</p>
       </div>
+      <div class="rc-actions" *ngIf="context.isAdmin">
+        <button class="btn btn-outline btn-sm" type="button" (click)="toggleAllOrders()">
+          {{ allOrdersSelected ? 'Clear selection' : 'Select all' }}
+        </button>
+        <button class="btn btn-outline btn-sm" type="button" (click)="bulkCancelOrders()" [disabled]="!selectedOrders.length || bulkBusy">
+          {{ bulkBusy ? 'Applying...' : 'Bulk cancel' }}
+        </button>
+      </div>
     </div>
 
     <div class="rc-empty" *ngIf="loading">Loading orders...</div>
@@ -198,6 +225,7 @@
     <table class="data-table" *ngIf="!loading && scopedOrders.length">
       <thead>
         <tr>
+          <th *ngIf="context.isAdmin">Select</th>
           <th>Reference</th>
           <th>Company</th>
           <th>Material</th>
@@ -209,6 +237,9 @@
       </thead>
       <tbody>
         <tr *ngFor="let order of scopedOrders" (click)="selectOrder(order)">
+          <td *ngIf="context.isAdmin" (click)="$event.stopPropagation()">
+            <input type="checkbox" [checked]="selectedOrderIds.has(order.id)" (change)="toggleOrderSelection(order.id)" />
+          </td>
           <td>{{ order.ref }}</td>
           <td>{{ order.companyName }}</td>
           <td>{{ order.material }}</td>
@@ -217,11 +248,18 @@
           <td>{{ order.grade }}</td>
           <td class="rc-row-actions">
             <button class="btn btn-outline btn-sm" type="button" (click)="edit(order); $event.stopPropagation()">Edit</button>
+            <button class="btn btn-outline btn-sm" type="button" (click)="selectOrder(order); $event.stopPropagation()">Inspect</button>
             <button class="btn btn-primary btn-sm" type="button" (click)="advance(order); $event.stopPropagation()" [disabled]="order.status === 'delivered' || order.status === 'cancelled'">
               Advance
             </button>
+            <button class="btn btn-primary btn-sm" type="button" (click)="overrideOrder(order); $event.stopPropagation()" *ngIf="context.isAdmin">
+              Override
+            </button>
             <button class="btn btn-outline btn-sm" type="button" (click)="cancel(order); $event.stopPropagation()" [disabled]="order.status === 'cancelled'">
               Cancel
+            </button>
+            <button class="btn btn-outline btn-sm" type="button" (click)="deleteOrder(order); $event.stopPropagation()" *ngIf="context.isAdmin">
+              Delete
             </button>
           </td>
         </tr>

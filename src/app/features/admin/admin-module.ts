@@ -13,6 +13,7 @@ import { Listings } from './listings/listings';
 import { Treasury } from './treasury/treasury';
 import { Solidarity } from './solidarity/solidarity';
 import { EcoLeaderboardComponent } from '../reservation-center/components/eco-leaderboard/eco-leaderboard.component';
+import { AiInsightsPanel } from '../reservation-center/components/ai-insights-panel/ai-insights-panel';
 
 const routes: Routes = [
   {
@@ -49,6 +50,6 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Treasury, Solidarity],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, RouterModule.forChild(routes)]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, AiInsightsPanel, RouterModule.forChild(routes)]
 })
 export class AdminModule {}

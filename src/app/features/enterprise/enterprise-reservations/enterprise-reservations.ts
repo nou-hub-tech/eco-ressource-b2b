@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { AiInsightsPanel } from '../../../features/reservation-center/components/ai-insights-panel/ai-insights-panel';
 import { DecisionAssistantComponent } from '../../../features/reservation-center/components/decision-assistant/decision-assistant.component';
@@ -48,6 +49,8 @@ export class EnterpriseReservations implements OnInit {
   selectedSlotId: number | null = null;
   pendingDelete: BackendReservation | null = null;
   focusedView: 'my' | 'incoming' = 'my';
+  bulkBusy = false;
+  selectedReservationIds = new Set<number>();
 
   reservations: BackendReservation[] = [];
   slots: BackendReservationSlot[] = [];
@@ -97,7 +100,7 @@ export class EnterpriseReservations implements OnInit {
 
   get providerReservations(): BackendReservation[] {
     const scoped = this.context.isAdmin
-      ? this.reservations
+      ? this.reservations.filter(reservation => reservation.status === 'PENDING' || this.conflictFor(reservation).hasConflict)
       : this.reservations.filter(reservation => this.providerEnterpriseId(reservation) === this.context.enterpriseId);
     return this.applyReservationFilters(scoped);
   }
@@ -156,6 +159,14 @@ export class EnterpriseReservations implements OnInit {
 
   get rejectedTabCount(): number {
     return this.reservations.filter(item => this.toUiStatus(item) === 'REJECTED').length;
+  }
+
+  get selectedReservations(): BackendReservation[] {
+    return this.myReservations.filter(item => this.selectedReservationIds.has(item.id));
+  }
+
+  get allReservationsSelected(): boolean {
+    return !!this.myReservations.length && this.myReservations.every(item => this.selectedReservationIds.has(item.id));
   }
 
   openCreate(slot?: BackendReservationSlot): void {
@@ -307,6 +318,78 @@ export class EnterpriseReservations implements OnInit {
     });
   }
 
+  toggleReservationSelection(id: number): void {
+    if (!this.context.isAdmin) {
+      return;
+    }
+
+    if (this.selectedReservationIds.has(id)) {
+      this.selectedReservationIds.delete(id);
+    } else {
+      this.selectedReservationIds.add(id);
+    }
+
+    this.selectedReservationIds = new Set(this.selectedReservationIds);
+  }
+
+  toggleAllReservations(): void {
+    if (!this.context.isAdmin) {
+      return;
+    }
+
+    if (this.allReservationsSelected) {
+      this.selectedReservationIds.clear();
+    } else {
+      this.selectedReservationIds = new Set(this.myReservations.map(item => item.id));
+    }
+  }
+
+  bulkDecide(nextStatus: UiReservationStatus): void {
+    if (!this.context.isAdmin || !this.selectedReservations.length || this.bulkBusy) {
+      return;
+    }
+
+    this.bulkBusy = true;
+    const reason = nextStatus === 'REJECTED'
+      ? window.prompt('Reason for bulk rejection:', '') ?? ''
+      : '';
+
+    const requests = this.selectedReservations.map(reservation => {
+      if (nextStatus === 'REJECTED') {
+        return this.state.cancelReservation(reservation.id, reason);
+      }
+
+      const payload: ReservationCreateRequest = {
+        company: reservation.company,
+        machine: reservation.machine,
+        date: reservation.date,
+        hours: reservation.hours,
+        startHour: reservation.startHour,
+        solar: reservation.solar,
+        slotId: reservation.slotId ?? null,
+        enterpriseId: this.consumerEnterpriseId(reservation),
+        status: this.workspace.fromUiReservationStatus(nextStatus),
+      };
+
+      return this.state.updateReservation(reservation.id, payload);
+    });
+
+    forkJoin(requests).subscribe({
+      next: () => {
+        this.success = nextStatus === 'CONFIRMED'
+          ? 'Selected reservations confirmed.'
+          : 'Selected reservations rejected.';
+        this.bulkBusy = false;
+        this.selectedReservationIds.clear();
+        this.refresh();
+      },
+      error: error => {
+        this.error = error?.error?.message ?? 'Bulk reservation action failed.';
+        this.bulkBusy = false;
+      },
+    });
+  }
+
   deleteReservation(): void {
     if (!this.pendingDelete) {
       return;
@@ -342,6 +425,14 @@ export class EnterpriseReservations implements OnInit {
 
   statusVariant(status: UiReservationStatus) {
     return this.workspace.statusVariant(status);
+  }
+
+  inspectReservation(reservation: BackendReservation): void {
+    this.selectReservation(reservation);
+  }
+
+  forceStatus(reservation: BackendReservation, nextStatus: UiReservationStatus): void {
+    this.decide(reservation, nextStatus);
   }
 
   resourceKind(value: string): ResourceKind {
@@ -382,6 +473,7 @@ export class EnterpriseReservations implements OnInit {
         this.reservations = snapshot.reservations;
         this.slots = snapshot.slots;
         this.loading = false;
+        this.selectedReservationIds.clear();
         this.loadInsights();
       },
       error: error => {

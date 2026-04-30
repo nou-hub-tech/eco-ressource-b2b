@@ -166,8 +166,8 @@
   <section class="card">
     <div class="rc-section-head">
       <div>
-        <h2>Availability heatmap</h2>
-        <p>Demand intensity by daypart using real reservation density and utilization.</p>
+        <h2>{{ context.isAdmin ? 'Super heatmap' : 'Availability heatmap' }}</h2>
+        <p>{{ context.isAdmin ? 'System-wide demand intensity across every enterprise slot.' : 'Demand intensity by daypart using real reservation density and utilization.' }}</p>
       </div>
     </div>
 
@@ -230,9 +230,41 @@
         <div class="rc-row-actions">
           <button class="btn btn-outline btn-sm" type="button" (click)="edit(slot)">Edit</button>
           <button class="btn btn-outline btn-sm" type="button" (click)="duplicate(slot)">Duplicate</button>
+          <button class="btn btn-primary btn-sm" type="button" (click)="forceSlotStatus(slot)">Override</button>
+          <button class="btn btn-outline btn-sm" type="button" (click)="inspectSlot(slot)">Inspect</button>
           <button class="btn btn-outline btn-sm" type="button" (click)="deleteSlot(slot)">Delete</button>
         </div>
       </article>
+    </div>
+  </section>
+
+  <section class="card" *ngIf="selectedSlot">
+    <div class="rc-section-head">
+      <div>
+        <h2>Slot inspection</h2>
+        <p>Marketplace-wide slot detail for admin override and conflict review.</p>
+      </div>
+      <app-status-chip [label]="selectedSlot.status" [variant]="statusVariant(selectedSlot.status)" />
+    </div>
+
+    <div class="rc-modal-list">
+      <div class="rc-modal-row">
+        <div>
+          <strong>{{ resourceName(selectedSlot.machine) }}</strong>
+          <p>{{ resourceKind(selectedSlot.machine) }} · {{ selectedSlot.date }} · {{ windowLabel(selectedSlot) }}</p>
+        </div>
+        <div class="rc-resource-badges">
+          <span class="rc-eco-badge" *ngIf="selectedSlot.solar">Eco</span>
+          <span class="rc-discount-badge" *ngIf="selectedSlot.discountPct">{{ selectedSlot.discountPct }}% off</span>
+        </div>
+      </div>
+      <div class="rc-modal-row">
+        <div>
+          <strong>Linked reservations</strong>
+          <p>{{ selectedSlotReservationCount }} requests are associated with this slot.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" type="button" (click)="forceSlotStatus(selectedSlot)">Override</button>
+      </div>
     </div>
   </section>
 

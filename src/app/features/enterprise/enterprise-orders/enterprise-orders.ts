@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { AiInsightsPanel } from '../../../features/reservation-center/components/ai-insights-panel/ai-insights-panel';
 import { StatusChip } from '../../../features/reservation-center/components/status-chip/status-chip';
@@ -32,6 +33,7 @@ export class EnterpriseOrders implements OnInit {
   error = '';
   success = '';
   showForm = false;
+  bulkBusy = false;
 
   context: EnterpriseContext = {
     enterpriseId: null,
@@ -43,6 +45,7 @@ export class EnterpriseOrders implements OnInit {
   reservations: BackendReservation[] = [];
   aiInsights: AiInsight[] = [];
   selectedOrderId: number | null = null;
+  selectedOrderIds = new Set<number>();
   form: OrderFormModel = this.createForm();
 
   readonly statuses: BackendOrderStatus[] = ['draft', 'confirmed', 'shipped', 'delivered', 'cancelled'];
@@ -99,6 +102,14 @@ export class EnterpriseOrders implements OnInit {
 
   get selectedGrandTotal(): number {
     return this.selectedOrder ? this.workspace.orderGrandTotal(this.selectedOrder) : 0;
+  }
+
+  get selectedOrders(): BackendEcoOrder[] {
+    return this.scopedOrders.filter(order => this.selectedOrderIds.has(order.id));
+  }
+
+  get allOrdersSelected(): boolean {
+    return !!this.scopedOrders.length && this.scopedOrders.every(order => this.selectedOrderIds.has(order.id));
   }
 
   openFromReservation(reservation: BackendReservation): void {
@@ -224,6 +235,106 @@ export class EnterpriseOrders implements OnInit {
     });
   }
 
+  deleteOrder(order: BackendEcoOrder): void {
+    if (!this.context.isAdmin || !window.confirm(`Delete order ${order.ref || order.id}?`)) {
+      return;
+    }
+
+    this.state.deleteOrder(order.id).subscribe({
+      next: () => {
+        this.success = 'Order deleted.';
+        this.refresh();
+      },
+      error: error => {
+        this.error = error?.error?.message ?? 'Failed to delete order.';
+      },
+    });
+  }
+
+  overrideOrder(order: BackendEcoOrder): void {
+    if (!this.context.isAdmin) {
+      return;
+    }
+
+    const nextStatus = (window.prompt(`Force status for order ${order.ref || order.id}:`, order.status) ?? '').trim() as BackendOrderStatus;
+    if (!this.statuses.includes(nextStatus)) {
+      this.error = 'Invalid order status override.';
+      return;
+    }
+
+    const payload: EcoOrderRequest = {
+      ref: order.ref,
+      companyName: order.companyName,
+      material: order.material,
+      qtyKg: order.qtyKg,
+      supplier: order.supplier,
+      distanceKm: order.distanceKm,
+      orderDate: order.orderDate,
+      status: nextStatus,
+      co2Saved: order.co2Saved ?? 0,
+      waterSaved: order.waterSaved ?? 0,
+      wasteAvoided: order.wasteAvoided ?? 0,
+      enterpriseId: order.enterprise?.id ?? this.context.enterpriseId,
+    };
+
+    this.state.updateOrder(order.id, payload).subscribe({
+      next: () => {
+        this.success = 'Order status overridden.';
+        this.refresh();
+      },
+      error: error => {
+        this.error = error?.error?.message ?? 'Failed to override order.';
+      },
+    });
+  }
+
+  toggleOrderSelection(id: number): void {
+    if (!this.context.isAdmin) {
+      return;
+    }
+
+    if (this.selectedOrderIds.has(id)) {
+      this.selectedOrderIds.delete(id);
+    } else {
+      this.selectedOrderIds.add(id);
+    }
+    this.selectedOrderIds = new Set(this.selectedOrderIds);
+  }
+
+  toggleAllOrders(): void {
+    if (!this.context.isAdmin) {
+      return;
+    }
+
+    if (this.allOrdersSelected) {
+      this.selectedOrderIds.clear();
+    } else {
+      this.selectedOrderIds = new Set(this.scopedOrders.map(order => order.id));
+    }
+  }
+
+  bulkCancelOrders(): void {
+    if (!this.context.isAdmin || !this.selectedOrders.length || this.bulkBusy) {
+      return;
+    }
+
+    this.bulkBusy = true;
+    const reason = window.prompt('Reason for bulk cancellation:', '') ?? '';
+
+    forkJoin(this.selectedOrders.map(order => this.state.cancelOrder(order.id, reason))).subscribe({
+      next: () => {
+        this.success = 'Selected orders cancelled.';
+        this.bulkBusy = false;
+        this.selectedOrderIds.clear();
+        this.refresh();
+      },
+      error: error => {
+        this.error = error?.error?.message ?? 'Failed to cancel selected orders.';
+        this.bulkBusy = false;
+      },
+    });
+  }
+
   statusVariant(status: string) {
     return this.workspace.statusVariant(status as 'draft');
   }
@@ -247,6 +358,7 @@ export class EnterpriseOrders implements OnInit {
         this.orders = snapshot.orders;
         this.reservations = snapshot.reservations;
         this.loading = false;
+        this.selectedOrderIds.clear();
         if (this.selectedOrderId == null && this.scopedOrders.length) {
           this.selectedOrderId = this.scopedOrders[0].id;
         }

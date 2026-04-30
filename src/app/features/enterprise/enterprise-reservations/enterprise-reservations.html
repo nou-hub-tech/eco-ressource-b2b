@@ -96,6 +96,14 @@
         <label>Consumer enterprise ID</label>
         <input type="number" [(ngModel)]="form.enterpriseId" />
       </div>
+      <div class="form-group" *ngIf="context.isAdmin">
+        <label>Override status</label>
+        <select [(ngModel)]="form.status">
+          <option value="PENDING">Pending</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="CANCELLED">Rejected</option>
+        </select>
+      </div>
       <label class="rc-toggle">
         <input type="checkbox" [(ngModel)]="form.solar" />
         <span>Solar-backed reservation</span>
@@ -151,6 +159,17 @@
           <h2>{{ context.isAdmin ? 'All reservations' : 'My reservations' }}</h2>
           <p>{{ context.isAdmin ? 'Consumer-side requests across the whole marketplace.' : 'Requests created by your enterprise.' }}</p>
         </div>
+        <div class="rc-actions" *ngIf="context.isAdmin">
+          <button class="btn btn-outline btn-sm" type="button" (click)="toggleAllReservations()">
+            {{ allReservationsSelected ? 'Clear selection' : 'Select all' }}
+          </button>
+          <button class="btn btn-primary btn-sm" type="button" (click)="bulkDecide('CONFIRMED')" [disabled]="!selectedReservations.length || bulkBusy">
+            {{ bulkBusy ? 'Applying...' : 'Bulk accept' }}
+          </button>
+          <button class="btn btn-outline btn-sm" type="button" (click)="bulkDecide('REJECTED')" [disabled]="!selectedReservations.length || bulkBusy">
+            Bulk reject
+          </button>
+        </div>
       </div>
 
       <div class="rc-empty" *ngIf="loading">Loading reservations...</div>
@@ -163,6 +182,10 @@
           [attr.data-status]="toUiStatus(reservation).toLowerCase()"
           (click)="selectReservation(reservation); focusedView = 'my'"
         >
+          <label class="rc-check" *ngIf="context.isAdmin" (click)="$event.stopPropagation()">
+            <input type="checkbox" [checked]="selectedReservationIds.has(reservation.id)" (change)="toggleReservationSelection(reservation.id)" />
+            <span>Select</span>
+          </label>
           <div class="rc-request-head">
             <div class="rc-request-label">
               <span class="rc-resource-token">{{ resourceToken(reservation.machine) }}</span>
@@ -188,6 +211,7 @@
 
           <div class="rc-row-actions">
             <button class="btn btn-outline btn-sm" type="button" (click)="openEdit(reservation); $event.stopPropagation()">Edit</button>
+            <button class="btn btn-outline btn-sm" type="button" (click)="inspectReservation(reservation); $event.stopPropagation()">Inspect</button>
             <button
               class="btn btn-outline btn-sm"
               type="button"
@@ -203,6 +227,14 @@
               *ngIf="context.isAdmin"
             >
               Delete
+            </button>
+            <button
+              class="btn btn-primary btn-sm"
+              type="button"
+              (click)="forceStatus(reservation, 'CONFIRMED'); $event.stopPropagation()"
+              *ngIf="context.isAdmin"
+            >
+              Override
             </button>
           </div>
         </article>
@@ -278,6 +310,21 @@
               *ngIf="context.isAdmin"
             >
               Delete
+            </button>
+            <button
+              class="btn btn-outline btn-sm"
+              type="button"
+              (click)="inspectReservation(reservation); $event.stopPropagation()"
+            >
+              Inspect
+            </button>
+            <button
+              class="btn btn-primary btn-sm"
+              type="button"
+              (click)="forceStatus(reservation, 'CONFIRMED'); $event.stopPropagation()"
+              *ngIf="context.isAdmin"
+            >
+              Override
             </button>
           </div>
         </article>

@@ -1,119 +1,139 @@
-<div class="page-wrapper">
+<div class="ad-page">
+  <section class="ad-hero card">
+    <div>
+      <p class="ad-kicker">Control center</p>
+      <h1>Marketplace supervision for reservations, slots, and eco orders.</h1>
+      <p class="ad-subtitle">
+        The admin view has full marketplace visibility, override power, and backend-driven AI insight across the reservation-to-order lifecycle.
+      </p>
+      <div class="ad-actions">
+        <button class="btn btn-primary" type="button" (click)="openAdminArea('/admin/reservations')">Review reservations</button>
+        <button class="btn btn-outline" type="button" (click)="openAdminArea('/admin/slots')">Manage slots</button>
+        <button class="btn btn-outline" type="button" (click)="openAdminArea('/admin/orders')">Inspect orders</button>
+      </div>
+    </div>
 
-  <div class="stats-grid">
-    <div class="stat-card" *ngFor="let s of stats">
-      <div class="stat-icon" [style.background]="s.bg">{{s.icon}}</div>
-      <div>
-        <div class="stat-value">{{s.value}}</div>
-        <div class="stat-label">{{s.label}}</div>
-        <div class="stat-change" [class.up]="s.up" [class.down]="!s.up">
-          {{s.up ? '▲' : '▼'}} {{s.change}}
+    <div class="ad-health-summary">
+      <div class="ad-pill warn">{{ pendingRequestsCount }} pending requests</div>
+      <div class="ad-pill danger">{{ failedOperations }} blocked / failed ops</div>
+      <div class="ad-pill eco">{{ averageUtilization }}% average utilization</div>
+    </div>
+  </section>
+
+  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+  <section class="ad-kpis">
+    <article class="ad-kpi" *ngFor="let kpi of kpis" [attr.data-tone]="kpi.tone">
+      <span>{{ kpi.label }}</span>
+      <strong>{{ kpi.value }}</strong>
+      <div class="ad-kpi-trend" [class.up]="kpi.trendUp" [class.down]="!kpi.trendUp">
+        {{ kpi.trendUp ? '↑' : '↓' }} {{ kpi.trendLabel }}
+      </div>
+    </article>
+  </section>
+
+  <section class="ad-grid">
+    <article class="card ad-card">
+      <div class="ad-card-head">
+        <div>
+          <h2>System health</h2>
+          <p>Live marketplace health indicators from real reservation, slot, and order data.</p>
         </div>
       </div>
-    </div>
-  </div>
 
-  <app-eco-leaderboard></app-eco-leaderboard>
-
-  <div class="grid-2">
-
-    <div class="card">
-      <div class="card-header">
-        <h3>Recent Registrations</h3>
-        <a routerLink="/admin/users" class="card-link">View all →</a>
+      <div class="ad-health-grid">
+        <div class="ad-health-row" *ngFor="let row of healthRows" [attr.data-tone]="row.tone">
+          <strong>{{ row.label }}</strong>
+          <span>{{ row.value }}</span>
+          <p>{{ row.detail }}</p>
+        </div>
       </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Joined</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let u of recentUsers">
-            <td>
-              <div style="display:flex;align-items:center;gap:10px">
-                <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">
-                  {{u.name.substring(0,2).toUpperCase()}}
-                </div>
-                <div>
-                  <div style="font-size:13px;font-weight:600;color:var(--text)">{{u.name}}</div>
-                  <div style="font-size:11px;color:var(--text3)">{{u.company}}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <span class="badge"
-                [ngClass]="u.role==='transporter' ? 'badge-info' : 'badge-primary'">
-                {{u.role}}
-              </span>
-            </td>
-            <td>
-              <span class="badge"
-                [ngClass]="u.status==='active' ? 'badge-success' : u.status==='pending' ? 'badge-warning' : 'badge-danger'">
-                {{u.status}}
-              </span>
-            </td>
-            <td style="font-size:12px;color:var(--text3)">{{u.date}}</td>
-            <td>
-              <button class="btn btn-outline btn-sm">Manage</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    </article>
 
-    <div class="card">
-      <div class="card-header">
-        <h3>Recent Listings</h3>
-        <a routerLink="/admin/listings" class="card-link">View all →</a>
+    <article class="card ad-card">
+      <div class="ad-card-head">
+        <div>
+          <h2>System timeline</h2>
+          <p>High-level bottleneck view from request creation through order generation.</p>
+        </div>
       </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let l of recentListings">
-            <td>
-              <div style="font-size:13px;font-weight:600;color:var(--text)">{{l.title}}</div>
-              <div style="font-size:11px;color:var(--text3)">{{l.company}}</div>
-            </td>
-            <td><span class="badge badge-neutral">{{l.category}}</span></td>
-            <td style="font-weight:600;color:var(--primary)">{{l.price}} TND</td>
-            <td>
-              <span class="badge"
-                [ngClass]="l.status==='active' ? 'badge-success' : 'badge-warning'">
-                {{l.status}}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
 
-      <div style="padding:16px 20px;border-top:1px solid var(--border)">
-        <h3 style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">System Activity</h3>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div *ngFor="let a of activity" style="display:flex;gap:10px;align-items:flex-start">
-            <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"
-              [style.background]="a.bg" [style.border]="'1px solid ' + a.bdr">
-              {{a.icon}}
-            </div>
-            <div>
-              <div style="font-size:12px;color:var(--text2);font-weight:500">{{a.text}}</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:2px">{{a.time}}</div>
-            </div>
+      <div class="ad-timeline">
+        <div class="ad-timeline-row" *ngFor="let row of timelineRows" [attr.data-tone]="row.tone">
+          <div class="ad-timeline-dot"></div>
+          <div>
+            <strong>{{ row.label }}</strong>
+            <span>{{ row.count }}</span>
+            <p>{{ row.detail }}</p>
           </div>
         </div>
       </div>
-    </div>
+    </article>
+  </section>
 
-  </div>
+  <section class="ad-grid">
+    <article class="card ad-card">
+      <div class="ad-card-head">
+        <div>
+          <h2>Super heatmap</h2>
+          <p>System-wide demand intensity combined across all enterprises.</p>
+        </div>
+      </div>
+
+      <div class="ad-heatmap" *ngIf="heatmapCells.length; else noHeatmap">
+        <div class="ad-heatmap-cell" *ngFor="let cell of heatmapCells" [ngClass]="heatmapClass(cell.occupancy)">
+          <strong>{{ cell.date }}</strong>
+          <span>{{ cell.label }}</span>
+          <span>{{ cell.reservationCount }} requests</span>
+          <span>{{ cell.occupancy }}% utilization</span>
+        </div>
+      </div>
+
+      <ng-template #noHeatmap>
+        <div class="ad-empty">No global slot demand data is available yet.</div>
+      </ng-template>
+    </article>
+
+    <article class="card ad-card">
+      <div class="ad-card-head">
+        <div>
+          <h2>Conflict detection</h2>
+          <p>Overlaps, overbooked slots, and suspicious activity that need admin review.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" type="button" (click)="openAdminArea('/admin/reservations')">Resolve</button>
+      </div>
+
+      <div class="ad-empty" *ngIf="!conflictRows.length">No critical reservation or slot conflicts are active right now.</div>
+
+      <div class="ad-conflicts" *ngIf="conflictRows.length">
+        <button class="ad-conflict-row" type="button" *ngFor="let row of conflictRows" [attr.data-severity]="row.severity" (click)="inspectConflict(row)">
+          <div>
+            <strong>{{ row.title }}</strong>
+            <p>{{ row.detail }}</p>
+          </div>
+          <span>Inspect</span>
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <section class="ad-ai-grid">
+    <app-ai-insights-panel
+      [title]="'Reservation AI'"
+      [subtitle]="'High rejection rate, peak demand delays, and supervision recommendations from the backend AI service.'"
+      [insights]="reservationInsights"
+    />
+    <app-ai-insights-panel
+      [title]="'Slot AI'"
+      [subtitle]="'System-wide distribution and rebalancing recommendations for reservation slot supply.'"
+      [insights]="slotInsights"
+    />
+    <app-ai-insights-panel
+      [title]="'Order AI'"
+      [subtitle]="'Eco-performance trends and fulfillment inefficiency warnings from backend analysis.'"
+      [insights]="orderInsights"
+    />
+  </section>
+
+  <app-eco-leaderboard></app-eco-leaderboard>
 </div>
