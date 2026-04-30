@@ -1,257 +1,283 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, ViewEncapsulation } from '@angular/core';
-import { Subscription } from 'rxjs';
-import { ThemeService } from '../../../core/services/theme';
-import { AuthService, User } from '../../../core/services/auth';
-import { ListingService, ListingDto, ReservationDto, WalletTransactionDto } from '../../../core/services/listing';
-import { TransportService, DeliveryDto } from '../../../core/services/transport.service';
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+import {
+  ResourceKind,
+  UiReservationStatus,
+} from '../../../features/reservation-center/models/reservation-center.models';
+import { ReservationCenterService } from '../../../features/reservation-center/services/reservation-center.service';
+import { ReservationCenterState } from '../../../features/reservation-center/state/reservation-center.state';
+import { BackendEcoOrder } from '../../../pages/moduleReservation/shared/api/eco-order-api.service';
+import { BackendReservation } from '../../../pages/moduleReservation/shared/api/reservation-api.service';
+import { BackendReservationSlot } from '../../../pages/moduleReservation/shared/api/reservation-slot-api.service';
+
+type DashboardFilter = 'all' | ResourceKind;
+type DashboardStatKey = 'available' | 'reserved' | 'blocked' | 'utilization';
+
+interface DashboardActionCard {
+  title: string;
+  message: string;
+  confidence: string;
+  tone: 'eco' | 'info' | 'warn';
+}
 
 @Component({
   selector: 'app-dashboard',
   standalone: false,
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
-  /* None = styles are global, so body.dark-mode .ed-hero selectors work */
-  encapsulation: ViewEncapsulation.None
 })
-export class Dashboard implements OnInit, AfterViewInit, OnDestroy {
-
-  isDark = false;
-  user: User | null = null;
-  activeCategory = 'All';
+export class Dashboard implements OnInit {
+  loading = true;
+  error = '';
   searchQuery = '';
-  currentSlide = 0;
-  slideProgress = 0;
-  private subs = new Subscription();
-  private progressTimer: any;
+  selectedType: DashboardFilter = 'all';
 
-  categories = [
-    { name: 'All',      count: 0 },
-    { name: 'Metal',    count: 0 },
-    { name: 'Plastic',  count: 0 },
-    { name: 'Paper',    count: 0 },
-    { name: 'Glass',    count: 0 },
-    { name: 'Textile',  count: 0 },
-    { name: 'Chemical', count: 0 },
-  ];
+  currentEnterpriseId: number | null = null;
+  companyName = 'Enterprise';
 
-  ticker = [
-    { name: 'AL SCRAP',  price: '0', chg:'+0%', up: true  },
-    { name: 'PET',       price: '0',   chg:'+0%', up: true  },
-    { name: 'STEEL',     price: '0',   chg:'+0%', up: false },
-    { name: 'CARDBOARD', price: '0',   chg:'+0%', up: true  },
-    { name: 'GLASS',     price: '0',   chg:'+0%', up: false },
-    { name: 'TEXTILE',   price: '0',   chg:'+0%', up: true  },
-    { name: 'COPPER',    price: '0', chg:'+0%', up: true  },
-    { name: 'HDPE',      price: '0',   chg:'+0%', up: false },
-    { name: 'STAINLESS', price: '0', chg:'+0%', up: true  },
-  ];
-  get doubleTicker() { return [...this.ticker, ...this.ticker]; }
+  slots: BackendReservationSlot[] = [];
+  reservations: BackendReservation[] = [];
+  orders: BackendEcoOrder[] = [];
 
-  heroSlides: ListingDto[] = [];
+  displayedStats: Record<DashboardStatKey, number> = {
+    available: 0,
+    reserved: 0,
+    blocked: 0,
+    utilization: 0,
+  };
 
-  get currentHero() { return this.heroSlides[this.currentSlide]; }
-  get slideCounter() {
-    return `${String(this.currentSlide + 1).padStart(2, '0')} / ${String(this.heroSlides.length).padStart(2, '0')}`;
-  }
+  readonly resourceTypes: DashboardFilter[] = ['all', 'Machine', 'Space', 'Tool', 'Other'];
 
-  quickStats = [
-    { val: '0',   lbl: 'Live Listings' },
-    { val: '0',    lbl: 'AI Matches'    },
-    { val: '0',     lbl: 'Enquiries'     },
-    { val: '0',     lbl: 'In Transit'    },
-    { val: '0', lbl: 'TND Balance'   },
-  ];
-
-  listings: ListingDto[] = [];
-
-  get filteredListings() {
-    const q = this.searchQuery.trim().toLowerCase();
-    let list = this.activeCategory === 'All'
-      ? this.listings
-      : this.listings.filter(l => l.category === this.activeCategory);
-    if (q) list = list.filter(l =>
-      l.title.toLowerCase().includes(q) ||
-      (l.company && l.company.toLowerCase().includes(q)) ||
-      (l.sub && l.sub.toLowerCase().includes(q))
-    );
-    return list;
-  }
-
-  alerts = [
-    { level: 'urgent', label: 'Reply', text: '5 new enquiries on Aluminum Scrap listing'    },
-    { level: 'warn',   label: 'Apply', text: 'AI recommends raising Aluminum price by +13%' },
-    { level: 'info',   label: 'Track', text: 'Delivery DEL-1043 Sousse to Tunis in transit' },
-  ];
-
-  myListings: ListingDto[] = [];
-
-  deliveries: DeliveryDto[] = [];
-
-  goTo(i: number): void { this.currentSlide = i; this.resetProgress(); }
-  prev(): void { this.goTo((this.currentSlide - 1 + this.heroSlides.length) % this.heroSlides.length); }
-  next(): void { this.goTo((this.currentSlide + 1) % this.heroSlides.length); }
-  setCategory(name: string): void { this.activeCategory = name; }
-
-  private resetProgress(): void {
-    clearInterval(this.progressTimer);
-    this.slideProgress = 0;
-    this.progressTimer = setInterval(() => {
-      this.slideProgress += 100 / 120;
-      if (this.slideProgress >= 100) {
-        this.slideProgress = 100;
-        clearInterval(this.progressTimer);
-        setTimeout(() => this.next(), 200);
-      }
-    }, 50);
-  }
-
-  constructor(public themeService: ThemeService, private authService: AuthService, private listingService: ListingService, private transportService: TransportService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly router: Router,
+    public readonly workspace: ReservationCenterService,
+    private readonly state: ReservationCenterState,
+  ) {}
 
   ngOnInit(): void {
-    this.subs.add(this.themeService.isDark$.subscribe(d => this.isDark = d));
-    this.subs.add(this.authService.user$.subscribe(u => this.user = u));
-    this.loadDashboardData();
-  }
+    const currentUser = this.auth.currentUser;
+    this.currentEnterpriseId = currentUser?.enterprise?.id ?? currentUser?.enterpriseId ?? null;
+    this.companyName =
+      currentUser?.enterprise?.companyName ??
+      currentUser?.company ??
+      currentUser?.name ??
+      'Enterprise';
 
-  private loadDashboardData(): void {
-    // Load all listings for marketplace
-    this.listingService.getAllListings().subscribe(listings => {
-      // Map listings to include template-compatible properties
-      this.listings = listings.map(l => ({
-        ...l,
-        match: l.match || Math.floor(Math.random() * 30) + 70,
-        enq: l.enquiries || Math.floor(Math.random() * 10),
-        trend: Math.random() > 0.5,
-        time: l.posted || 'Recently',
-        initials: l.initials || (l.company ? l.company.substring(0, 2).toUpperCase() : 'UN'),
-        verified: l.verified || Math.random() > 0.3,
-        rating: l.rating || (4 + Math.random()).toFixed(1),
-        priceDisplay: l.price ? l.price.toString() : '0',
-        sub: l.sub || `${l.category} · Available`,
-        specs: [
-          { k: 'QUANTITY', v: l.qty || 'Available' },
-          { k: 'CATEGORY', v: l.category },
-          { k: 'STATUS', v: l.status },
-          { k: 'PRICE', v: l.price ? l.price.toString() : '0' },
-          { k: 'DELIVERY', v: 'Available' }
-        ],
-        btnColor: this.getCategoryColor(l.category),
-        tag: this.getCategoryTag(l.category),
-        tagColor: this.getCategoryColor(l.category),
-        titleAccent: this.getCategoryAccent(l.category),
-        accentColor: this.getCategoryColor(l.category),
-        coColor: this.getCategoryColor(l.category),
-        location: 'Tunisia',
-        matchColor: l.match >= 90 ? '#34d399' : l.match >= 75 ? '#f59e0b' : '#ef4444'
-      }));
-      
-      this.heroSlides = this.listings.slice(0, 4);
-      this.updateCategoriesCount(this.listings);
-      this.quickStats[0].val = this.listings.length.toString();
-      this.quickStats[1].val = Math.floor(this.listings.length * 0.05).toString();
-      this.updateTicker(this.listings);
-    });
-
-    // Load my listings
-    this.listingService.getMyListings().subscribe(myListings => {
-      this.myListings = myListings.map(l => ({
-        ...l,
-        match: l.match || Math.floor(Math.random() * 30) + 70,
-        enq: l.enquiries || Math.floor(Math.random() * 10),
-        trend: Math.random() > 0.5,
-        time: l.posted || 'Recently',
-        initials: l.initials || (l.company ? l.company.substring(0, 2).toUpperCase() : 'UN'),
-        verified: l.verified || Math.random() > 0.3,
-        rating: l.rating || (4 + Math.random()).toFixed(1),
-        priceDisplay: l.price ? l.price.toString() : '0',
-        sub: l.sub || `${l.category} · Available`
-      }));
-      const activeCount = this.myListings.filter(l => l.status === 'active').length;
-      this.quickStats[2].val = activeCount.toString();
-    });
-
-    // Load deliveries
-    this.transportService.getEnterpriseDeliveries().subscribe(deliveries => {
-      this.deliveries = deliveries;
-      const inTransitCount = deliveries.filter(d => d.status === 'in-transit').length;
-      this.quickStats[3].val = inTransitCount.toString();
-    });
-
-    // Load wallet transactions
-    this.listingService.getWalletTransactions().subscribe(transactions => {
-      const balance = transactions.reduce((sum, t) => sum + (t.positive ? t.amount : -t.amount), 0);
-      this.quickStats[4].val = balance.toString();
+    this.state.loadAll().subscribe({
+      next: snapshot => {
+        this.slots = snapshot.slots;
+        this.reservations = snapshot.reservations;
+        this.orders = snapshot.orders;
+        this.loading = false;
+        this.animateStats({
+          available: this.availableCount,
+          reserved: this.reservedCount,
+          blocked: this.blockedCount,
+          utilization: this.utilization,
+        });
+      },
+      error: error => {
+        this.loading = false;
+        this.error = error?.error?.message ?? 'Failed to load the enterprise dashboard.';
+      },
     });
   }
 
-  private updateCategoriesCount(listings: ListingDto[]): void {
-    const categories = ['Metal', 'Plastic', 'Paper', 'Glass', 'Textile', 'Chemical'];
-    this.categories[0].count = listings.length;
-    categories.forEach((cat, index) => {
-      const count = listings.filter(l => l.category === cat).length;
-      this.categories[index + 1].count = count;
-    });
+  get ownedResources(): BackendReservationSlot[] {
+    return this.slots
+      .filter(slot => (slot.enterprise?.id ?? slot.enterpriseId ?? null) === this.currentEnterpriseId)
+      .sort((left, right) => left.date.localeCompare(right.date) || left.startHour - right.startHour);
   }
 
-  private updateTicker(listings: ListingDto[]): void {
-    const metalListings = listings.filter(l => l.category === 'Metal');
-    const plasticListings = listings.filter(l => l.category === 'Plastic');
-    
-    if (metalListings.length > 0) {
-      const avgPrice = metalListings.reduce((sum, l) => sum + l.price, 0) / metalListings.length;
-      this.ticker[0].price = avgPrice.toFixed(0);
-      this.ticker[2].price = (avgPrice * 0.65).toFixed(0);
+  get marketplaceResources(): BackendReservationSlot[] {
+    return this.slots
+      .filter(slot => slot.status === 'open')
+      .filter(slot => (slot.enterprise?.id ?? slot.enterpriseId ?? null) !== this.currentEnterpriseId)
+      .filter(slot => this.matchesSearch(slot.machine, slot.enterprise?.companyName ?? ''))
+      .filter(slot => this.selectedType === 'all' || this.resourceKind(slot.machine) === this.selectedType)
+      .slice(0, 6);
+  }
+
+  get filteredOwnedResources(): BackendReservationSlot[] {
+    return this.ownedResources
+      .filter(slot => this.matchesSearch(slot.machine, slot.date))
+      .filter(slot => this.selectedType === 'all' || this.resourceKind(slot.machine) === this.selectedType)
+      .slice(0, 4);
+  }
+
+  get availableCount(): number {
+    return this.ownedResources.filter(slot => slot.status === 'open').length;
+  }
+
+  get reservedCount(): number {
+    return this.ownedResources.filter(slot => slot.status === 'booked').length;
+  }
+
+  get blockedCount(): number {
+    return this.ownedResources.filter(slot => slot.status === 'blocked').length;
+  }
+
+  get utilization(): number {
+    return this.ownedResources.length ? Math.round((this.reservedCount / this.ownedResources.length) * 100) : 0;
+  }
+
+  get utilizationStrokeOffset(): number {
+    const circumference = 2 * Math.PI * 34;
+    return circumference - (circumference * this.displayedStats.utilization) / 100;
+  }
+
+  get pendingIncomingCount(): number {
+    return this.providerReservations.filter(item => item.status === 'PENDING').length;
+  }
+
+  get pendingOutgoingCount(): number {
+    return this.myReservations.filter(item => item.status === 'PENDING').length;
+  }
+
+  get confirmedOrdersCount(): number {
+    return this.orders.filter(order => order.status === 'confirmed' || order.status === 'shipped' || order.status === 'delivered').length;
+  }
+
+  get totalCo2Saved(): number {
+    return Math.round(this.orders.reduce((sum, order) => sum + (order.co2Saved ?? 0), 0));
+  }
+
+  get providerReservations(): BackendReservation[] {
+    return this.reservations
+      .filter(reservation => this.workspace.getReservationRelations(reservation, this.slots).providerEnterpriseId === this.currentEnterpriseId)
+      .sort((left, right) => left.date.localeCompare(right.date) || left.startHour - right.startHour)
+      .slice(0, 3);
+  }
+
+  get myReservations(): BackendReservation[] {
+    return this.reservations
+      .filter(reservation => this.workspace.getReservationRelations(reservation, this.slots).consumerEnterpriseId === this.currentEnterpriseId)
+      .sort((left, right) => left.date.localeCompare(right.date) || left.startHour - right.startHour)
+      .slice(0, 3);
+  }
+
+  get spotlightActions(): DashboardActionCard[] {
+    const kinds = this.ownedResources.map(slot => this.resourceKind(slot.machine));
+    const spaces = kinds.filter(kind => kind === 'Space').length;
+    const tools = kinds.filter(kind => kind === 'Tool').length;
+    const peakHour = this.peakReservationHour;
+
+    return [
+      {
+        title: `Increase capacity around ${peakHour}`,
+        message: 'Reservation traffic is clustering here, so a fresh open resource block is likely to convert quickly.',
+        confidence: `${Math.max(72, this.utilization)}% confidence`,
+        tone: 'eco',
+      },
+      {
+        title: spaces ? 'Friday spaces are trending soft' : 'Review underused resource windows',
+        message: spaces
+          ? 'Your space inventory has lighter demand later in the week. A small discount can improve fill rate.'
+          : 'Open resources with no requests yet are the best place to test a promo or wider availability window.',
+        confidence: `${Math.min(96, 58 + this.availableCount * 8)}% confidence`,
+        tone: 'info',
+      },
+      {
+        title: tools ? 'Bundle underused tools with peak resources' : 'Watch blocked resources closely',
+        message: tools
+          ? 'Tool inventory is lagging behind machine demand. Bundle adjacent availability to improve cross-sell.'
+          : 'Blocked resources are suppressing utilization. Reopen them where there is no confirmed conflict.',
+        confidence: `${Math.min(97, 64 + this.blockedCount * 7)}% confidence`,
+        tone: 'warn',
+      },
+    ];
+  }
+
+  get peakReservationHour(): string {
+    const counts = new Map<number, number>();
+    for (const reservation of [...this.myReservations, ...this.providerReservations]) {
+      counts.set(reservation.startHour, (counts.get(reservation.startHour) ?? 0) + 1);
     }
-    
-    if (plasticListings.length > 0) {
-      const avgPrice = plasticListings.reduce((sum, l) => sum + l.price, 0) / plasticListings.length;
-      this.ticker[1].price = avgPrice.toFixed(0);
-      this.ticker[7].price = (avgPrice * 0.76).toFixed(0);
+
+    if (!counts.size) {
+      return '10 AM';
     }
-    
-    this.ticker.forEach(t => {
-      const change = (Math.random() - 0.5) * 10;
-      t.chg = `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
-      t.up = change >= 0;
+
+    const [hour] = [...counts.entries()].sort((left, right) => right[1] - left[1])[0];
+    return this.workspace.formatHour(hour);
+  }
+
+  resourceKind(value: string): ResourceKind {
+    return this.workspace.resourceKind(value);
+  }
+
+  resourceName(value: string): string {
+    return this.workspace.resourceName(value);
+  }
+
+  resourceToken(value: string): string {
+    return this.workspace.resourceToken(value);
+  }
+
+  resourceAccent(value: string): string {
+    return this.workspace.resourceAccent(this.resourceKind(value));
+  }
+
+  reservationWindow(reservation: BackendReservation): string {
+    return this.workspace.formatWindow(reservation.startHour, reservation.startHour + reservation.hours);
+  }
+
+  slotWindow(slot: BackendReservationSlot): string {
+    return this.workspace.formatWindow(slot.startHour, slot.endHour);
+  }
+
+  providerName(slot: BackendReservationSlot): string {
+    return slot.enterprise?.companyName ?? `Enterprise #${slot.enterprise?.id ?? slot.enterpriseId ?? ''}`;
+  }
+
+  uiStatus(reservation: BackendReservation): UiReservationStatus {
+    return this.workspace.toUiReservationStatus(reservation.status);
+  }
+
+  requestReservation(slot: BackendReservationSlot): void {
+    this.router.navigate(['/enterprise/reservations'], {
+      queryParams: {
+        slotId: slot.id,
+        machine: slot.machine,
+        date: slot.date,
+        startHour: slot.startHour,
+        hours: Math.max(1, slot.endHour - slot.startHour),
+        solar: slot.solar,
+      },
     });
   }
 
-  private getCategoryColor(category: string): string {
-    const colors: { [key: string]: string } = {
-      'Metal': '#0056d2',
-      'Plastic': '#0a7c4f',
-      'Paper': '#92400e',
-      'Glass': '#4c1d95',
-      'Textile': '#a78bfa',
-      'Chemical': '#dc2626'
-    };
-    return colors[category] || '#6b7280';
+  private matchesSearch(...values: string[]): boolean {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+
+    return values.some(value => value.toLowerCase().includes(query));
   }
 
-  private getCategoryTag(category: string): string {
-    const tags: { [key: string]: string } = {
-      'Metal': 'PREMIUM · HIGH GRADE',
-      'Plastic': 'RECYCLED · ECO-FRIENDLY',
-      'Paper': 'COMPRESSED · READY TO SHIP',
-      'Glass': 'CLEAN · FOOD GRADE',
-      'Textile': 'SORTED · QUALITY ASSURED',
-      'Chemical': 'LAB TESTED · CERTIFIED'
-    };
-    return tags[category] || 'AVAILABLE · QUALITY CHECKED';
-  }
+  private animateStats(targets: Record<DashboardStatKey, number>): void {
+    const duration = 700;
+    const startedAt = performance.now();
 
-  private getCategoryAccent(category: string): string {
-    const accents: { [key: string]: string } = {
-      'Metal': 'Grade A',
-      'Plastic': 'Pellets',
-      'Paper': 'Bales',
-      'Glass': 'Cullet',
-      'Textile': 'Bales',
-      'Chemical': 'Pure'
-    };
-    return accents[category] || 'Premium';
-  }
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
 
-  ngAfterViewInit(): void { this.resetProgress(); }
-  ngOnDestroy(): void { this.subs.unsubscribe(); clearInterval(this.progressTimer); }
+      this.displayedStats = {
+        available: Math.round(targets.available * eased),
+        reserved: Math.round(targets.reserved * eased),
+        blocked: Math.round(targets.blocked * eased),
+        utilization: Math.round(targets.utilization * eased),
+      };
+
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      }
+    };
+
+    requestAnimationFrame(tick);
+  }
 }

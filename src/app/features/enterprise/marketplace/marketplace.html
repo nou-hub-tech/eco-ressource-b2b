@@ -1,45 +1,98 @@
 <div class="mkt-page">
+  <div class="mkt-background"></div>
+
   <section class="mkt-hero card">
-    <div>
+    <div class="mkt-copy">
       <p class="mkt-kicker">Marketplace</p>
-      <h1>Browse external slots</h1>
+      <h1>Reserve multi-format resources from other enterprises.</h1>
       <p>
-        This catalog is backend-driven and only shows open slots owned by other enterprises. Reservation requests stay pending until the slot owner makes a decision.
+        Explore machine capacity, spaces, tools, and other eco-resources in one resource-first catalog. Every card comes from open reservation slots owned by another enterprise.
       </p>
     </div>
-    <div class="mkt-toolbar">
-      <div class="search-box">
-        <span>Search</span>
-        <input [(ngModel)]="search" placeholder="Machine, provider, date" />
+
+    <div class="mkt-stats">
+      <div class="mkt-stat">
+        <span>Open resources</span>
+        <strong>{{ openCount }}</strong>
       </div>
-      <label class="mkt-toggle">
-        <input type="checkbox" [(ngModel)]="solarOnly" />
-        <span>Solar only</span>
-      </label>
+      <div class="mkt-stat">
+        <span>Solar-backed</span>
+        <strong>{{ solarCount }}</strong>
+      </div>
+      <div class="mkt-stat">
+        <span>Discounted</span>
+        <strong>{{ discountedCount }}</strong>
+      </div>
     </div>
   </section>
 
-  <div class="mkt-empty" *ngIf="loading">Loading marketplace slots...</div>
+  <section class="mkt-toolbar card">
+    <div class="mkt-search">
+      <span>Search</span>
+      <input [ngModel]="searchInput" (ngModelChange)="updateSearch($event)" placeholder="Resource, provider, or date" />
+    </div>
+
+    <div class="mkt-chip-row">
+      <button
+        class="mkt-chip"
+        type="button"
+        *ngFor="let type of resourceTypes"
+        [class.active]="selectedType === type"
+        (click)="selectedType = type"
+      >
+        {{ type === 'all' ? 'All' : type }}
+      </button>
+    </div>
+
+    <label class="mkt-date">
+      <span>Date</span>
+      <input type="date" [(ngModel)]="selectedDate" />
+    </label>
+
+    <label class="mkt-toggle">
+      <input type="checkbox" [(ngModel)]="solarOnly" />
+      <span>Solar only</span>
+    </label>
+  </section>
+
+  <div class="mkt-empty" *ngIf="loading">Loading marketplace resources...</div>
   <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
 
   <section class="mkt-grid" *ngIf="!loading && marketplaceSlots.length">
     <article class="mkt-card" *ngFor="let slot of marketplaceSlots">
+      <div class="mkt-card-glow"></div>
+
       <div class="mkt-card-top">
-        <span class="badge badge-success">{{ slot.status }}</span>
-        <span class="badge badge-info">{{ slot.discountPct || 0 }}% off</span>
+        <div class="mkt-resource">
+          <span class="mkt-token">{{ resourceToken(slot.machine) }}</span>
+          <div>
+            <span class="mkt-type">{{ resourceKind(slot.machine) }}</span>
+            <h3>{{ resourceName(slot.machine) }}</h3>
+          </div>
+        </div>
+        <span class="mkt-badge eco" *ngIf="slot.solar">Solar</span>
       </div>
-      <h3>{{ slot.machine }}</h3>
-      <p>{{ slot.enterprise?.companyName || ('Enterprise #' + (slot.enterprise?.id ?? slot.enterpriseId)) }}</p>
+
+      <p class="mkt-provider">{{ providerName(slot) }}</p>
+
       <div class="mkt-meta">
         <span>{{ slot.date }}</span>
-        <span>{{ slot.startHour }}:00 - {{ slot.endHour }}:00</span>
-        <span>{{ slot.solar ? 'Solar-backed' : 'Standard power' }}</span>
+        <span>{{ windowLabel(slot) }}</span>
+        <span>{{ slot.discountPct || 0 }}% discount</span>
       </div>
-      <button class="btn btn-primary" type="button" (click)="reserve(slot)">Request reservation</button>
+
+      <div class="mkt-card-footer">
+        <div class="mkt-pricing">
+          <strong>Pricing on request</strong>
+          <span>{{ slot.discountPct ? 'Discount ready' : 'Provider managed' }}</span>
+        </div>
+
+        <button class="btn btn-primary btn-sm" type="button" (click)="reserve(slot)">Request Reservation</button>
+      </div>
     </article>
   </section>
 
   <div class="mkt-empty" *ngIf="!loading && !marketplaceSlots.length">
-    No open slots match the current filters.
+    No open resources match the current filters.
   </div>
 </div>

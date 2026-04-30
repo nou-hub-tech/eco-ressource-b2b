@@ -19,6 +19,7 @@ import { BackendEcoOrder } from '../../../pages/moduleReservation/shared/api/eco
 import {
   OrderTrendPoint,
   PriceBreakdownLine,
+  ResourceKind,
   ReservationConflict,
   ReservationRelations,
   ReservationTimelineItem,
@@ -30,6 +31,8 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class ReservationCenterService {
+  readonly resourceKinds: ResourceKind[] = ['Machine', 'Space', 'Tool', 'Other'];
+
   getReservationRelations(
     reservation: BackendReservation,
     slots: BackendReservationSlot[],
@@ -230,6 +233,109 @@ export class ReservationCenterService {
 
   orderGrandTotal(order: BackendEcoOrder): number {
     return this.buildPriceBreakdown(order).reduce((sum, line) => sum + line.value, 0);
+  }
+
+  resourceKind(value: string | null | undefined): ResourceKind {
+    const normalized = (value ?? '').trim().toLowerCase();
+
+    if (
+      normalized.startsWith('machine:') ||
+      normalized.includes('machine') ||
+      normalized.includes('robot') ||
+      normalized.includes('press') ||
+      normalized.includes('cnc') ||
+      normalized.includes('line') ||
+      normalized.includes('generator') ||
+      normalized.includes('forklift') ||
+      normalized.includes('compressor')
+    ) {
+      return 'Machine';
+    }
+
+    if (
+      normalized.startsWith('space:') ||
+      normalized.includes('space') ||
+      normalized.includes('workspace') ||
+      normalized.includes('warehouse') ||
+      normalized.includes('yard') ||
+      normalized.includes('studio') ||
+      normalized.includes('lab') ||
+      normalized.includes('floor') ||
+      normalized.includes('room') ||
+      normalized.includes('bay')
+    ) {
+      return 'Space';
+    }
+
+    if (
+      normalized.startsWith('tool:') ||
+      normalized.includes('tool') ||
+      normalized.includes('drill') ||
+      normalized.includes('wrench') ||
+      normalized.includes('cutter') ||
+      normalized.includes('kit') ||
+      normalized.includes('scanner') ||
+      normalized.includes('meter')
+    ) {
+      return 'Tool';
+    }
+
+    return 'Other';
+  }
+
+  resourceName(value: string | null | undefined): string {
+    const raw = (value ?? '').trim();
+    return raw.replace(/^(machine|space|tool|other)\s*[:\-|]\s*/i, '').trim() || raw;
+  }
+
+  resourceLabel(kind: ResourceKind, name: string): string {
+    const cleanedName = name.trim();
+    if (!cleanedName) {
+      return '';
+    }
+
+    return kind === 'Other' ? cleanedName : `${kind}: ${cleanedName}`;
+  }
+
+  resourceToken(value: string | ResourceKind | null | undefined): string {
+    const kind = this.resourceKinds.includes(value as ResourceKind)
+      ? (value as ResourceKind)
+      : this.resourceKind(String(value ?? ''));
+
+    switch (kind) {
+      case 'Machine':
+        return 'MC';
+      case 'Space':
+        return 'SP';
+      case 'Tool':
+        return 'TL';
+      default:
+        return 'RS';
+    }
+  }
+
+  resourceAccent(kind: ResourceKind): 'eco' | 'info' | 'warn' | 'neutral' {
+    if (kind === 'Machine') {
+      return 'info';
+    }
+    if (kind === 'Space') {
+      return 'eco';
+    }
+    if (kind === 'Tool') {
+      return 'warn';
+    }
+    return 'neutral';
+  }
+
+  formatHour(hour: number): string {
+    const normalized = Math.max(0, Math.min(23, Math.floor(hour)));
+    const suffix = normalized >= 12 ? 'PM' : 'AM';
+    const base = normalized % 12 || 12;
+    return `${base} ${suffix}`;
+  }
+
+  formatWindow(startHour: number, endHour: number): string {
+    return `${this.formatHour(startHour)} - ${this.formatHour(endHour)}`;
   }
 
   statusVariant(status: UiReservationStatus | BackendSlotStatus | BackendEcoOrder['status']): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {

@@ -16,6 +16,7 @@ export type InsightTone = 'eco' | 'warn' | 'danger' | 'info' | 'neutral';
 export type ModuleScope = 'marketplace' | 'slots' | 'reservations' | 'orders';
 export type ReservationViewMode = 'enterprise' | 'admin';
 export type SlotCalendarMode = 'week' | 'month';
+export type ResourceKind = 'Machine' | 'Space' | 'Tool' | 'Other';
 
 export interface EnterpriseContext {
   enterpriseId: number | null;
@@ -101,7 +102,8 @@ export interface ReservationFormModel {
 
 export interface SlotFormModel {
   id: number | null;
-  machine: string;
+  resourceName: string;
+  resourceType: ResourceKind;
   date: string;
   startHour: number;
   endHour: number;

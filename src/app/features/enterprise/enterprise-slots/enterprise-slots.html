@@ -1,54 +1,74 @@
 <div class="rc-page">
   <section class="rc-hero card">
     <div>
-      <p class="rc-kicker">Slot operations</p>
-      <h1>{{ context.isAdmin ? 'Slot Supervision' : 'My Slots' }}</h1>
+      <p class="rc-kicker">Resource operations</p>
+      <h1>{{ context.isAdmin ? 'Resource Supervision' : 'My Resources' }}</h1>
       <p class="rc-subtitle">
         {{ context.isAdmin
-          ? 'Override, inspect, and rebalance capacity across every enterprise slot.'
-          : 'Manage the slots your enterprise owns while keeping marketplace availability healthy.' }}
+          ? 'Inspect and override every resource slot across the marketplace.'
+          : 'Manage the resources your enterprise owns, from machines to tools and industrial spaces.' }}
       </p>
     </div>
+
     <div class="rc-hero-stats">
-      <div class="rc-stat">
-        <span>Open</span>
+      <div class="rc-stat available">
+        <span>Available</span>
         <strong>{{ openSlotsCount }}</strong>
       </div>
-      <div class="rc-stat">
-        <span>Booked</span>
+      <div class="rc-stat reserved">
+        <span>Reserved</span>
         <strong>{{ bookedSlotsCount }}</strong>
       </div>
-      <div class="rc-stat">
+      <div class="rc-stat blocked">
         <span>Blocked</span>
         <strong>{{ blockedSlotsCount }}</strong>
       </div>
-      <div class="rc-stat warning">
-        <span>Utilization</span>
-        <strong>{{ totalUtilization }}%</strong>
+      <div class="rc-progress-card">
+        <svg viewBox="0 0 88 88">
+          <circle cx="44" cy="44" r="34"></circle>
+          <circle class="rc-progress-ring" cx="44" cy="44" r="34" [style.stroke-dashoffset]="214 - (214 * totalUtilization / 100)"></circle>
+        </svg>
+        <div>
+          <strong>{{ totalUtilization }}%</strong>
+          <span>Utilization</span>
+        </div>
       </div>
     </div>
   </section>
 
   <app-ai-insights-panel
-    [title]="'Slot AI suggestions'"
-    [subtitle]="'Backend recommendations for availability optimization and demand balancing.'"
+    [title]="'Resource AI suggestions'"
+    [subtitle]="'Insight cards from backend optimization services for pricing, availability, and eco positioning.'"
     [insights]="aiInsights"
     (action)="applyInsight($event)"
   />
 
   <section class="rc-grid">
-    <article class="card">
+    <article class="card rc-form-card">
       <div class="rc-section-head">
         <div>
-          <h2>{{ form.id ? 'Update slot' : 'Create slot' }}</h2>
-          <p>Full CRUD for slot inventory with backend-synced availability.</p>
+          <h2>{{ form.id ? 'Update resource' : 'Create resource' }}</h2>
+          <p>Use the existing reservation slot backend while presenting each slot as a reusable marketplace resource.</p>
         </div>
+      </div>
+
+      <div class="rc-type-grid">
+        <button
+          class="rc-type-card"
+          type="button"
+          *ngFor="let kind of resourceKinds"
+          [class.active]="form.resourceType === kind"
+          (click)="form.resourceType = kind"
+        >
+          <span class="rc-type-token">{{ resourceToken(kind) }}</span>
+          <strong>{{ kind }}</strong>
+        </button>
       </div>
 
       <div class="rc-form-grid">
         <div class="form-group">
-          <label>Machine</label>
-          <input [(ngModel)]="form.machine" />
+          <label>Resource name</label>
+          <input [(ngModel)]="form.resourceName" placeholder="CNC line, Yard A, Solar drill set" />
         </div>
         <div class="form-group">
           <label>Date</label>
@@ -56,32 +76,44 @@
         </div>
         <div class="form-group">
           <label>Start hour</label>
-          <input type="number" min="0" max="23" [(ngModel)]="form.startHour" />
+          <input type="range" min="0" max="22" [(ngModel)]="form.startHour" />
+          <small>{{ workspace.formatHour(form.startHour) }}</small>
         </div>
         <div class="form-group">
           <label>End hour</label>
-          <input type="number" min="1" max="24" [(ngModel)]="form.endHour" />
+          <input type="range" min="1" max="24" [(ngModel)]="form.endHour" />
+          <small>{{ workspace.formatHour(form.endHour === 24 ? 23 : form.endHour) }}</small>
         </div>
         <div class="form-group">
-          <label>Discount (%)</label>
-          <input type="number" min="0" max="100" [(ngModel)]="form.discountPct" />
+          <label>Discount</label>
+          <input type="range" min="0" max="40" [(ngModel)]="form.discountPct" />
+          <small>{{ form.discountPct }}% live discount</small>
         </div>
         <div class="form-group" *ngIf="context.isAdmin">
           <label>Owner enterprise ID</label>
           <input type="number" [(ngModel)]="form.enterpriseId" />
         </div>
-        <div class="form-group">
-          <label>Status</label>
-          <select [(ngModel)]="form.status">
-            <option value="open">Open</option>
-            <option value="booked">Booked</option>
-            <option value="blocked">Blocked</option>
-          </select>
+      </div>
+
+      <div class="rc-toggle-row">
+        <div class="rc-status-toggle">
+          <button type="button" [class.active]="form.status === 'open'" (click)="form.status = 'open'">Available</button>
+          <button type="button" [class.active]="form.status === 'booked'" (click)="form.status = 'booked'">Reserved</button>
+          <button type="button" [class.active]="form.status === 'blocked'" (click)="form.status = 'blocked'">Blocked</button>
         </div>
-        <label class="rc-toggle">
+
+        <label class="rc-toggle eco">
           <input type="checkbox" [(ngModel)]="form.solar" />
-          <span>Solar-backed slot</span>
+          <span>Solar / eco enabled</span>
         </label>
+      </div>
+
+      <div class="rc-preview">
+        <span class="rc-preview-token">{{ resourceToken(form.resourceType) }}</span>
+        <div>
+          <strong>{{ form.resourceName || 'Resource preview' }}</strong>
+          <p>{{ form.resourceType }} · {{ form.date }} · {{ workspace.formatWindow(form.startHour, form.endHour) }}</p>
+        </div>
       </div>
 
       <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
@@ -89,7 +121,7 @@
 
       <div class="rc-actions">
         <button class="btn btn-primary" type="button" (click)="saveSlot()" [disabled]="saving">
-          {{ saving ? 'Saving...' : (form.id ? 'Update slot' : 'Create slot') }}
+          {{ saving ? 'Saving...' : (form.id ? 'Update resource' : 'Create resource') }}
         </button>
         <button class="btn btn-outline" type="button" (click)="resetForm()">Clear</button>
       </div>
@@ -99,7 +131,7 @@
       <div class="rc-section-head">
         <div>
           <h2>Calendar view</h2>
-          <p>Weekly and monthly capacity map from backend slot data.</p>
+          <p>Hover for status, click a day to inspect the resource windows behind it.</p>
         </div>
         <div class="rc-actions">
           <button class="btn btn-outline btn-sm" type="button" (click)="moveCalendar(-1)">Prev</button>
@@ -110,17 +142,23 @@
       </div>
 
       <div class="rc-calendar" *ngIf="calendarCells.length; else noCalendar">
-        <div class="rc-calendar-cell" *ngFor="let cell of calendarCells">
+        <button
+          class="rc-calendar-cell"
+          type="button"
+          *ngFor="let cell of calendarCells"
+          [class.available]="cell.openCount === cell.slotCount && cell.slotCount > 0"
+          [class.partial]="cell.openCount > 0 && cell.openCount < cell.slotCount"
+          [class.full]="cell.slotCount > 0 && cell.openCount === 0"
+          (click)="openCalendarDate(cell.date)"
+        >
           <strong>{{ cell.label }}</strong>
-          <span>{{ cell.slotCount }} slots</span>
-          <span>{{ cell.openCount }} open</span>
-          <span>{{ cell.bookedCount }} booked</span>
-          <span>{{ cell.pendingCount }} pending req.</span>
-        </div>
+          <span>{{ cell.slotCount }} resources</span>
+          <span>{{ cell.pendingCount }} pending</span>
+        </button>
       </div>
 
       <ng-template #noCalendar>
-        <div class="rc-empty">No slot data is available for the current range.</div>
+        <div class="rc-empty">No resource data is available for the current range.</div>
       </ng-template>
     </article>
   </section>
@@ -129,62 +167,96 @@
     <div class="rc-section-head">
       <div>
         <h2>Availability heatmap</h2>
-        <p>Occupancy by daypart, calculated from real slots and related reservation requests.</p>
+        <p>Demand intensity by daypart using real reservation density and utilization.</p>
       </div>
     </div>
 
     <div class="rc-heatmap" *ngIf="heatmapCells.length; else noHeatmap">
-      <div class="rc-heatmap-cell" *ngFor="let cell of heatmapCells" [ngClass]="heatmapClass(cell.occupancy)">
+      <div
+        class="rc-heatmap-cell"
+        *ngFor="let cell of heatmapCells"
+        [ngClass]="heatmapClass(cell.occupancy)"
+        [attr.title]="heatmapTooltip(cell)"
+      >
         <strong>{{ cell.date }}</strong>
         <span>{{ cell.label }}</span>
-        <span>{{ cell.occupancy }}% occupied</span>
-        <span>{{ cell.reservationCount }} requests</span>
+        <span>{{ cell.reservationCount }} reservations</span>
+        <span>{{ cell.occupancy }}% utilization</span>
+        <div class="rc-heatmap-tooltip">{{ heatmapTooltip(cell) }}</div>
       </div>
     </div>
 
     <ng-template #noHeatmap>
-      <div class="rc-empty">Heatmap data will appear once slots exist for your enterprise.</div>
+      <div class="rc-empty">Heatmap data will appear once resources exist for your enterprise.</div>
     </ng-template>
   </section>
 
   <section class="card">
     <div class="rc-section-head">
       <div>
-        <h2>{{ context.isAdmin ? 'All slots' : 'Owned slots' }}</h2>
-        <p>{{ context.isAdmin ? 'Override all slot records.' : 'Slots where slot.ownerEnterpriseId equals your enterprise ID.' }}</p>
+        <h2>{{ context.isAdmin ? 'All resources' : 'Owned resources' }}</h2>
+        <p>{{ context.isAdmin ? 'Manage every persisted resource slot.' : 'Resource cards sourced from the slot inventory your enterprise owns.' }}</p>
       </div>
       <a class="btn btn-outline btn-sm" [routerLink]="['/enterprise/marketplace']" *ngIf="!context.isAdmin">Browse marketplace</a>
     </div>
 
-    <div class="rc-empty" *ngIf="loading">Loading slots...</div>
-    <div class="rc-empty" *ngIf="!loading && !ownedSlots.length">No slot records found.</div>
+    <div class="rc-empty" *ngIf="loading">Loading resources...</div>
+    <div class="rc-empty rc-empty-state" *ngIf="!loading && !ownedSlots.length">
+      <div class="rc-empty-illustration">RS</div>
+      <div>
+        <strong>Create your first resource</strong>
+        <p>Publish a machine, workspace, tool, or other eco-resource to start receiving requests.</p>
+      </div>
+    </div>
 
-    <table class="data-table" *ngIf="!loading && ownedSlots.length">
-      <thead>
-        <tr>
-          <th>Machine</th>
-          <th>Date</th>
-          <th>Window</th>
-          <th>Solar</th>
-          <th>Discount</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let slot of ownedSlots">
-          <td>{{ slot.machine }}</td>
-          <td>{{ slot.date }}</td>
-          <td>{{ slot.startHour }}:00 - {{ slot.endHour }}:00</td>
-          <td>{{ slot.solar ? 'Yes' : 'No' }}</td>
-          <td>{{ slot.discountPct || 0 }}%</td>
-          <td><app-status-chip [label]="slot.status" [variant]="statusVariant(slot.status)" /></td>
-          <td class="rc-row-actions">
-            <button class="btn btn-outline btn-sm" type="button" (click)="edit(slot)">Edit</button>
-            <button class="btn btn-outline btn-sm" type="button" (click)="deleteSlot(slot)">Delete</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="rc-resource-grid" *ngIf="!loading && ownedSlots.length">
+      <article class="rc-resource-card" *ngFor="let slot of ownedSlots">
+        <div class="rc-resource-top">
+          <span class="rc-resource-token" [attr.data-tone]="resourceAccent(resourceKind(slot.machine))">{{ resourceToken(slot.machine) }}</span>
+          <div>
+            <span class="rc-resource-type">{{ resourceKind(slot.machine) }}</span>
+            <h3>{{ resourceName(slot.machine) }}</h3>
+          </div>
+        </div>
+        <div class="rc-resource-meta">
+          <span>{{ slot.date }}</span>
+          <span>{{ windowLabel(slot) }}</span>
+        </div>
+        <div class="rc-resource-badges">
+          <app-status-chip [label]="slot.status" [variant]="statusVariant(slot.status)" />
+          <span class="rc-eco-badge" *ngIf="slot.solar">Eco</span>
+          <span class="rc-discount-badge" *ngIf="slot.discountPct">{{ slot.discountPct }}% off</span>
+        </div>
+        <div class="rc-row-actions">
+          <button class="btn btn-outline btn-sm" type="button" (click)="edit(slot)">Edit</button>
+          <button class="btn btn-outline btn-sm" type="button" (click)="duplicate(slot)">Duplicate</button>
+          <button class="btn btn-outline btn-sm" type="button" (click)="deleteSlot(slot)">Delete</button>
+        </div>
+      </article>
+    </div>
   </section>
+
+  <div class="modal-overlay" *ngIf="selectedCalendarDate" (click)="closeCalendarDate()">
+    <div class="modal rc-calendar-modal" (click)="$event.stopPropagation()">
+      <div class="rc-section-head">
+        <div>
+          <h2>{{ selectedCalendarDate }}</h2>
+          <p>Resource windows for the selected calendar day.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" type="button" (click)="closeCalendarDate()">Close</button>
+      </div>
+
+      <div class="rc-empty" *ngIf="!selectedCalendarSlots.length">No resources are scheduled on this date.</div>
+
+      <div class="rc-modal-list" *ngIf="selectedCalendarSlots.length">
+        <div class="rc-modal-row" *ngFor="let slot of selectedCalendarSlots">
+          <div>
+            <strong>{{ resourceName(slot.machine) }}</strong>
+            <p>{{ resourceKind(slot.machine) }} · {{ windowLabel(slot) }}</p>
+          </div>
+          <app-status-chip [label]="slot.status" [variant]="statusVariant(slot.status)" />
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

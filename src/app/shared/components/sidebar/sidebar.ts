@@ -27,6 +27,7 @@ export class Sidebar implements OnInit {
     marketplace: 'M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0',
     listings: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 12h6M9 16h4',
     stock: 'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z',
+    resources: 'M4 11l8-8 8 8M5 10v9h14v-9M9 19v-5h6v5',
     deliveries: 'M1 3h15v13H1zM16 8h4l3 3v5h-7V8z',
     reservations: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z',
     transactions: 'M1 4h22v16H1zM1 10h22',
@@ -72,7 +73,7 @@ export class Sidebar implements OnInit {
 
     { section: 'Marketplace' },
     { label: 'Marketplace', icon: 'marketplace', route: '/enterprise/marketplace' },
-    { label: 'My Slots', icon: 'reservations', route: '/enterprise/slots' },
+    { label: 'My Resources', icon: 'resources', route: '/enterprise/slots' },
     { label: 'My Reservations', icon: 'requests', route: '/enterprise/reservations' },
     { label: 'Incoming Requests', icon: 'requests', route: '/enterprise/incoming-requests' },
     { label: 'Orders', icon: 'transactions', route: '/enterprise/orders' },

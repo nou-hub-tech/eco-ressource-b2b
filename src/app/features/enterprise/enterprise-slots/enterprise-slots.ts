@@ -8,6 +8,7 @@ import { StatusChip } from '../../../features/reservation-center/components/stat
 import {
   AiInsight,
   EnterpriseContext,
+  ResourceKind,
   SlotCalendarMode,
   SlotFormModel,
 } from '../../../features/reservation-center/models/reservation-center.models';
@@ -46,12 +47,14 @@ export class EnterpriseSlots implements OnInit {
   calendarMode: SlotCalendarMode = 'week';
   calendarAnchor = new Date();
   form: SlotFormModel = this.createForm();
+  selectedCalendarDate = '';
+  readonly resourceKinds: ResourceKind[] = ['Machine', 'Space', 'Tool', 'Other'];
 
   constructor(
     private readonly auth: AuthService,
     private readonly state: ReservationCenterState,
     private readonly ai: ReservationCenterAiService,
-    private readonly workspace: ReservationCenterService,
+    public readonly workspace: ReservationCenterService,
   ) {}
 
   ngOnInit(): void {
@@ -101,7 +104,8 @@ export class EnterpriseSlots implements OnInit {
   edit(slot: BackendReservationSlot): void {
     this.form = {
       id: slot.id,
-      machine: slot.machine,
+      resourceName: this.workspace.resourceName(slot.machine),
+      resourceType: this.workspace.resourceKind(slot.machine),
       date: slot.date,
       startHour: slot.startHour,
       endHour: slot.endHour,
@@ -121,8 +125,8 @@ export class EnterpriseSlots implements OnInit {
       return;
     }
 
-    if (!this.form.machine.trim() || !this.form.date) {
-      this.error = 'Machine and date are required.';
+    if (!this.form.resourceName.trim() || !this.form.date) {
+      this.error = 'Resource name and date are required.';
       return;
     }
     if (this.form.endHour <= this.form.startHour) {
@@ -131,7 +135,7 @@ export class EnterpriseSlots implements OnInit {
     }
 
     const payload: SlotRequest = {
-      machine: this.form.machine.trim(),
+      machine: this.workspace.resourceLabel(this.form.resourceType, this.form.resourceName),
       date: this.form.date,
       startHour: this.form.startHour,
       endHour: this.form.endHour,
@@ -163,7 +167,7 @@ export class EnterpriseSlots implements OnInit {
   }
 
   deleteSlot(slot: BackendReservationSlot): void {
-    if (!window.confirm(`Delete slot ${slot.machine} on ${slot.date}?`)) {
+    if (!window.confirm(`Delete resource ${this.workspace.resourceName(slot.machine)} on ${slot.date}?`)) {
       return;
     }
 
@@ -280,7 +284,8 @@ export class EnterpriseSlots implements OnInit {
   private createForm(): SlotFormModel {
     return {
       id: null,
-      machine: '',
+      resourceName: '',
+      resourceType: 'Machine',
       date: new Date().toISOString().slice(0, 10),
       startHour: 8,
       endHour: 12,
@@ -289,5 +294,84 @@ export class EnterpriseSlots implements OnInit {
       enterpriseId: this.context.enterpriseId,
       status: 'open',
     };
+  }
+
+  resourceKind(value: string): ResourceKind {
+    return this.workspace.resourceKind(value);
+  }
+
+  resourceName(value: string): string {
+    return this.workspace.resourceName(value);
+  }
+
+  resourceToken(value: string | ResourceKind): string {
+    return this.workspace.resourceToken(value);
+  }
+
+  resourceAccent(value: string | ResourceKind): string {
+    const kind = this.resourceKinds.includes(value as ResourceKind)
+      ? (value as ResourceKind)
+      : this.workspace.resourceKind(String(value));
+    return this.workspace.resourceAccent(kind);
+  }
+
+  windowLabel(slot: BackendReservationSlot): string {
+    return this.workspace.formatWindow(slot.startHour, slot.endHour);
+  }
+
+  duplicate(slot: BackendReservationSlot): void {
+    const payload: SlotRequest = {
+      machine: slot.machine,
+      date: slot.date,
+      startHour: slot.startHour,
+      endHour: slot.endHour,
+      solar: slot.solar,
+      discountPct: slot.discountPct,
+      enterpriseId: slot.enterprise?.id ?? slot.enterpriseId ?? this.context.enterpriseId,
+      status: slot.status,
+    };
+
+    this.state.createSlot(payload).subscribe({
+      next: () => {
+        this.success = 'Resource duplicated.';
+        this.refresh();
+      },
+      error: error => {
+        this.error = error?.error?.message ?? 'Failed to duplicate resource.';
+      },
+    });
+  }
+
+  openCalendarDate(date: string): void {
+    this.selectedCalendarDate = date;
+  }
+
+  closeCalendarDate(): void {
+    this.selectedCalendarDate = '';
+  }
+
+  get selectedCalendarSlots(): BackendReservationSlot[] {
+    return this.ownedSlots
+      .filter(slot => slot.date === this.selectedCalendarDate)
+      .sort((left, right) => left.startHour - right.startHour);
+  }
+
+  heatmapTooltip(cell: { date: string; occupancy: number; reservationCount: number }): string {
+    return `${cell.reservationCount} reservations · ${cell.occupancy}% utilization · peak ${this.peakHoursForDate(cell.date)}`;
+  }
+
+  peakHoursForDate(date: string): string {
+    const scoped = this.relatedReservations.filter(reservation => reservation.date === date);
+    if (!scoped.length) {
+      return 'Open capacity';
+    }
+
+    const counts = new Map<number, number>();
+    for (const reservation of scoped) {
+      counts.set(reservation.startHour, (counts.get(reservation.startHour) ?? 0) + 1);
+    }
+
+    const [hour] = [...counts.entries()].sort((left, right) => right[1] - left[1])[0];
+    return this.workspace.formatHour(hour);
   }
 }

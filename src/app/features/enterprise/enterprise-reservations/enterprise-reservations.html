@@ -5,20 +5,20 @@
       <h1>{{ dashboardTitle }}</h1>
       <p class="rc-subtitle">
         {{ context.isAdmin
-          ? 'Full visibility over every request, provider decision, and reservation-to-order handoff.'
-          : 'One enterprise role, two contexts: consumer when you request, provider when you own the slot.' }}
+          ? 'Inspect the full request lifecycle, from pending review to order-ready confirmation.'
+          : 'Act as a consumer when you request capacity, and as a provider when another enterprise requests one of your resources.' }}
       </p>
     </div>
     <div class="rc-hero-stats">
-      <div class="rc-stat">
+      <div class="rc-stat pending">
         <span>Pending</span>
         <strong>{{ pendingCount }}</strong>
       </div>
-      <div class="rc-stat">
+      <div class="rc-stat confirmed">
         <span>Confirmed</span>
         <strong>{{ confirmedCount }}</strong>
       </div>
-      <div class="rc-stat">
+      <div class="rc-stat rejected">
         <span>Rejected</span>
         <strong>{{ rejectedCount }}</strong>
       </div>
@@ -31,22 +31,30 @@
 
   <app-ai-insights-panel
     [title]="'Reservation AI'"
-    [subtitle]="'Backend-driven booking optimization and request triage.'"
+    [subtitle]="'Live insight cards for booking optimization and provider-side triage.'"
     [insights]="aiInsights"
     (action)="handleInsightAction($event)"
   />
 
   <section class="card rc-toolbar">
-    <div class="search-box">
+    <div class="search-box rc-search">
       <span>Search</span>
-      <input [(ngModel)]="search" placeholder="Company, machine, date, status" />
+      <input [(ngModel)]="search" placeholder="Company, resource, date, status" />
     </div>
-    <select class="filter-select" [(ngModel)]="statusFilter">
-      <option value="all">All statuses</option>
-      <option value="PENDING">Pending</option>
-      <option value="CONFIRMED">Confirmed</option>
-      <option value="REJECTED">Rejected</option>
-    </select>
+
+    <div class="rc-tabs">
+      <button type="button" [class.active]="statusFilter === 'all'" (click)="statusFilter = 'all'">All</button>
+      <button type="button" [class.active]="statusFilter === 'PENDING'" (click)="statusFilter = 'PENDING'">
+        Pending <span>{{ pendingTabCount }}</span>
+      </button>
+      <button type="button" [class.active]="statusFilter === 'CONFIRMED'" (click)="statusFilter = 'CONFIRMED'">
+        Confirmed <span>{{ confirmedTabCount }}</span>
+      </button>
+      <button type="button" [class.active]="statusFilter === 'REJECTED'" (click)="statusFilter = 'REJECTED'">
+        Rejected <span>{{ rejectedTabCount }}</span>
+      </button>
+    </div>
+
     <button class="btn btn-primary" type="button" (click)="openCreate()" *ngIf="context.isAdmin">New Reservation</button>
   </section>
 
@@ -54,7 +62,7 @@
     <div class="rc-section-head">
       <div>
         <h2>{{ form.id ? 'Update reservation' : 'Create reservation request' }}</h2>
-        <p>Requests start in pending status and only confirmed requests may later generate orders.</p>
+        <p>Requests start pending and only confirmed reservations can later create an order.</p>
       </div>
       <button class="btn btn-outline btn-sm" type="button" (click)="closeForm()">Close</button>
     </div>
@@ -69,7 +77,7 @@
         <input type="number" [(ngModel)]="form.slotId" />
       </div>
       <div class="form-group">
-        <label>Machine</label>
+        <label>Resource label</label>
         <input [(ngModel)]="form.machine" />
       </div>
       <div class="form-group">
@@ -108,38 +116,32 @@
   <section class="card" *ngIf="!context.isAdmin">
     <div class="rc-section-head">
       <div>
-        <h2>Marketplace</h2>
-        <p>Browse slots owned by other enterprises and submit a reservation request.</p>
+        <h2>Marketplace shortcuts</h2>
+        <p>Request external resources directly or jump into the full marketplace experience.</p>
       </div>
       <a class="btn btn-outline btn-sm" [routerLink]="['/enterprise/marketplace']">Open marketplace</a>
     </div>
 
-    <div class="rc-empty" *ngIf="!marketplaceSlots.length">No open external slots are available right now.</div>
+    <div class="rc-empty" *ngIf="!marketplaceSlots.length">No open external resources are available right now.</div>
 
-    <table class="data-table" *ngIf="marketplaceSlots.length">
-      <thead>
-        <tr>
-          <th>Provider</th>
-          <th>Machine</th>
-          <th>Date</th>
-          <th>Window</th>
-          <th>Solar</th>
-          <th>Discount</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let slot of marketplaceSlots | slice:0:6">
-          <td>{{ slot.enterprise?.companyName || ('Enterprise #' + (slot.enterprise?.id ?? slot.enterpriseId)) }}</td>
-          <td>{{ slot.machine }}</td>
-          <td>{{ slot.date }}</td>
-          <td>{{ slot.startHour }}:00 - {{ slot.endHour }}:00</td>
-          <td>{{ slot.solar ? 'Yes' : 'No' }}</td>
-          <td>{{ slot.discountPct || 0 }}%</td>
-          <td><button class="btn btn-primary btn-sm" type="button" (click)="openCreate(slot)">Request</button></td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="rc-market-grid" *ngIf="marketplaceSlots.length">
+      <article class="rc-market-card" *ngFor="let slot of marketplaceSlots | slice:0:4">
+        <div class="rc-market-head">
+          <span class="rc-resource-token">{{ resourceToken(slot.machine) }}</span>
+          <div>
+            <span class="rc-resource-type">{{ resourceKind(slot.machine) }}</span>
+            <h3>{{ resourceName(slot.machine) }}</h3>
+          </div>
+        </div>
+        <p>{{ slot.enterprise?.companyName || ('Enterprise #' + (slot.enterprise?.id ?? slot.enterpriseId)) }}</p>
+        <div class="rc-market-meta">
+          <span>{{ slot.date }}</span>
+          <span>{{ workspace.formatWindow(slot.startHour, slot.endHour) }}</span>
+          <span>{{ slot.discountPct || 0 }}% discount</span>
+        </div>
+        <button class="btn btn-primary btn-sm" type="button" (click)="openCreate(slot)">Request Reservation</button>
+      </article>
+    </div>
   </section>
 
   <section class="rc-grid">
@@ -147,131 +149,139 @@
       <div class="rc-section-head">
         <div>
           <h2>{{ context.isAdmin ? 'All reservations' : 'My reservations' }}</h2>
-          <p>{{ context.isAdmin ? 'Cross-marketplace consumer requests.' : 'Requests created by your enterprise.' }}</p>
+          <p>{{ context.isAdmin ? 'Consumer-side requests across the whole marketplace.' : 'Requests created by your enterprise.' }}</p>
         </div>
       </div>
 
       <div class="rc-empty" *ngIf="loading">Loading reservations...</div>
       <div class="rc-empty" *ngIf="!loading && !myReservations.length">No matching reservations.</div>
 
-      <table class="data-table" *ngIf="!loading && myReservations.length">
-        <thead>
-          <tr>
-            <th>Company</th>
-            <th>Machine</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Conflict</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let reservation of myReservations" (click)="selectReservation(reservation)">
-            <td>{{ reservation.company }}</td>
-            <td>{{ reservation.machine }}</td>
-            <td>{{ reservation.date }}</td>
-            <td>
-              <app-status-chip
-                [label]="toUiStatus(reservation)"
-                [variant]="statusVariant(toUiStatus(reservation))"
-              />
-            </td>
-            <td>
-              <span [class.rc-conflict]="conflictFor(reservation).hasConflict">
-                {{ conflictFor(reservation).label }}
-              </span>
-            </td>
-            <td class="rc-row-actions">
-              <button class="btn btn-outline btn-sm" type="button" (click)="openEdit(reservation); $event.stopPropagation()">Edit</button>
-              <button
-                class="btn btn-outline btn-sm"
-                type="button"
-                (click)="requestDelete(reservation); $event.stopPropagation()"
-                *ngIf="context.isAdmin"
-              >
-                Delete
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="rc-request-list" *ngIf="!loading && myReservations.length">
+        <article
+          class="rc-request-card"
+          *ngFor="let reservation of myReservations"
+          [attr.data-status]="toUiStatus(reservation).toLowerCase()"
+          (click)="selectReservation(reservation); focusedView = 'my'"
+        >
+          <div class="rc-request-head">
+            <div class="rc-request-label">
+              <span class="rc-resource-token">{{ resourceToken(reservation.machine) }}</span>
+              <div>
+                <span class="rc-resource-type">{{ resourceKind(reservation.machine) }}</span>
+                <h3>{{ resourceName(reservation.machine) }}</h3>
+              </div>
+            </div>
+            <app-status-chip [label]="toUiStatus(reservation)" [variant]="statusVariant(toUiStatus(reservation))" />
+          </div>
+
+          <p>{{ reservation.company }}</p>
+
+          <div class="rc-request-meta">
+            <span>{{ reservation.date }}</span>
+            <span>{{ reservationWindow(reservation) }}</span>
+            <span>{{ reservation.solar ? 'Solar-backed' : 'Standard power' }}</span>
+          </div>
+
+          <div class="rc-request-conflict" [class.active]="conflictFor(reservation).hasConflict">
+            {{ conflictFor(reservation).label }}
+          </div>
+
+          <div class="rc-row-actions">
+            <button class="btn btn-outline btn-sm" type="button" (click)="openEdit(reservation); $event.stopPropagation()">Edit</button>
+            <button
+              class="btn btn-outline btn-sm"
+              type="button"
+              (click)="cancelReservation(reservation); $event.stopPropagation()"
+              *ngIf="!context.isAdmin && reservation.status !== 'CANCELLED'"
+            >
+              Cancel
+            </button>
+            <button
+              class="btn btn-outline btn-sm"
+              type="button"
+              (click)="requestDelete(reservation); $event.stopPropagation()"
+              *ngIf="context.isAdmin"
+            >
+              Delete
+            </button>
+          </div>
+        </article>
+      </div>
     </article>
 
     <article class="card">
       <div class="rc-section-head">
         <div>
           <h2>{{ context.isAdmin ? 'All provider decisions' : 'Incoming requests' }}</h2>
-          <p>{{ context.isAdmin ? 'Override any request from the control center.' : 'Requests on slots owned by your enterprise.' }}</p>
+          <p>{{ context.isAdmin ? 'Override any request from the control center.' : 'Requests on resources owned by your enterprise.' }}</p>
         </div>
       </div>
 
       <div class="rc-empty" *ngIf="loading">Loading incoming requests...</div>
       <div class="rc-empty" *ngIf="!loading && !providerReservations.length">No incoming requests.</div>
 
-      <table class="data-table" *ngIf="!loading && providerReservations.length">
-        <thead>
-          <tr>
-            <th>Company</th>
-            <th>Machine</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Conflict</th>
-            <th>AI Suggestion</th>
-            <th>Decision</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let reservation of providerReservations" (click)="selectReservation(reservation)">
-            <td>{{ reservation.company }}</td>
-            <td>{{ reservation.machine }}</td>
-            <td>{{ reservation.date }}</td>
-            <td>
-              <app-status-chip
-                [label]="toUiStatus(reservation)"
-                [variant]="statusVariant(toUiStatus(reservation))"
-              />
-            </td>
-            <td>
-              <span [class.rc-conflict]="conflictFor(reservation).hasConflict">
-                {{ conflictFor(reservation).label }}
-              </span>
-            </td>
-            <td>
-              <app-decision-assistant
-                [reservation]="reservation"
-                [reservations]="providerReservations"
-                [slots]="slots"
-              />
-            </td>
-            <td class="rc-row-actions">
-              <button
-                class="btn btn-primary btn-sm"
-                type="button"
-                (click)="decide(reservation, 'CONFIRMED'); $event.stopPropagation()"
-                [disabled]="reservation.status !== 'PENDING'"
-              >
-                Accept
-              </button>
-              <button
-                class="btn btn-outline btn-sm"
-                type="button"
-                (click)="decide(reservation, 'REJECTED'); $event.stopPropagation()"
-                [disabled]="reservation.status !== 'PENDING'"
-              >
-                Reject
-              </button>
-              <button
-                class="btn btn-outline btn-sm"
-                type="button"
-                (click)="requestDelete(reservation); $event.stopPropagation()"
-                *ngIf="context.isAdmin"
-              >
-                Delete
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="rc-request-list" *ngIf="!loading && providerReservations.length">
+        <article
+          class="rc-request-card provider"
+          *ngFor="let reservation of providerReservations"
+          [attr.data-status]="toUiStatus(reservation).toLowerCase()"
+          (click)="selectReservation(reservation); focusedView = 'incoming'"
+        >
+          <div class="rc-request-head">
+            <div class="rc-request-label">
+              <span class="rc-resource-token">{{ resourceToken(reservation.machine) }}</span>
+              <div>
+                <span class="rc-resource-type">{{ resourceKind(reservation.machine) }}</span>
+                <h3>{{ resourceName(reservation.machine) }}</h3>
+              </div>
+            </div>
+            <app-status-chip [label]="toUiStatus(reservation)" [variant]="statusVariant(toUiStatus(reservation))" />
+          </div>
+
+          <p>{{ reservation.company }}</p>
+
+          <div class="rc-request-meta">
+            <span>{{ reservation.date }}</span>
+            <span>{{ reservationWindow(reservation) }}</span>
+            <span>{{ providerName(reservation) }}</span>
+          </div>
+
+          <div class="rc-request-conflict" [class.active]="conflictFor(reservation).hasConflict">
+            {{ conflictFor(reservation).label }}
+          </div>
+
+          <div class="rc-assistant-row">
+            <app-decision-assistant [reservation]="reservation" [reservations]="providerReservations" [slots]="slots" />
+          </div>
+
+          <div class="rc-row-actions">
+            <button
+              class="btn btn-primary btn-sm"
+              type="button"
+              (click)="decide(reservation, 'CONFIRMED'); $event.stopPropagation()"
+              [disabled]="reservation.status !== 'PENDING'"
+            >
+              Accept
+            </button>
+            <button
+              class="btn btn-outline btn-sm"
+              type="button"
+              (click)="decide(reservation, 'REJECTED'); $event.stopPropagation()"
+              [disabled]="reservation.status !== 'PENDING'"
+            >
+              Reject
+            </button>
+            <button
+              class="btn btn-outline btn-sm"
+              type="button"
+              (click)="requestDelete(reservation); $event.stopPropagation()"
+              *ngIf="context.isAdmin"
+            >
+              Delete
+            </button>
+          </div>
+        </article>
+      </div>
     </article>
   </section>
 
@@ -281,30 +291,29 @@
         <h2>Lifecycle</h2>
         <p>Timeline and conflict analysis for reservation #{{ selectedReservation.id }}.</p>
       </div>
-      <app-status-chip
-        [label]="toUiStatus(selectedReservation)"
-        [variant]="statusVariant(toUiStatus(selectedReservation))"
-      />
+      <app-status-chip [label]="toUiStatus(selectedReservation)" [variant]="statusVariant(toUiStatus(selectedReservation))" />
     </div>
 
-    <div class="rc-timeline">
-      <div class="rc-timeline-item" *ngFor="let item of selectedReservationTimeline">
-        <span class="rc-timeline-dot" [ngClass]="item.status"></span>
-        <div>
-          <strong>{{ item.label }}</strong>
-          <p>{{ item.description }}</p>
+    <div class="rc-detail-grid">
+      <div class="rc-timeline">
+        <div class="rc-timeline-item" *ngFor="let item of selectedReservationTimeline">
+          <span class="rc-timeline-dot" [ngClass]="item.status"></span>
+          <div>
+            <strong>{{ item.label }}</strong>
+            <p>{{ item.description }}</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="rc-conflict-box" [class.active]="conflictFor(selectedReservation).hasConflict">
-      <strong>{{ conflictFor(selectedReservation).label }}</strong>
-      <p *ngIf="conflictFor(selectedReservation).hasConflict">
-        This request overlaps with {{ conflictFor(selectedReservation).blockingReservations.length }} active reservation(s).
-      </p>
-      <p *ngIf="!conflictFor(selectedReservation).hasConflict">
-        No overlapping request is blocking the provider decision.
-      </p>
+      <div class="rc-conflict-box" [class.active]="conflictFor(selectedReservation).hasConflict">
+        <strong>{{ conflictFor(selectedReservation).label }}</strong>
+        <p *ngIf="conflictFor(selectedReservation).hasConflict">
+          This request overlaps with {{ conflictFor(selectedReservation).blockingReservations.length }} active reservation(s).
+        </p>
+        <p *ngIf="!conflictFor(selectedReservation).hasConflict">
+          No overlapping request is blocking the provider decision.
+        </p>
+      </div>
     </div>
   </section>
 

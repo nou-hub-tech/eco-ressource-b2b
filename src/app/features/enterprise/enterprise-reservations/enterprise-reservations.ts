@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { AiInsightsPanel } from '../../../features/reservation-center/components/ai-insights-panel/ai-insights-panel';
@@ -9,6 +10,7 @@ import { StatusChip } from '../../../features/reservation-center/components/stat
 import {
   AiInsight,
   EnterpriseContext,
+  ResourceKind,
   ReservationConflict,
   ReservationFormModel,
   UiReservationStatus,
@@ -45,6 +47,7 @@ export class EnterpriseReservations implements OnInit {
   selectedReservationId: number | null = null;
   selectedSlotId: number | null = null;
   pendingDelete: BackendReservation | null = null;
+  focusedView: 'my' | 'incoming' = 'my';
 
   reservations: BackendReservation[] = [];
   slots: BackendReservationSlot[] = [];
@@ -60,13 +63,31 @@ export class EnterpriseReservations implements OnInit {
 
   constructor(
     private readonly auth: AuthService,
+    private readonly route: ActivatedRoute,
     private readonly state: ReservationCenterState,
     private readonly ai: ReservationCenterAiService,
-    private readonly workspace: ReservationCenterService,
+    public readonly workspace: ReservationCenterService,
   ) {}
 
   ngOnInit(): void {
     this.context = this.readContext();
+    this.route.queryParamMap.subscribe(params => {
+      const slotId = Number(params.get('slotId'));
+      if (!slotId) {
+        return;
+      }
+
+      this.openCreate({
+        id: slotId,
+        machine: params.get('machine') ?? '',
+        date: params.get('date') ?? new Date().toISOString().slice(0, 10),
+        startHour: Number(params.get('startHour') ?? 8),
+        endHour: Number(params.get('startHour') ?? 8) + Number(params.get('hours') ?? 1),
+        solar: params.get('solar') === 'true',
+        status: 'open',
+        discountPct: 0,
+      } as BackendReservationSlot);
+    });
     this.refresh();
   }
 
@@ -123,6 +144,18 @@ export class EnterpriseReservations implements OnInit {
 
   get conflictCount(): number {
     return this.providerReservations.filter(item => this.conflictFor(item).hasConflict).length;
+  }
+
+  get pendingTabCount(): number {
+    return this.reservations.filter(item => this.toUiStatus(item) === 'PENDING').length;
+  }
+
+  get confirmedTabCount(): number {
+    return this.reservations.filter(item => this.toUiStatus(item) === 'CONFIRMED').length;
+  }
+
+  get rejectedTabCount(): number {
+    return this.reservations.filter(item => this.toUiStatus(item) === 'REJECTED').length;
   }
 
   openCreate(slot?: BackendReservationSlot): void {
@@ -261,6 +294,19 @@ export class EnterpriseReservations implements OnInit {
     this.showAdminDelete = true;
   }
 
+  cancelReservation(reservation: BackendReservation): void {
+    const reason = window.prompt('Reason for cancellation:', reservation.cancelReason ?? '') ?? '';
+    this.state.cancelReservation(reservation.id, reason).subscribe({
+      next: () => {
+        this.success = 'Reservation cancelled.';
+        this.refresh();
+      },
+      error: error => {
+        this.error = error?.error?.message ?? 'Failed to cancel reservation.';
+      },
+    });
+  }
+
   deleteReservation(): void {
     if (!this.pendingDelete) {
       return;
@@ -296,6 +342,27 @@ export class EnterpriseReservations implements OnInit {
 
   statusVariant(status: UiReservationStatus) {
     return this.workspace.statusVariant(status);
+  }
+
+  resourceKind(value: string): ResourceKind {
+    return this.workspace.resourceKind(value);
+  }
+
+  resourceName(value: string): string {
+    return this.workspace.resourceName(value);
+  }
+
+  resourceToken(value: string): string {
+    return this.workspace.resourceToken(value);
+  }
+
+  reservationWindow(reservation: BackendReservation): string {
+    return this.workspace.formatWindow(reservation.startHour, reservation.startHour + reservation.hours);
+  }
+
+  providerName(reservation: BackendReservation): string {
+    const slot = this.slots.find(item => item.id === reservation.slotId);
+    return slot?.enterprise?.companyName ?? `Enterprise #${slot?.enterprise?.id ?? slot?.enterpriseId ?? ''}`;
   }
 
   handleInsightAction(_insight: AiInsight): void {
