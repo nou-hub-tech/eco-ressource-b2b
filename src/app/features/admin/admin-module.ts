@@ -77,7 +77,7 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     Dashboard,
-    Users,
+    Users,  
     Stock,
     TreasuryAdmin,
     Deliveries,
