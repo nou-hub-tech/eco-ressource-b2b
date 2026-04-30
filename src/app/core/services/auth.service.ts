@@ -10,6 +10,11 @@ export interface User {
   email: string;
   role: 'admin' | 'enterprise' | 'transporter';
   company?: string;
+  enterpriseId?: number | null;
+  enterprise?: {
+    id: number;
+    companyName?: string;
+  } | null;
   avatar: string;
 }
 
@@ -23,6 +28,11 @@ interface JwtResponse {
     email: string;
     role: string;
     company?: string;
+    enterpriseId?: number | null;
+    enterprise?: {
+      id: number;
+      companyName?: string;
+    } | null;
     avatar: string;
   };
 }
@@ -134,6 +144,8 @@ export class AuthService {
       email: u.email,
       role: routeRole,
       company: u.company,
+      enterpriseId: u.enterprise?.id ?? u.enterpriseId ?? null,
+      enterprise: u.enterprise ?? null,
       avatar: u.avatar
     };
   }

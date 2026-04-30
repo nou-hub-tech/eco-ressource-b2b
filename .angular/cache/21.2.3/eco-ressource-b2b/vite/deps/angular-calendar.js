@@ -2,7 +2,7 @@ import {
   ResizableDirective,
   ResizableModule,
   ResizeHandleDirective
-} from "./chunk-HQFOF6MS.js";
+} from "./chunk-BCI32YLD.js";
 import {
   AsyncPipe,
   NgClass,
@@ -10,8 +10,8 @@ import {
   NgTemplateOutlet,
   SlicePipe,
   formatDate
-} from "./chunk-IVQHS6EK.js";
-import "./chunk-ZIJYX4CD.js";
+} from "./chunk-354QQDOH.js";
+import "./chunk-TJFWRZUU.js";
 import {
   DragAndDropModule,
   DraggableDirective,

@@ -62,6 +62,10 @@ export class ReservationApiService {
     return this.http.post<BackendReservation>(this.baseUrl, req);
   }
 
+  createWithSlot(slotId: number, req: Omit<ReservationCreateRequest, 'slotId'>): Observable<BackendReservation> {
+    return this.http.post<BackendReservation>(`${this.baseUrl}/with-slot/${slotId}`, req);
+  }
+
   update(id: number, req: ReservationCreateRequest): Observable<BackendReservation> {
     return this.http.put<BackendReservation>(`${this.baseUrl}/${id}`, req);
   }

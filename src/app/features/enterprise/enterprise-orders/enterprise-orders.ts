@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
+import { AiService } from '../../../../services/ai.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   BackendEcoGrade,
@@ -17,6 +18,7 @@ import {
 
 type OrderFormModel = {
   id: number | null;
+  enterpriseId: number | null;
   ref: string;
   companyName: string;
   material: string;
@@ -51,6 +53,7 @@ export class EnterpriseOrders implements OnInit {
 
   orders: BackendEcoOrder[] = [];
   reservations: BackendReservation[] = [];
+  aiRecommendations: string[] = [];
   currentEnterpriseId: number | null = null;
   statusDrafts: Record<number, BackendOrderStatus> = {};
   form: OrderFormModel = this.createEmptyForm();
@@ -58,6 +61,7 @@ export class EnterpriseOrders implements OnInit {
   readonly statuses: BackendOrderStatus[] = ['draft', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 
   constructor(
+    private readonly aiService: AiService,
     private readonly auth: AuthService,
     private readonly orderApi: EcoOrderApiService,
     private readonly reservationApi: ReservationApiService,
@@ -67,16 +71,24 @@ export class EnterpriseOrders implements OnInit {
     this.loadData();
   }
 
+  get isAdminView(): boolean {
+    return this.auth.currentUser?.role === 'admin';
+  }
+
   get myOrders(): BackendEcoOrder[] {
-    return this.orders
-      .filter(order => !order.deleted && this.enterpriseIdForOrder(order) === this.currentEnterpriseId)
-      .sort((a, b) => b.orderDate.localeCompare(a.orderDate));
+    const scopedOrders = this.isAdminView
+      ? this.orders.filter(order => !order.deleted)
+      : this.orders.filter(order => !order.deleted && this.enterpriseIdForOrder(order) === this.currentEnterpriseId);
+    return scopedOrders.sort((a, b) => b.orderDate.localeCompare(a.orderDate));
   }
 
   get marketplaceReservations(): BackendReservation[] {
+    if (this.isAdminView) {
+      return [];
+    }
     return this.reservations
       .filter(reservation => !reservation.deleted && this.enterpriseIdForReservation(reservation) !== this.currentEnterpriseId)
-      .filter(reservation => reservation.status !== 'CANCELLED')
+      .filter(reservation => reservation.status === 'CONFIRMED')
       .sort((a, b) => a.date.localeCompare(b.date) || a.startHour - b.startHour);
   }
 
@@ -160,6 +172,7 @@ export class EnterpriseOrders implements OnInit {
     this.success = '';
     this.form = {
       id: order.id,
+      enterpriseId: this.enterpriseIdForOrder(order),
       ref: order.ref,
       companyName: order.companyName,
       material: order.material,
@@ -184,11 +197,12 @@ export class EnterpriseOrders implements OnInit {
     this.success = '';
     this.form = {
       id: null,
+      enterpriseId: this.currentEnterpriseId,
       ref: '',
-      companyName: this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? '',
+      companyName: this.auth.currentUser?.enterprise?.companyName ?? this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? '',
       material: reservation.machine,
       qtyKg: Math.max(1, reservation.hours * 10),
-      supplier: `Reservation ${reservation.id}`,
+      supplier: '',
       distanceKm: 0,
       orderDate: reservation.date,
       status: 'draft',
@@ -242,7 +256,7 @@ export class EnterpriseOrders implements OnInit {
     if (this.savingForm) {
       return;
     }
-    if (this.currentEnterpriseId == null) {
+    if (this.form.enterpriseId == null && this.currentEnterpriseId == null) {
       this.error = 'Unable to resolve the current enterprise identity.';
       return;
     }
@@ -273,7 +287,7 @@ export class EnterpriseOrders implements OnInit {
       co2Saved: this.form.co2Saved,
       waterSaved: this.form.waterSaved,
       wasteAvoided: this.form.wasteAvoided,
-      enterpriseId: this.currentEnterpriseId,
+      enterpriseId: this.form.enterpriseId ?? this.currentEnterpriseId,
     };
 
     const request$ = this.editMode && this.form.id
@@ -312,7 +326,7 @@ export class EnterpriseOrders implements OnInit {
       co2Saved: order.co2Saved ?? null,
       waterSaved: order.waterSaved ?? null,
       wasteAvoided: order.wasteAvoided ?? null,
-      enterpriseId: this.currentEnterpriseId,
+      enterpriseId: this.enterpriseIdForOrder(order) ?? this.currentEnterpriseId,
     };
 
     this.savingId = order.id;
@@ -385,6 +399,7 @@ export class EnterpriseOrders implements OnInit {
       next: ({ orders, reservations }) => {
         this.orders = orders.filter(order => !order.deleted);
         this.reservations = reservations.filter(reservation => !reservation.deleted);
+        this.loadAiRecommendations();
         this.statusDrafts = {};
         for (const order of this.myOrders) {
           this.statusDrafts[order.id] = order.status;
@@ -405,8 +420,9 @@ export class EnterpriseOrders implements OnInit {
   private createEmptyForm(): OrderFormModel {
     return {
       id: null,
+      enterpriseId: this.currentEnterpriseId,
       ref: '',
-      companyName: this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? '',
+      companyName: this.auth.currentUser?.enterprise?.companyName ?? this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? '',
       material: '',
       qtyKg: 0,
       supplier: '',
@@ -423,8 +439,17 @@ export class EnterpriseOrders implements OnInit {
   }
 
   private readCurrentEnterpriseId(): number | null {
-    const raw = (this.auth.currentUser as { enterprise?: { id?: number | string } } | null)?.enterprise?.id
-      ?? this.auth.currentUser?.id;
+    const raw = (
+      this.auth.currentUser as {
+        enterprise?: { id?: number | string };
+        enterpriseId?: number | string;
+      } | null
+    )?.enterprise?.id ?? (
+      this.auth.currentUser as {
+        enterprise?: { id?: number | string };
+        enterpriseId?: number | string;
+      } | null
+    )?.enterpriseId;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : null;
   }
@@ -472,5 +497,42 @@ export class EnterpriseOrders implements OnInit {
     if (grade === 'C') return 3;
     if (grade === 'D') return 2;
     return 1;
+  }
+
+  private loadAiRecommendations(): void {
+    this.aiService.getRecommendation().subscribe({
+      next: response => {
+        this.aiRecommendations = this.extractAiMessages(response);
+      },
+      error: () => {
+        this.aiRecommendations = [];
+      },
+    });
+  }
+
+  private extractAiMessages(response: unknown): string[] {
+    const source = Array.isArray(response)
+      ? response
+      : Array.isArray((response as { recommendations?: unknown[] } | null)?.recommendations)
+        ? (response as { recommendations: unknown[] }).recommendations
+        : Array.isArray((response as { items?: unknown[] } | null)?.items)
+          ? (response as { items: unknown[] }).items
+          : typeof (response as { message?: unknown } | null)?.message === 'string'
+            ? [(response as { message: string }).message]
+            : [];
+
+    return source
+      .map(item => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          const candidate = (item as { text?: unknown; message?: unknown; label?: unknown });
+          if (typeof candidate.text === 'string') return candidate.text;
+          if (typeof candidate.message === 'string') return candidate.message;
+          if (typeof candidate.label === 'string') return candidate.label;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .slice(0, 3);
   }
 }

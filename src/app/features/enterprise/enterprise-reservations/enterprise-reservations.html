@@ -1,7 +1,16 @@
 <div class="page-wrapper">
   <div class="page-header">
     <h1>Enterprise Reservations</h1>
-    <p>Provider view for incoming reservations and consumer view for marketplace slot booking.</p>
+    <p>{{ isAdminView ? 'Administrative supervision for all reservation requests.' : 'Provider view for incoming reservations and consumer view for marketplace slot booking.' }}</p>
+  </div>
+
+  <div class="card" *ngIf="aiRecommendations.length">
+    <h2 style="margin:0 0 10px">AI Recommendations</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      <div *ngFor="let recommendation of aiRecommendations" style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc">
+        {{ recommendation }}
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -63,6 +72,11 @@
     </div>
 
     <div class="form-row" style="margin-top:16px">
+      <div class="form-group" *ngIf="isAdminView">
+        <label>Enterprise ID</label>
+        <input type="number" name="formEnterpriseId" [(ngModel)]="form.enterpriseId" />
+      </div>
+
       <div class="form-group">
         <label>Company</label>
         <input type="text" name="formCompany" [(ngModel)]="form.company" />
@@ -130,7 +144,7 @@
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div>
         <h2 style="margin:0 0 8px">My Data</h2>
-        <p style="margin:0;color:var(--text2)">Incoming reservations on slots owned by your enterprise.</p>
+        <p style="margin:0;color:var(--text2)">{{ isAdminView ? 'All reservations across the marketplace.' : 'Incoming reservations on slots owned by your enterprise.' }}</p>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <span class="badge badge-neutral">Reservations: {{ myReservationCount }}</span>
@@ -175,7 +189,7 @@
           <td>{{ reservation.company }}</td>
           <td>{{ reservation.machine }}</td>
           <td>{{ reservation.date }}</td>
-          <td>{{ reservation.startHour }}:00 - {{ (reservation.startHour ?? 0) + durationHours(reservation) }}:00</td>
+          <td>{{ reservation.startHour }}:00 - {{ reservation.startHour + durationHours(reservation) }}:00</td>
           <td><span class="badge badge-neutral">{{ reservation.status }}</span></td>
           <td>
             <span
@@ -205,11 +219,11 @@
     </table>
 
     <div class="table-state" *ngIf="!loading && !incomingReservations.length" style="margin-top:16px">
-      No incoming reservations found for your enterprise.
+      {{ isAdminView ? 'No reservations found in the system.' : 'No incoming reservations found for your enterprise.' }}
     </div>
   </section>
 
-  <section class="card">
+  <section class="card" *ngIf="!isAdminView">
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div>
         <h2 style="margin:0 0 8px">Marketplace</h2>

@@ -1,7 +1,16 @@
 <div class="page-wrapper">
   <div class="page-header">
     <h1>Enterprise Slots</h1>
-    <p>Provider mode for your published slots and consumer mode for marketplace slot reservation.</p>
+    <p>{{ isAdminView ? 'Administrative supervision for all marketplace slots.' : 'Provider mode for your published slots and consumer mode for marketplace slot reservation.' }}</p>
+  </div>
+
+  <div class="card" *ngIf="aiRecommendations.length">
+    <h2 style="margin:0 0 10px">AI Recommendations</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      <div *ngFor="let recommendation of aiRecommendations" style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc">
+        {{ recommendation }}
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -34,7 +43,7 @@
         <p style="margin:0;color:var(--text2)">{{ smartSuggestion.reason }}</p>
       </div>
 
-      <div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc" *ngIf="bestMarketplaceSlot">
+      <div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc" *ngIf="bestMarketplaceSlot && !isAdminView">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <strong>Marketplace Recommendation</strong>
           <span class="badge badge-neutral">Reserve</span>
@@ -53,14 +62,21 @@
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div>
         <h2 style="margin:0 0 8px">My Data</h2>
-        <p style="margin:0;color:var(--text2)">Create, update, and delete slots owned by your enterprise.</p>
+        <p style="margin:0;color:var(--text2)">{{ isAdminView ? 'Create, update, and delete any slot in the system.' : 'Create, update, and delete slots owned by your enterprise.' }}</p>
       </div>
-      <button class="btn btn-outline" type="button" (click)="optimizeMySchedule()" [disabled]="saving || !smartSuggestion">
+      <button class="btn btn-outline" type="button" (click)="optimizeMySchedule()" [disabled]="saving || !smartSuggestion" *ngIf="!isAdminView">
         Optimize My Schedule
       </button>
     </div>
 
     <form (ngSubmit)="save()" style="margin-top:20px">
+      <div class="form-row" *ngIf="isAdminView">
+        <div class="form-group">
+          <label>Enterprise ID</label>
+          <input type="number" name="enterpriseId" [(ngModel)]="form.enterpriseId" required />
+        </div>
+      </div>
+
       <div class="form-row">
         <div class="form-group">
           <label>Machine</label>
@@ -149,11 +165,11 @@
     </table>
 
     <div class="table-state" *ngIf="!mine.length" style="margin-top:16px">
-      No slots found for your enterprise.
+      {{ isAdminView ? 'No slots found in the system.' : 'No slots found for your enterprise.' }}
     </div>
   </section>
 
-  <section class="card">
+  <section class="card" *ngIf="!isAdminView">
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div>
         <h2 style="margin:0 0 8px">Heatmap</h2>

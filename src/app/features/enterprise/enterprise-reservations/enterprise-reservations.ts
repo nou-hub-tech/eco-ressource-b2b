@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { AiService } from '../../../../services/ai.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   BackendReservation,
@@ -18,6 +20,7 @@ type ReservationUrgency = 'high' | 'medium' | 'low';
 
 type ReservationFormModel = {
   id: number | null;
+  enterpriseId: number | null;
   company: string;
   slotId: number | null;
   machine: string;
@@ -50,6 +53,7 @@ export class EnterpriseReservations implements OnInit {
   marketplaceDateFrom = '';
   marketplaceDateTo = '';
   machineFilter = '';
+  aiRecommendations: string[] = [];
 
   reservations: BackendReservation[] = [];
   slots: BackendReservationSlot[] = [];
@@ -59,7 +63,9 @@ export class EnterpriseReservations implements OnInit {
   readonly statuses: BackendReservationStatus[] = ['PENDING', 'CONFIRMED', 'CANCELLED'];
 
   constructor(
+    private readonly aiService: AiService,
     private readonly auth: AuthService,
+    private readonly route: ActivatedRoute,
     private readonly reservationApi: ReservationApiService,
     private readonly slotApi: ReservationSlotApiService,
   ) {}
@@ -68,11 +74,21 @@ export class EnterpriseReservations implements OnInit {
     this.loadData();
   }
 
+  get isAdminView(): boolean {
+    return this.auth.currentUser?.role === 'admin';
+  }
+
   get mySlots(): BackendReservationSlot[] {
+    if (this.isAdminView) {
+      return this.slots.filter(slot => !slot.deleted);
+    }
     return this.slots.filter(slot => !slot.deleted && this.enterpriseIdForSlot(slot) === this.currentEnterpriseId);
   }
 
   get marketplaceSlots(): BackendReservationSlot[] {
+    if (this.isAdminView) {
+      return [];
+    }
     return this.slots
       .filter(slot => !slot.deleted && this.enterpriseIdForSlot(slot) !== this.currentEnterpriseId)
       .filter(slot => slot.status === 'open')
@@ -84,10 +100,13 @@ export class EnterpriseReservations implements OnInit {
   get incomingReservations(): BackendReservation[] {
     const query = this.query.trim().toLowerCase();
     const ownedSlotIds = new Set(this.mySlots.map(slot => slot.id));
+    const scopedReservations = this.isAdminView
+      ? this.reservations.filter(reservation => !reservation.deleted)
+      : this.reservations
+          .filter(reservation => !reservation.deleted)
+          .filter(reservation => reservation.slotId != null && ownedSlotIds.has(reservation.slotId));
 
-    return this.reservations
-      .filter(reservation => !reservation.deleted)
-      .filter(reservation => reservation.slotId != null && ownedSlotIds.has(reservation.slotId))
+    return scopedReservations
       .filter(reservation => !this.statusFilter || reservation.status === this.statusFilter)
       .filter(reservation => !this.machineFilter || reservation.machine === this.machineFilter)
       .filter(reservation => !this.dateFrom || reservation.date >= this.dateFrom)
@@ -166,6 +185,7 @@ export class EnterpriseReservations implements OnInit {
     this.success = '';
     this.form = {
       id: reservation.id,
+      enterpriseId: this.enterpriseIdForReservation(reservation),
       company: reservation.company,
       slotId: reservation.slotId ?? null,
       machine: reservation.machine,
@@ -201,7 +221,7 @@ export class EnterpriseReservations implements OnInit {
     if (this.savingForm) {
       return;
     }
-    if (this.currentEnterpriseId == null) {
+    if (!this.editMode && this.currentEnterpriseId == null && !this.isAdminView) {
       this.error = 'Unable to resolve the current enterprise identity.';
       return;
     }
@@ -224,16 +244,26 @@ export class EnterpriseReservations implements OnInit {
       date: this.form.date,
       hours: this.form.hours,
       startHour: this.form.startHour,
-      status: this.form.status,
+      status: this.editMode ? this.form.status : 'PENDING',
       solar: this.form.solar,
       slotId: this.form.slotId,
-      enterpriseId: this.currentEnterpriseId,
-      co2Saved: this.estimatedCo2Saved(this.form.hours, this.form.solar),
+      enterpriseId: this.form.enterpriseId ?? this.currentEnterpriseId,
     };
 
     const request$ = this.editMode && this.form.id
       ? this.reservationApi.update(this.form.id, payload)
-      : this.reservationApi.create(payload);
+      : this.form.slotId != null
+        ? this.reservationApi.createWithSlot(this.form.slotId, {
+            company: payload.company,
+            machine: payload.machine,
+            date: payload.date,
+            hours: payload.hours,
+            startHour: payload.startHour,
+            status: payload.status,
+            solar: payload.solar,
+            enterpriseId: payload.enterpriseId,
+          })
+        : this.reservationApi.create(payload);
 
     request$.subscribe({
       next: () => {
@@ -289,7 +319,7 @@ export class EnterpriseReservations implements OnInit {
   async exportPdf(): Promise<void> {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const companyName = this.form.company || this.auth.currentUser?.name || 'Enterprise';
+    const companyName = this.form.company || this.auth.currentUser?.enterprise?.companyName || this.auth.currentUser?.company || this.auth.currentUser?.name || 'Enterprise';
     const rows = this.incomingReservations;
 
     doc.setFont('helvetica', 'bold');
@@ -340,6 +370,8 @@ export class EnterpriseReservations implements OnInit {
       next: ({ slots, reservations }) => {
         this.slots = slots.filter(slot => !slot.deleted);
         this.reservations = reservations.filter(reservation => !reservation.deleted);
+        this.loadAiRecommendations();
+        this.hydrateFormFromQuery();
         this.loading = false;
         this.savingForm = false;
       },
@@ -354,7 +386,8 @@ export class EnterpriseReservations implements OnInit {
   private createEmptyForm(): ReservationFormModel {
     return {
       id: null,
-      company: this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? '',
+      enterpriseId: this.currentEnterpriseId,
+      company: this.auth.currentUser?.enterprise?.companyName ?? this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? '',
       slotId: null,
       machine: '',
       date: new Date().toISOString().slice(0, 10),
@@ -366,8 +399,17 @@ export class EnterpriseReservations implements OnInit {
   }
 
   private readCurrentEnterpriseId(): number | null {
-    const raw = (this.auth.currentUser as { enterprise?: { id?: number | string } } | null)?.enterprise?.id
-      ?? this.auth.currentUser?.id;
+    const raw = (
+      this.auth.currentUser as {
+        enterprise?: { id?: number | string };
+        enterpriseId?: number | string;
+      } | null
+    )?.enterprise?.id ?? (
+      this.auth.currentUser as {
+        enterprise?: { id?: number | string };
+        enterpriseId?: number | string;
+      } | null
+    )?.enterpriseId;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : null;
   }
@@ -376,9 +418,8 @@ export class EnterpriseReservations implements OnInit {
     return slot.enterprise?.id ?? slot.enterpriseId ?? null;
   }
 
-  private estimatedCo2Saved(hours: number, solar: boolean): number {
-    const base = hours * 12;
-    return solar ? Math.round(base * 0.6) : Math.round(base * 0.25);
+  private enterpriseIdForReservation(reservation: BackendReservation): number | null {
+    return reservation.enterprise?.id ?? reservation.enterpriseId ?? null;
   }
 
   private daysUntil(date: string): number {
@@ -387,5 +428,74 @@ export class EnterpriseReservations implements OnInit {
     const target = new Date(date);
     target.setHours(0, 0, 0, 0);
     return Math.round((target.getTime() - today.getTime()) / 86400000);
+  }
+
+  private hydrateFormFromQuery(): void {
+    const slotId = Number(this.route.snapshot.queryParamMap.get('slotId'));
+    if (!Number.isFinite(slotId) || slotId <= 0 || this.showForm) {
+      return;
+    }
+
+    this.showForm = true;
+    this.editMode = false;
+    this.form = this.createEmptyForm();
+    this.form.slotId = slotId;
+    this.form.enterpriseId = this.currentEnterpriseId;
+    this.form.company = this.route.snapshot.queryParamMap.get('company') ?? this.form.company;
+    this.form.machine = this.route.snapshot.queryParamMap.get('machine') ?? this.form.machine;
+    this.form.date = this.route.snapshot.queryParamMap.get('date') ?? this.form.date;
+
+    const startHour = Number(this.route.snapshot.queryParamMap.get('startHour'));
+    const hours = Number(this.route.snapshot.queryParamMap.get('hours'));
+    if (Number.isFinite(startHour)) {
+      this.form.startHour = startHour;
+    }
+    if (Number.isFinite(hours) && hours > 0) {
+      this.form.hours = hours;
+    }
+
+    const solar = this.route.snapshot.queryParamMap.get('solar');
+    if (solar != null) {
+      this.form.solar = solar === 'true';
+    }
+
+    this.syncFormFromSlot();
+  }
+
+  private loadAiRecommendations(): void {
+    this.aiService.getRecommendation().subscribe({
+      next: response => {
+        this.aiRecommendations = this.extractAiMessages(response);
+      },
+      error: () => {
+        this.aiRecommendations = [];
+      },
+    });
+  }
+
+  private extractAiMessages(response: unknown): string[] {
+    const source = Array.isArray(response)
+      ? response
+      : Array.isArray((response as { recommendations?: unknown[] } | null)?.recommendations)
+        ? (response as { recommendations: unknown[] }).recommendations
+        : Array.isArray((response as { items?: unknown[] } | null)?.items)
+          ? (response as { items: unknown[] }).items
+          : typeof (response as { message?: unknown } | null)?.message === 'string'
+            ? [(response as { message: string }).message]
+            : [];
+
+    return source
+      .map(item => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          const candidate = (item as { text?: unknown; message?: unknown; label?: unknown });
+          if (typeof candidate.text === 'string') return candidate.text;
+          if (typeof candidate.message === 'string') return candidate.message;
+          if (typeof candidate.label === 'string') return candidate.label;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .slice(0, 3);
   }
 }

@@ -1,7 +1,16 @@
 <div class="page-wrapper">
   <div class="page-header">
     <h1>Enterprise Orders</h1>
-    <p>Provider view for your orders and consumer view for creating orders from other enterprises’ reservations.</p>
+    <p>{{ isAdminView ? 'Administrative supervision for all orders.' : 'Provider view for your orders and consumer view for creating orders from other enterprises reservations.' }}</p>
+  </div>
+
+  <div class="card" *ngIf="aiRecommendations.length" style="margin-bottom:16px">
+    <h2 style="margin:0 0 10px">AI Recommendations</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      <div *ngFor="let recommendation of aiRecommendations" style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc">
+        {{ recommendation }}
+      </div>
+    </div>
   </div>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:16px">
@@ -47,7 +56,7 @@
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
       <div>
         <h2 style="margin:0 0 8px">My Data</h2>
-        <p style="margin:0;color:var(--text2)">Full CRUD for orders owned by your enterprise.</p>
+        <p style="margin:0;color:var(--text2)">{{ isAdminView ? 'Full CRUD for all orders in the system.' : 'Full CRUD for orders owned by your enterprise.' }}</p>
       </div>
       <button class="btn btn-primary" type="button" (click)="openCreate()">Create Order</button>
     </div>
@@ -64,6 +73,11 @@
       </div>
 
       <div class="form-row" style="margin-top:16px">
+        <div class="form-group" *ngIf="isAdminView">
+          <label>Enterprise ID</label>
+          <input type="number" name="enterpriseId" [(ngModel)]="form.enterpriseId" />
+        </div>
+
         <div class="form-group">
           <label>Company</label>
           <input type="text" name="companyName" [(ngModel)]="form.companyName" />
@@ -225,15 +239,15 @@
     </table>
 
     <div class="table-state" *ngIf="!loading && !myOrders.length" style="margin-top:16px">
-      No orders found for your enterprise.
+      {{ isAdminView ? 'No orders found in the system.' : 'No orders found for your enterprise.' }}
     </div>
   </section>
 
-  <section class="card">
+  <section class="card" *ngIf="!isAdminView">
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <div>
         <h2 style="margin:0 0 8px">Marketplace</h2>
-        <p style="margin:0;color:var(--text2)">Create a new order from reservations owned by other enterprises. Marketplace data is read-only.</p>
+        <p style="margin:0;color:var(--text2)">Create a new order from confirmed reservations owned by other enterprises. Marketplace data is read-only.</p>
       </div>
       <div style="color:var(--text2)">{{ marketplaceReservations.length }} reservation(s) available</div>
     </div>
@@ -268,7 +282,7 @@
     </table>
 
     <div class="table-state" *ngIf="!marketplaceReservations.length" style="margin-top:16px">
-      No marketplace reservations are available for order creation.
+      No confirmed marketplace reservations are available for order creation.
     </div>
   </section>
 </div>

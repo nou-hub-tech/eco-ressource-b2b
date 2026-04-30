@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { AiService } from '../../../../services/ai.service';
 import {
   BackendReservationSlot,
   ReservationSlotApiService,
@@ -15,6 +17,7 @@ import {
 import { AuthService } from '../../../core/services/auth.service';
 
 type SlotFormModel = {
+  enterpriseId: number | null;
   machine: string;
   date: string;
   startHour: number;
@@ -58,19 +61,26 @@ export class EnterpriseSlots implements OnInit {
 
   editingId: number | null = null;
   currentEnterpriseId: number | null = null;
+  aiRecommendations: string[] = [];
   slots: BackendReservationSlot[] = [];
   reservations: BackendReservation[] = [];
 
   form: SlotFormModel = this.createEmptyForm();
 
   constructor(
+    private readonly aiService: AiService,
     private readonly slotApi: ReservationSlotApiService,
     private readonly reservationApi: ReservationApiService,
     private readonly auth: AuthService,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
     this.loadData();
+  }
+
+  get isAdminView(): boolean {
+    return this.auth.currentUser?.role === 'admin';
   }
 
   get durationHours(): number {
@@ -78,10 +88,16 @@ export class EnterpriseSlots implements OnInit {
   }
 
   get mine(): BackendReservationSlot[] {
+    if (this.isAdminView) {
+      return this.slots;
+    }
     return this.slots.filter(slot => this.enterpriseIdForSlot(slot) === this.currentEnterpriseId);
   }
 
   get marketplaceSlots(): BackendReservationSlot[] {
+    if (this.isAdminView) {
+      return [];
+    }
     return this.slots
       .filter(slot => this.enterpriseIdForSlot(slot) !== this.currentEnterpriseId)
       .filter(slot => slot.status === 'open')
@@ -133,6 +149,9 @@ export class EnterpriseSlots implements OnInit {
   }
 
   get bestMarketplaceSlot(): BackendReservationSlot | null {
+    if (this.isAdminView) {
+      return null;
+    }
     const candidate = this.marketplaceSlots
       .map(slot => ({ slot, density: this.slotDemandDensity(slot) }))
       .sort((a, b) => {
@@ -165,7 +184,7 @@ export class EnterpriseSlots implements OnInit {
     this.error = '';
     this.success = '';
 
-    if (this.currentEnterpriseId == null) {
+    if (this.form.enterpriseId == null && this.currentEnterpriseId == null) {
       this.error = 'Unable to resolve enterprise ID from backend data.';
       return;
     }
@@ -185,7 +204,7 @@ export class EnterpriseSlots implements OnInit {
       endHour: this.form.endHour,
       solar: this.form.solar,
       discountPct: this.form.discountPct,
-      enterpriseId: this.currentEnterpriseId,
+      enterpriseId: this.form.enterpriseId ?? this.currentEnterpriseId,
       status: 'open',
     };
 
@@ -214,7 +233,7 @@ export class EnterpriseSlots implements OnInit {
     }
 
     const payload: ReservationCreateRequest = {
-      company: this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? 'Enterprise',
+      company: this.auth.currentUser?.enterprise?.companyName ?? this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? 'Enterprise',
       machine: slot.machine,
       date: slot.date,
       hours: Math.max(1, slot.endHour - slot.startHour),
@@ -223,14 +242,22 @@ export class EnterpriseSlots implements OnInit {
       solar: slot.solar,
       slotId: slot.id,
       enterpriseId: this.currentEnterpriseId,
-      co2Saved: this.estimatedCo2Saved(slot),
     };
 
     this.error = '';
     this.success = '';
     this.reserveSavingId = slot.id;
 
-    this.reservationApi.create(payload).subscribe({
+    this.reservationApi.createWithSlot(slot.id, {
+      company: payload.company,
+      machine: payload.machine,
+      date: payload.date,
+      hours: payload.hours,
+      startHour: payload.startHour,
+      status: payload.status,
+      solar: payload.solar,
+      enterpriseId: payload.enterpriseId,
+    }).subscribe({
       next: () => {
         this.success = `Reservation created for slot ${slot.machine} on ${slot.date}.`;
         this.reserveSavingId = null;
@@ -261,6 +288,7 @@ export class EnterpriseSlots implements OnInit {
   edit(slot: BackendReservationSlot): void {
     this.editingId = slot.id;
     this.form = {
+      enterpriseId: this.enterpriseIdForSlot(slot),
       machine: slot.machine ?? '',
       date: slot.date ?? '',
       startHour: slot.startHour ?? 8,
@@ -320,6 +348,8 @@ export class EnterpriseSlots implements OnInit {
       next: ({ slots, reservations }) => {
         this.slots = slots.filter(slot => !slot.deleted);
         this.reservations = reservations.filter(reservation => !reservation.deleted);
+        this.loadAiRecommendations();
+        this.hydrateEditorFromQuery();
         this.loading = false;
         this.saving = false;
         this.reserveSavingId = null;
@@ -334,8 +364,17 @@ export class EnterpriseSlots implements OnInit {
   }
 
   private readCurrentEnterpriseId(): number | null {
-    const raw = (this.auth.currentUser as { enterprise?: { id?: number | string } } | null)?.enterprise?.id
-      ?? this.auth.currentUser?.id;
+    const raw = (
+      this.auth.currentUser as {
+        enterprise?: { id?: number | string };
+        enterpriseId?: number | string;
+      } | null
+    )?.enterprise?.id ?? (
+      this.auth.currentUser as {
+        enterprise?: { id?: number | string };
+        enterpriseId?: number | string;
+      } | null
+    )?.enterpriseId;
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : null;
   }
@@ -403,14 +442,9 @@ export class EnterpriseSlots implements OnInit {
     return score;
   }
 
-  private estimatedCo2Saved(slot: BackendReservationSlot): number {
-    const hours = Math.max(1, slot.endHour - slot.startHour);
-    const base = hours * 12;
-    return slot.solar ? Math.round(base * 0.6) : Math.round(base * 0.25);
-  }
-
   private createEmptyForm(): SlotFormModel {
     return {
+      enterpriseId: this.currentEnterpriseId,
       machine: '',
       date: new Date().toISOString().slice(0, 10),
       startHour: 8,
@@ -418,5 +452,54 @@ export class EnterpriseSlots implements OnInit {
       solar: false,
       discountPct: 0,
     };
+  }
+
+  private hydrateEditorFromQuery(): void {
+    const editId = Number(this.route.snapshot.queryParamMap.get('editId'));
+    if (!Number.isFinite(editId) || editId <= 0 || this.editingId === editId) {
+      return;
+    }
+
+    const slot = this.slots.find(item => item.id === editId);
+    if (slot) {
+      this.edit(slot);
+    }
+  }
+
+  private loadAiRecommendations(): void {
+    this.aiService.getRecommendation().subscribe({
+      next: response => {
+        this.aiRecommendations = this.extractAiMessages(response);
+      },
+      error: () => {
+        this.aiRecommendations = [];
+      },
+    });
+  }
+
+  private extractAiMessages(response: unknown): string[] {
+    const source = Array.isArray(response)
+      ? response
+      : Array.isArray((response as { recommendations?: unknown[] } | null)?.recommendations)
+        ? (response as { recommendations: unknown[] }).recommendations
+        : Array.isArray((response as { items?: unknown[] } | null)?.items)
+          ? (response as { items: unknown[] }).items
+          : typeof (response as { message?: unknown } | null)?.message === 'string'
+            ? [(response as { message: string }).message]
+            : [];
+
+    return source
+      .map(item => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          const candidate = (item as { text?: unknown; message?: unknown; label?: unknown });
+          if (typeof candidate.text === 'string') return candidate.text;
+          if (typeof candidate.message === 'string') return candidate.message;
+          if (typeof candidate.label === 'string') return candidate.label;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .slice(0, 3);
   }
 }

@@ -10,7 +10,6 @@ import { Events } from './events/events';
 import { Stock } from './stock/stock';
 import { Deliveries } from './deliveries/deliveries';
 import { Listings } from './listings/listings';
-import { Reservations } from './reservations/reservations';
 import { Treasury } from './treasury/treasury';
 import { Solidarity } from './solidarity/solidarity';
 
@@ -26,7 +25,21 @@ const routes: Routes = [
       { path: 'stock',        component: Stock },
       { path: 'deliveries',   component: Deliveries },
       { path: 'listings',     component: Listings },
-      { path: 'reservations', component: Reservations },
+      {
+        path: 'reservations',
+        loadComponent: () =>
+          import('../enterprise/enterprise-reservations/enterprise-reservations').then(m => m.EnterpriseReservations),
+      },
+      {
+        path: 'slots',
+        loadComponent: () =>
+          import('../enterprise/enterprise-slots/enterprise-slots').then(m => m.EnterpriseSlots),
+      },
+      {
+        path: 'orders',
+        loadComponent: () =>
+          import('../enterprise/enterprise-orders/enterprise-orders').then(m => m.EnterpriseOrders),
+      },
       { path: 'treasury',     component: Treasury },
       { path: 'solidarity',   component: Solidarity },
     ]
@@ -34,7 +47,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Reservations, Treasury, Solidarity],
+  declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Treasury, Solidarity],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
 })
 export class AdminModule {}
