@@ -1,0 +1,133 @@
+.mi-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 16px;
+}
+
+.mi-kicker {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.mi-head h3 {
+  margin: 4px 0 6px;
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.mi-head p {
+  margin: 0;
+  color: var(--text3);
+  font-size: 12px;
+  line-height: 1.5;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.mi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.mi-metric {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(0, 173, 181, 0.04), rgba(255, 255, 255, 0));
+}
+
+.mi-metric span {
+  display: block;
+  font-size: 11px;
+  color: var(--text3);
+  margin-bottom: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.mi-metric strong {
+  display: block;
+  font-size: 24px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.mi-metric p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.45;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.mi-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.mi-panel {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(248, 250, 252, 0.78);
+}
+
+.mi-panel-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  margin-bottom: 10px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.mi-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 12px;
+  line-height: 1.45;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.mi-row:last-child {
+  border-bottom: none;
+}
+
+.mi-row strong {
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.mi-row.empty,
+.mi-state {
+  color: var(--text3);
+  font-size: 12px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.mi-state {
+  margin-top: 14px;
+}
+
+.mi-state.danger {
+  color: var(--danger);
+}
+
+@media (max-width: 768px) {
+  .mi-columns {
+    grid-template-columns: 1fr;
+  }
+}

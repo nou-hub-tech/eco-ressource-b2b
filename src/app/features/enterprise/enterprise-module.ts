@@ -14,6 +14,7 @@ import { Transactions } from './transactions/transactions';
 import { Reports } from './reports/reports';
 import { Requests } from './requests/requests';
 import { Events } from './events/events';
+import { MarketplaceInsightsComponent } from '../reservation-center/components/marketplace-insights/marketplace-insights.component';
 
 @NgModule({
   declarations: [
@@ -32,7 +33,8 @@ import { Events } from './events/events';
     FormsModule,
     ReactiveFormsModule,
     SharedModule,
-    EnterpriseRoutingModule   // ✅ ONLY routing source
+    MarketplaceInsightsComponent,
+    EnterpriseRoutingModule
   ]
 })
 export class EnterpriseModule {}

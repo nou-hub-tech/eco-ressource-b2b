@@ -1,0 +1,60 @@
+.el-card {
+  padding: 18px;
+}
+
+.el-kicker {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.el-head h3 {
+  margin: 4px 0 6px;
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.el-head p {
+  margin: 0;
+  color: var(--text3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.el-state {
+  padding: 14px 0 0;
+  color: var(--text3);
+  font-size: 12px;
+}
+
+.el-state.danger {
+  color: var(--danger);
+}
+
+.el-rank {
+  display: inline-flex;
+  min-width: 42px;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.el-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.el-meta {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+}

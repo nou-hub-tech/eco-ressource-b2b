@@ -12,6 +12,7 @@ import { Transactions } from './transactions/transactions';
 import { Reports } from './reports/reports';
 import { Requests } from './requests/requests';
 import { Events } from './events/events';
+import { MarketplaceInsightsComponent } from '../reservation-center/components/marketplace-insights/marketplace-insights.component';
 import * as i0 from "@angular/core";
 export class EnterpriseModule {
     static ɵfac = function EnterpriseModule_Factory(__ngFactoryType__) { return new (__ngFactoryType__ || EnterpriseModule)(); };
@@ -20,8 +21,8 @@ export class EnterpriseModule {
             FormsModule,
             ReactiveFormsModule,
             SharedModule,
-            EnterpriseRoutingModule // ✅ ONLY routing source
-        ] });
+            MarketplaceInsightsComponent,
+            EnterpriseRoutingModule] });
 }
 (() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(EnterpriseModule, [{
         type: NgModule,
@@ -42,7 +43,8 @@ export class EnterpriseModule {
                     FormsModule,
                     ReactiveFormsModule,
                     SharedModule,
-                    EnterpriseRoutingModule // ✅ ONLY routing source
+                    MarketplaceInsightsComponent,
+                    EnterpriseRoutingModule
                 ]
             }]
     }], null, null); })();
@@ -58,5 +60,5 @@ export class EnterpriseModule {
         FormsModule,
         ReactiveFormsModule,
         SharedModule,
-        EnterpriseRoutingModule // ✅ ONLY routing source
-    ] }); })();
+        MarketplaceInsightsComponent,
+        EnterpriseRoutingModule] }); })();

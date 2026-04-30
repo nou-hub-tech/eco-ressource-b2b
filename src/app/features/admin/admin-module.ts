@@ -12,19 +12,20 @@ import { Deliveries } from './deliveries/deliveries';
 import { Listings } from './listings/listings';
 import { Treasury } from './treasury/treasury';
 import { Solidarity } from './solidarity/solidarity';
+import { EcoLeaderboardComponent } from '../reservation-center/components/eco-leaderboard/eco-leaderboard.component';
 
 const routes: Routes = [
   {
     path: '',
     component: Layout,
     children: [
-      { path: '',             redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard',    component: Dashboard },
-      { path: 'users',        component: Users },
-      { path: 'events',       component: Events },
-      { path: 'stock',        component: Stock },
-      { path: 'deliveries',   component: Deliveries },
-      { path: 'listings',     component: Listings },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard', component: Dashboard },
+      { path: 'users', component: Users },
+      { path: 'events', component: Events },
+      { path: 'stock', component: Stock },
+      { path: 'deliveries', component: Deliveries },
+      { path: 'listings', component: Listings },
       {
         path: 'reservations',
         loadComponent: () =>
@@ -40,14 +41,14 @@ const routes: Routes = [
         loadComponent: () =>
           import('../enterprise/enterprise-orders/enterprise-orders').then(m => m.EnterpriseOrders),
       },
-      { path: 'treasury',     component: Treasury },
-      { path: 'solidarity',   component: Solidarity },
+      { path: 'treasury', component: Treasury },
+      { path: 'solidarity', component: Solidarity },
     ]
   }
 ];
 
 @NgModule({
   declarations: [Dashboard, Users, Events, Stock, Deliveries, Listings, Treasury, Solidarity],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, RouterModule.forChild(routes)]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, EcoLeaderboardComponent, RouterModule.forChild(routes)]
 })
 export class AdminModule {}

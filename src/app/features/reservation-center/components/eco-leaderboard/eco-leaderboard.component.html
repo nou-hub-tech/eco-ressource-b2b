@@ -1,0 +1,35 @@
+<section class="el-card card">
+  <div class="el-head">
+    <div class="el-kicker">Eco Impact Leaderboard</div>
+    <h3>Top enterprises from reservation, slot, and order signals</h3>
+    <p>Global ranking based only on eco orders, reservation usage, and slot utilization.</p>
+  </div>
+
+  <div class="el-state" *ngIf="loading">Loading leaderboard...</div>
+  <div class="el-state danger" *ngIf="!loading && error">{{ error }}</div>
+  <div class="el-state" *ngIf="!loading && !error && !rows.length">No leaderboard data is available yet.</div>
+
+  <table class="data-table" *ngIf="!loading && !error && rows.length">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Enterprise</th>
+        <th>Total CO2 Saved</th>
+        <th>Eco Score</th>
+        <th>Usage Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows; let index = index">
+        <td><span class="el-rank">#{{ index + 1 }}</span></td>
+        <td>
+          <div class="el-name">{{ row.enterpriseName }}</div>
+          <div class="el-meta">{{ row.usedSlots }}/{{ row.totalSlots }} slots utilized</div>
+        </td>
+        <td>{{ row.totalCo2Saved }}</td>
+        <td><strong>{{ row.ecoScore }}</strong></td>
+        <td>{{ row.usageRate }}%</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

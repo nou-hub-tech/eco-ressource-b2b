@@ -103,6 +103,10 @@
   flex-wrap: wrap;
 }
 
+.rc-row-actions {
+  min-width: 152px;
+}
+
 .rc-form-grid {
   display: grid;
   gap: 16px;

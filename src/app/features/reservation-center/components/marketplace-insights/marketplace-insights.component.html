@@ -1,0 +1,40 @@
+<section class="mi-card">
+  <div class="mi-head">
+    <div class="mi-kicker">Smart Marketplace Insights</div>
+    <h3>Reservation, slot, and order intelligence</h3>
+    <p>Computed only from your enterprise-linked reservations, reservation slots, and eco orders.</p>
+  </div>
+
+  <div class="mi-state" *ngIf="loading">Loading insights...</div>
+  <div class="mi-state danger" *ngIf="!loading && error">{{ error }}</div>
+  <div class="mi-state" *ngIf="!loading && !error && empty">No reservation-slot-order activity is available yet.</div>
+
+  <div *ngIf="!loading && !error && !empty">
+    <div class="mi-grid">
+      <article class="mi-metric" *ngFor="let metric of metrics">
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+        <p>{{ metric.detail }}</p>
+      </article>
+    </div>
+
+    <div class="mi-columns">
+      <div class="mi-panel">
+        <div class="mi-panel-title">Most requested slots</div>
+        <div class="mi-row" *ngFor="let row of requestedSlotRows">
+          <span>{{ row.label }}</span>
+          <strong>{{ row.requests }} req.</strong>
+        </div>
+        <div class="mi-row empty" *ngIf="!requestedSlotRows.length">No slot demand recorded yet.</div>
+      </div>
+
+      <div class="mi-panel">
+        <div class="mi-panel-title">Low-demand periods</div>
+        <div class="mi-row" *ngFor="let row of lowDemandRows">
+          <span>{{ row }}</span>
+        </div>
+        <div class="mi-row empty" *ngIf="!lowDemandRows.length">Every owned slot already has reservation activity.</div>
+      </div>
+    </div>
+  </div>
+</section>

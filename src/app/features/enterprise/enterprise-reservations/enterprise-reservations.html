@@ -216,6 +216,7 @@
             <th>Date</th>
             <th>Status</th>
             <th>Conflict</th>
+            <th>AI Suggestion</th>
             <th>Decision</th>
           </tr>
         </thead>
@@ -234,6 +235,13 @@
               <span [class.rc-conflict]="conflictFor(reservation).hasConflict">
                 {{ conflictFor(reservation).label }}
               </span>
+            </td>
+            <td>
+              <app-decision-assistant
+                [reservation]="reservation"
+                [reservations]="providerReservations"
+                [slots]="slots"
+              />
             </td>
             <td class="rc-row-actions">
               <button

@@ -1,0 +1,31 @@
+.da-card {
+  min-width: 200px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.da-card strong {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.da-card p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.da-card.accept {
+  background: rgba(5, 150, 105, 0.1);
+  border-color: rgba(5, 150, 105, 0.18);
+  color: #047857;
+}
+
+.da-card.reject {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.14);
+  color: #b42318;
+}

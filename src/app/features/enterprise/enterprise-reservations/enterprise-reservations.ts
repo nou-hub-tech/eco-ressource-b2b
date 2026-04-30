@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { AiInsightsPanel } from '../../../features/reservation-center/components/ai-insights-panel/ai-insights-panel';
+import { DecisionAssistantComponent } from '../../../features/reservation-center/components/decision-assistant/decision-assistant.component';
 import { StatusChip } from '../../../features/reservation-center/components/status-chip/status-chip';
 import {
   AiInsight,
@@ -26,7 +27,7 @@ type ReservationScope = 'all' | UiReservationStatus;
 @Component({
   selector: 'app-enterprise-reservations',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AiInsightsPanel, StatusChip],
+  imports: [CommonModule, FormsModule, RouterLink, AiInsightsPanel, DecisionAssistantComponent, StatusChip],
   templateUrl: './enterprise-reservations.html',
   styleUrls: ['./enterprise-reservations.css'],
 })
