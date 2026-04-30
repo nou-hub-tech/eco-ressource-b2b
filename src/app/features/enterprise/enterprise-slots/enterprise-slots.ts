@@ -1,199 +1,132 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { forkJoin } from 'rxjs';
-import { AiService } from '../../../../services/ai.service';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+import { AiInsightsPanel } from '../../../features/reservation-center/components/ai-insights-panel/ai-insights-panel';
+import { StatusChip } from '../../../features/reservation-center/components/status-chip/status-chip';
+import {
+  AiInsight,
+  EnterpriseContext,
+  SlotCalendarMode,
+  SlotFormModel,
+} from '../../../features/reservation-center/models/reservation-center.models';
+import { ReservationCenterAiService } from '../../../features/reservation-center/services/reservation-center-ai.service';
+import { ReservationCenterService } from '../../../features/reservation-center/services/reservation-center.service';
+import { ReservationCenterState } from '../../../features/reservation-center/state/reservation-center.state';
+import { BackendReservation } from '../../../pages/moduleReservation/shared/api/reservation-api.service';
 import {
   BackendReservationSlot,
-  ReservationSlotApiService,
   SlotRequest,
 } from '../../../pages/moduleReservation/shared/api/reservation-slot-api.service';
-import {
-  BackendReservation,
-  ReservationApiService,
-  ReservationCreateRequest,
-} from '../../../pages/moduleReservation/shared/api/reservation-api.service';
-import { AuthService } from '../../../core/services/auth.service';
-
-type SlotFormModel = {
-  enterpriseId: number | null;
-  machine: string;
-  date: string;
-  startHour: number;
-  endHour: number;
-  solar: boolean;
-  discountPct: number;
-};
-
-type SmartSlotSuggestion = {
-  date: string;
-  startHour: number;
-  endHour: number;
-  recommendedDiscountPct: number;
-  solarLikely: boolean;
-  reason: string;
-};
-
-type HeatmapBucket = {
-  date: string;
-  label: string;
-  startHour: number;
-  endHour: number;
-  color: 'red' | 'green' | 'yellow' | 'blue';
-  text: string;
-  reservationCount: number;
-};
 
 @Component({
   selector: 'app-enterprise-slots',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink, AiInsightsPanel, StatusChip],
   templateUrl: './enterprise-slots.html',
   styleUrls: ['./enterprise-slots.css'],
 })
 export class EnterpriseSlots implements OnInit {
   loading = true;
   saving = false;
-  reserveSavingId: number | null = null;
   error = '';
   success = '';
 
-  editingId: number | null = null;
-  currentEnterpriseId: number | null = null;
-  aiRecommendations: string[] = [];
+  aiInsights: AiInsight[] = [];
   slots: BackendReservationSlot[] = [];
   reservations: BackendReservation[] = [];
+  context: EnterpriseContext = {
+    enterpriseId: null,
+    companyName: '',
+    role: 'enterprise',
+    isAdmin: false,
+  };
 
-  form: SlotFormModel = this.createEmptyForm();
+  calendarMode: SlotCalendarMode = 'week';
+  calendarAnchor = new Date();
+  form: SlotFormModel = this.createForm();
 
   constructor(
-    private readonly aiService: AiService,
-    private readonly slotApi: ReservationSlotApiService,
-    private readonly reservationApi: ReservationApiService,
     private readonly auth: AuthService,
-    private readonly route: ActivatedRoute,
+    private readonly state: ReservationCenterState,
+    private readonly ai: ReservationCenterAiService,
+    private readonly workspace: ReservationCenterService,
   ) {}
 
   ngOnInit(): void {
-    this.loadData();
+    this.context = this.readContext();
+    this.refresh();
   }
 
-  get isAdminView(): boolean {
-    return this.auth.currentUser?.role === 'admin';
+  get calendarCells() {
+    return this.workspace.buildSlotCalendar(this.ownedSlots, this.relatedReservations, this.calendarMode, this.calendarAnchor);
   }
 
-  get durationHours(): number {
-    return Math.max(0, this.form.endHour - this.form.startHour);
+  get heatmapCells() {
+    return this.workspace.buildHeatmap(this.ownedSlots, this.relatedReservations);
   }
 
-  get mine(): BackendReservationSlot[] {
-    if (this.isAdminView) {
-      return this.slots;
+  get ownedSlots(): BackendReservationSlot[] {
+    return this.context.isAdmin
+      ? this.slots
+      : this.slots.filter(slot => (slot.enterprise?.id ?? slot.enterpriseId ?? null) === this.context.enterpriseId);
+  }
+
+  get relatedReservations(): BackendReservation[] {
+    if (this.context.isAdmin) {
+      return this.reservations;
     }
-    return this.slots.filter(slot => this.enterpriseIdForSlot(slot) === this.currentEnterpriseId);
+
+    const ownedIds = new Set(this.ownedSlots.map(slot => slot.id));
+    return this.reservations.filter(reservation => reservation.slotId != null && ownedIds.has(reservation.slotId));
   }
 
-  get marketplaceSlots(): BackendReservationSlot[] {
-    if (this.isAdminView) {
-      return [];
-    }
-    return this.slots
-      .filter(slot => this.enterpriseIdForSlot(slot) !== this.currentEnterpriseId)
-      .filter(slot => slot.status === 'open')
-      .sort((a, b) => a.date.localeCompare(b.date) || a.startHour - b.startHour);
+  get openSlotsCount(): number {
+    return this.ownedSlots.filter(slot => slot.status === 'open').length;
   }
 
   get bookedSlotsCount(): number {
-    return this.mine.filter(slot => slot.status === 'booked').length;
+    return this.ownedSlots.filter(slot => slot.status === 'booked').length;
   }
 
-  get availableSlotsCount(): number {
-    return this.mine.filter(slot => slot.status === 'open').length;
+  get blockedSlotsCount(): number {
+    return this.ownedSlots.filter(slot => slot.status === 'blocked').length;
   }
 
-  get usagePercent(): number {
-    const total = this.bookedSlotsCount + this.availableSlotsCount;
-    return total ? Math.round((this.bookedSlotsCount / total) * 100) : 0;
+  get totalUtilization(): number {
+    return this.ownedSlots.length ? Math.round((this.bookedSlotsCount / this.ownedSlots.length) * 100) : 0;
   }
 
-  get smartSuggestion(): SmartSlotSuggestion | null {
-    const candidate = this.mine
-      .filter(slot => slot.status === 'open')
-      .map(slot => ({ slot, density: this.slotDemandDensity(slot) }))
-      .sort((a, b) => {
-        if (a.density !== b.density) {
-          return a.density - b.density;
-        }
-        if (a.slot.solar !== b.slot.solar) {
-          return a.slot.solar ? -1 : 1;
-        }
-        return a.slot.date.localeCompare(b.slot.date) || a.slot.startHour - b.slot.startHour;
-      })[0];
-
-    if (!candidate) {
-      return null;
-    }
-
-    const duration = Math.max(1, candidate.slot.endHour - candidate.slot.startHour);
-    return {
-      date: candidate.slot.date,
-      startHour: candidate.slot.startHour,
-      endHour: candidate.slot.endHour,
-      recommendedDiscountPct: Math.min(30, Math.max(5, 10 + (candidate.slot.solar ? 8 : 0) - candidate.density * 2)),
-      solarLikely: candidate.slot.solar,
-      reason: candidate.density === 0
-        ? 'This slot is open with no nearby reservation pressure.'
-        : 'This slot stays the least congested among your available windows.',
+  edit(slot: BackendReservationSlot): void {
+    this.form = {
+      id: slot.id,
+      machine: slot.machine,
+      date: slot.date,
+      startHour: slot.startHour,
+      endHour: slot.endHour,
+      solar: slot.solar,
+      discountPct: slot.discountPct ?? 0,
+      enterpriseId: slot.enterprise?.id ?? slot.enterpriseId ?? this.context.enterpriseId,
+      status: slot.status,
     };
   }
 
-  get bestMarketplaceSlot(): BackendReservationSlot | null {
-    if (this.isAdminView) {
-      return null;
-    }
-    const candidate = this.marketplaceSlots
-      .map(slot => ({ slot, density: this.slotDemandDensity(slot) }))
-      .sort((a, b) => {
-        const scoreA = this.marketplaceScore(a.slot, a.density);
-        const scoreB = this.marketplaceScore(b.slot, b.density);
-        return scoreB - scoreA;
-      })[0];
-
-    return candidate?.slot ?? null;
+  resetForm(): void {
+    this.form = this.createForm();
   }
 
-  get heatmapRows(): HeatmapBucket[][] {
-    const sourceDates = [...new Set([
-      ...this.slots.map(slot => slot.date),
-      ...this.reservations.map(reservation => reservation.date),
-    ])].sort().slice(0, 7);
-    const buckets = [
-      { startHour: 0, endHour: 6, label: '00-06' },
-      { startHour: 6, endHour: 12, label: '06-12' },
-      { startHour: 12, endHour: 18, label: '12-18' },
-      { startHour: 18, endHour: 24, label: '18-24' },
-    ];
-
-    return sourceDates.map(date =>
-      buckets.map(bucket => this.buildHeatmapBucket(date, bucket.label, bucket.startHour, bucket.endHour)),
-    );
-  }
-
-  save(): void {
-    this.error = '';
-    this.success = '';
-
-    if (this.form.enterpriseId == null && this.currentEnterpriseId == null) {
-      this.error = 'Unable to resolve enterprise ID from backend data.';
+  saveSlot(): void {
+    if (this.saving) {
       return;
     }
+
     if (!this.form.machine.trim() || !this.form.date) {
       this.error = 'Machine and date are required.';
       return;
     }
     if (this.form.endHour <= this.form.startHour) {
-      this.error = 'End hour must be after start hour.';
+      this.error = 'End hour must be after the start hour.';
       return;
     }
 
@@ -204,302 +137,157 @@ export class EnterpriseSlots implements OnInit {
       endHour: this.form.endHour,
       solar: this.form.solar,
       discountPct: this.form.discountPct,
-      enterpriseId: this.form.enterpriseId ?? this.currentEnterpriseId,
-      status: 'open',
+      enterpriseId: this.form.enterpriseId ?? this.context.enterpriseId,
+      status: this.form.status,
     };
 
     this.saving = true;
-    const request$ = this.editingId
-      ? this.slotApi.update(this.editingId, payload)
-      : this.slotApi.create(payload);
+    this.error = '';
+
+    const request$ = this.form.id
+      ? this.state.updateSlot(this.form.id, payload)
+      : this.state.createSlot(payload);
 
     request$.subscribe({
       next: () => {
-        this.success = this.editingId ? 'Slot updated.' : 'Slot created.';
+        this.success = this.form.id ? 'Slot updated.' : 'Slot created.';
+        this.saving = false;
         this.resetForm();
-        this.loadData();
+        this.refresh();
       },
-      error: err => {
-        this.error = err?.error?.message ?? 'Failed to save slot.';
+      error: error => {
+        this.error = error?.error?.message ?? 'Failed to save slot.';
         this.saving = false;
       },
     });
   }
 
-  reserve(slot: BackendReservationSlot): void {
-    if (this.currentEnterpriseId == null) {
-      this.error = 'Unable to resolve enterprise identity for the reservation.';
+  deleteSlot(slot: BackendReservationSlot): void {
+    if (!window.confirm(`Delete slot ${slot.machine} on ${slot.date}?`)) {
       return;
     }
 
-    const payload: ReservationCreateRequest = {
-      company: this.auth.currentUser?.enterprise?.companyName ?? this.auth.currentUser?.company ?? this.auth.currentUser?.name ?? 'Enterprise',
-      machine: slot.machine,
-      date: slot.date,
-      hours: Math.max(1, slot.endHour - slot.startHour),
-      startHour: slot.startHour,
-      status: 'PENDING',
-      solar: slot.solar,
-      slotId: slot.id,
-      enterpriseId: this.currentEnterpriseId,
-    };
-
-    this.error = '';
-    this.success = '';
-    this.reserveSavingId = slot.id;
-
-    this.reservationApi.createWithSlot(slot.id, {
-      company: payload.company,
-      machine: payload.machine,
-      date: payload.date,
-      hours: payload.hours,
-      startHour: payload.startHour,
-      status: payload.status,
-      solar: payload.solar,
-      enterpriseId: payload.enterpriseId,
-    }).subscribe({
-      next: () => {
-        this.success = `Reservation created for slot ${slot.machine} on ${slot.date}.`;
-        this.reserveSavingId = null;
-        this.loadData();
-      },
-      error: err => {
-        this.error = err?.error?.message ?? 'Failed to reserve marketplace slot.';
-        this.reserveSavingId = null;
-      },
-    });
-  }
-
-  optimizeMySchedule(): void {
-    if (!this.smartSuggestion) {
-      this.error = 'No schedule suggestion available from your current slot history.';
-      return;
-    }
-
-    this.form.date = this.smartSuggestion.date;
-    this.form.startHour = this.smartSuggestion.startHour;
-    this.form.endHour = this.smartSuggestion.endHour;
-    this.form.discountPct = this.smartSuggestion.recommendedDiscountPct;
-    this.form.solar = this.smartSuggestion.solarLikely;
-    this.success = 'Schedule optimized from your current availability pattern.';
-    this.error = '';
-  }
-
-  edit(slot: BackendReservationSlot): void {
-    this.editingId = slot.id;
-    this.form = {
-      enterpriseId: this.enterpriseIdForSlot(slot),
-      machine: slot.machine ?? '',
-      date: slot.date ?? '',
-      startHour: slot.startHour ?? 8,
-      endHour: slot.endHour ?? 9,
-      solar: !!slot.solar,
-      discountPct: slot.discountPct ?? 0,
-    };
-    this.success = '';
-    this.error = '';
-  }
-
-  remove(slot: BackendReservationSlot): void {
-    if (!window.confirm(`Delete slot for ${slot.machine} on ${slot.date}?`)) {
-      return;
-    }
-
-    this.error = '';
-    this.success = '';
-    this.slotApi.delete(slot.id).subscribe({
+    this.state.deleteSlot(slot.id).subscribe({
       next: () => {
         this.success = 'Slot deleted.';
-        if (this.editingId === slot.id) {
+        if (this.form.id === slot.id) {
           this.resetForm();
         }
-        this.loadData();
+        this.refresh();
       },
-      error: err => {
-        this.error = err?.error?.message ?? 'Failed to delete slot.';
-      },
-    });
-  }
-
-  resetForm(): void {
-    this.editingId = null;
-    this.form = this.createEmptyForm();
-  }
-
-  heatmapBackground(bucket: HeatmapBucket): string {
-    if (bucket.color === 'red') return '#ef4444';
-    if (bucket.color === 'yellow') return '#facc15';
-    if (bucket.color === 'blue') return '#3b82f6';
-    return '#22c55e';
-  }
-
-  heatmapTextColor(bucket: HeatmapBucket): string {
-    return bucket.color === 'yellow' ? '#111827' : '#ffffff';
-  }
-
-  private loadData(): void {
-    this.loading = true;
-    this.currentEnterpriseId = this.readCurrentEnterpriseId();
-
-    forkJoin({
-      slots: this.slotApi.list(false),
-      reservations: this.reservationApi.list(false),
-    }).subscribe({
-      next: ({ slots, reservations }) => {
-        this.slots = slots.filter(slot => !slot.deleted);
-        this.reservations = reservations.filter(reservation => !reservation.deleted);
-        this.loadAiRecommendations();
-        this.hydrateEditorFromQuery();
-        this.loading = false;
-        this.saving = false;
-        this.reserveSavingId = null;
-      },
-      error: err => {
-        this.error = err?.error?.message ?? 'Failed to load slots.';
-        this.loading = false;
-        this.saving = false;
-        this.reserveSavingId = null;
+      error: error => {
+        this.error = error?.error?.message ?? 'Failed to delete slot.';
       },
     });
   }
 
-  private readCurrentEnterpriseId(): number | null {
-    const raw = (
-      this.auth.currentUser as {
-        enterprise?: { id?: number | string };
-        enterpriseId?: number | string;
-      } | null
-    )?.enterprise?.id ?? (
-      this.auth.currentUser as {
-        enterprise?: { id?: number | string };
-        enterpriseId?: number | string;
-      } | null
-    )?.enterpriseId;
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) ? parsed : null;
+  setCalendarMode(mode: SlotCalendarMode): void {
+    this.calendarMode = mode;
   }
 
-  private enterpriseIdForSlot(slot: BackendReservationSlot): number | null {
-    return slot.enterprise?.id ?? slot.enterpriseId ?? null;
+  moveCalendar(step: number): void {
+    const next = new Date(this.calendarAnchor);
+    next.setDate(this.calendarAnchor.getDate() + (this.calendarMode === 'week' ? step * 7 : step * 30));
+    this.calendarAnchor = next;
   }
 
-  private enterpriseIdForReservation(reservation: BackendReservation): number | null {
-    return reservation.enterprise?.id ?? reservation.enterpriseId ?? null;
+  statusVariant(status: string) {
+    return this.workspace.statusVariant(status as 'open');
   }
 
-  private slotDemandDensity(slot: BackendReservationSlot): number {
-    return this.reservations.filter(reservation => {
-      if (reservation.slotId != null) {
-        return reservation.slotId === slot.id;
-      }
-      return (
-        reservation.machine === slot.machine &&
-        reservation.date === slot.date &&
-        (reservation.startHour ?? 0) < slot.endHour &&
-        ((reservation.startHour ?? 0) + (reservation.hours ?? 1)) > slot.startHour
-      );
-    }).length;
+  heatmapClass(occupancy: number): string {
+    if (occupancy >= 80) {
+      return 'danger';
+    }
+    if (occupancy >= 45) {
+      return 'warning';
+    }
+    if (occupancy > 0) {
+      return 'info';
+    }
+    return 'success';
   }
 
-  private buildHeatmapBucket(date: string, label: string, startHour: number, endHour: number): HeatmapBucket {
-    const bucketSlots = this.slots.filter(slot =>
-      slot.date === date &&
-      slot.startHour < endHour &&
-      slot.endHour > startHour,
-    );
-    const reservationCount = this.reservations.filter(reservation =>
-      reservation.date === date &&
-      (reservation.startHour ?? 0) < endHour &&
-      ((reservation.startHour ?? 0) + (reservation.hours ?? 1)) > startHour,
-    ).length;
+  applyInsight(insight: AiInsight): void {
+    const date = insight.meta?.['date'];
+    const startHour = insight.meta?.['startHour'];
+    const endHour = insight.meta?.['endHour'];
+    const discountPct = insight.meta?.['discountPct'];
+    const solar = insight.meta?.['solar'];
 
-    let color: HeatmapBucket['color'] = 'green';
-    if (bucketSlots.some(slot => slot.status !== 'open')) {
-      color = 'red';
-    } else if (bucketSlots.some(slot => slot.solar) && reservationCount === 0) {
-      color = 'blue';
-    } else if (reservationCount > 0) {
-      color = 'yellow';
+    if (typeof date === 'string') {
+      this.form.date = date;
+    }
+    if (typeof startHour === 'number') {
+      this.form.startHour = startHour;
+    }
+    if (typeof endHour === 'number') {
+      this.form.endHour = endHour;
+    }
+    if (typeof discountPct === 'number') {
+      this.form.discountPct = discountPct;
+    }
+    if (typeof solar === 'boolean') {
+      this.form.solar = solar;
     }
 
+    this.success = 'Applied AI suggestion to the slot form.';
+  }
+
+  private refresh(): void {
+    this.loading = true;
+    this.context = this.readContext();
+
+    this.state.loadAll().subscribe({
+      next: snapshot => {
+        this.slots = snapshot.slots;
+        this.reservations = snapshot.reservations;
+        this.loading = false;
+        this.loadInsights();
+      },
+      error: error => {
+        this.loading = false;
+        this.error = error?.error?.message ?? 'Failed to load slots.';
+      },
+    });
+  }
+
+  private loadInsights(): void {
+    this.ai.getInsights('slots', this.context).subscribe({
+      next: insights => {
+        this.aiInsights = insights;
+      },
+      error: () => {
+        this.aiInsights = [];
+      },
+    });
+  }
+
+  private readContext(): EnterpriseContext {
+    const currentUser = this.auth.currentUser;
     return {
-      date,
-      label,
-      startHour,
-      endHour,
-      color,
-      text: bucketSlots.length ? `${bucketSlots.length} slot(s)` : 'No slots',
-      reservationCount,
+      enterpriseId: currentUser?.enterprise?.id ?? currentUser?.enterpriseId ?? null,
+      companyName:
+        currentUser?.enterprise?.companyName ??
+        currentUser?.company ??
+        currentUser?.name ??
+        'Enterprise',
+      role: currentUser?.role ?? 'enterprise',
+      isAdmin: currentUser?.role === 'admin',
     };
   }
 
-  private marketplaceScore(slot: BackendReservationSlot, density: number): number {
-    let score = 0;
-    if (slot.solar) score += 3;
-    if (density === 0) score += 3;
-    if (density === 1) score += 1;
-    score += Math.max(0, 20 - (slot.discountPct ?? 0));
-    return score;
-  }
-
-  private createEmptyForm(): SlotFormModel {
+  private createForm(): SlotFormModel {
     return {
-      enterpriseId: this.currentEnterpriseId,
+      id: null,
       machine: '',
       date: new Date().toISOString().slice(0, 10),
       startHour: 8,
       endHour: 12,
       solar: false,
       discountPct: 0,
+      enterpriseId: this.context.enterpriseId,
+      status: 'open',
     };
-  }
-
-  private hydrateEditorFromQuery(): void {
-    const editId = Number(this.route.snapshot.queryParamMap.get('editId'));
-    if (!Number.isFinite(editId) || editId <= 0 || this.editingId === editId) {
-      return;
-    }
-
-    const slot = this.slots.find(item => item.id === editId);
-    if (slot) {
-      this.edit(slot);
-    }
-  }
-
-  private loadAiRecommendations(): void {
-    this.aiService.getRecommendation().subscribe({
-      next: response => {
-        this.aiRecommendations = this.extractAiMessages(response);
-      },
-      error: () => {
-        this.aiRecommendations = [];
-      },
-    });
-  }
-
-  private extractAiMessages(response: unknown): string[] {
-    const source = Array.isArray(response)
-      ? response
-      : Array.isArray((response as { recommendations?: unknown[] } | null)?.recommendations)
-        ? (response as { recommendations: unknown[] }).recommendations
-        : Array.isArray((response as { items?: unknown[] } | null)?.items)
-          ? (response as { items: unknown[] }).items
-          : typeof (response as { message?: unknown } | null)?.message === 'string'
-            ? [(response as { message: string }).message]
-            : [];
-
-    return source
-      .map(item => {
-        if (typeof item === 'string') return item;
-        if (item && typeof item === 'object') {
-          const candidate = (item as { text?: unknown; message?: unknown; label?: unknown });
-          if (typeof candidate.text === 'string') return candidate.text;
-          if (typeof candidate.message === 'string') return candidate.message;
-          if (typeof candidate.label === 'string') return candidate.label;
-        }
-        return '';
-      })
-      .filter(Boolean)
-      .slice(0, 3);
   }
 }

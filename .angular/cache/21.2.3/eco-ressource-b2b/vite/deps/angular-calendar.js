@@ -4,6 +4,11 @@ import {
   ResizeHandleDirective
 } from "./chunk-BCI32YLD.js";
 import {
+  DragAndDropModule,
+  DraggableDirective,
+  DroppableDirective
+} from "./chunk-O6AD5EES.js";
+import {
   AsyncPipe,
   NgClass,
   NgStyle,
@@ -12,11 +17,6 @@ import {
   formatDate
 } from "./chunk-354QQDOH.js";
 import "./chunk-TJFWRZUU.js";
-import {
-  DragAndDropModule,
-  DraggableDirective,
-  DroppableDirective
-} from "./chunk-O6AD5EES.js";
 import {
   ChangeDetectorRef,
   Component,

@@ -1,288 +1,231 @@
-<div class="page-wrapper">
-  <div class="page-header">
-    <h1>Enterprise Orders</h1>
-    <p>{{ isAdminView ? 'Administrative supervision for all orders.' : 'Provider view for your orders and consumer view for creating orders from other enterprises reservations.' }}</p>
-  </div>
-
-  <div class="card" *ngIf="aiRecommendations.length" style="margin-bottom:16px">
-    <h2 style="margin:0 0 10px">AI Recommendations</h2>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
-      <div *ngFor="let recommendation of aiRecommendations" style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc">
-        {{ recommendation }}
-      </div>
+<div class="rc-page">
+  <section class="rc-hero card">
+    <div>
+      <p class="rc-kicker">Order orchestration</p>
+      <h1>{{ context.isAdmin ? 'Order Control Center' : 'Orders' }}</h1>
+      <p class="rc-subtitle">
+        {{ context.isAdmin
+          ? 'Supervise the full reservation-to-order workflow with admin override.'
+          : 'Orders are created only from confirmed reservations and stay synced with the backend workflow.' }}
+      </p>
     </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:16px">
-    <div class="card">
-      <h2 style="margin:0 0 10px">CO2 Summary</h2>
-      <div style="display:flex;justify-content:space-between;color:var(--text2)">
+    <div class="rc-hero-stats">
+      <div class="rc-stat">
         <span>Total CO2 saved</span>
-        <strong>{{ totalCo2Saved }}</strong>
+        <strong>{{ analytics.totalCo2 }}</strong>
       </div>
-      <div style="display:flex;justify-content:space-between;color:var(--text2);margin-top:8px">
-        <span>Average per order</span>
-        <strong>{{ averageCo2Saved }}</strong>
+      <div class="rc-stat">
+        <span>Average CO2</span>
+        <strong>{{ analytics.avgCo2 }}</strong>
+      </div>
+      <div class="rc-stat">
+        <span>Total qty</span>
+        <strong>{{ analytics.totalQty }}</strong>
+      </div>
+      <div class="rc-stat warning">
+        <span>Delivered</span>
+        <strong>{{ analytics.delivered }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <app-ai-insights-panel
+    [title]="'Order AI insights'"
+    [subtitle]="'Backend eco suggestions and workflow recommendations.'"
+    [insights]="aiInsights"
+    (action)="applyInsight($event)"
+  />
+
+  <section class="rc-grid">
+    <article class="card">
+      <div class="rc-section-head">
+        <div>
+          <h2>Confirmed reservations</h2>
+          <p>{{ context.isAdmin ? 'Confirmed reservations available for downstream order creation.' : 'Only confirmed reservations can create new orders.' }}</p>
+        </div>
+        <button class="btn btn-primary btn-sm" type="button" (click)="openAdminCreate()" *ngIf="context.isAdmin">Admin create</button>
+      </div>
+
+      <div class="rc-empty" *ngIf="!confirmedReservations.length">No confirmed reservations are ready for order creation.</div>
+
+      <table class="data-table" *ngIf="confirmedReservations.length">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Machine</th>
+            <th>Date</th>
+            <th>Hours</th>
+            <th>Solar</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let reservation of confirmedReservations">
+            <td>{{ reservation.company }}</td>
+            <td>{{ reservation.machine }}</td>
+            <td>{{ reservation.date }}</td>
+            <td>{{ reservation.hours }}</td>
+            <td>{{ reservation.solar ? 'Yes' : 'No' }}</td>
+            <td><button class="btn btn-primary btn-sm" type="button" (click)="openFromReservation(reservation)">Create order</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card" *ngIf="selectedOrder">
+      <div class="rc-section-head">
+        <div>
+          <h2>Price breakdown</h2>
+          <p>Eco-aware pricing and credits for order #{{ selectedOrder.ref || selectedOrder.id }}.</p>
+        </div>
+        <app-status-chip [label]="selectedOrder.status" [variant]="statusVariant(selectedOrder.status)" />
+      </div>
+
+      <div class="rc-breakdown">
+        <div class="rc-breakdown-row" *ngFor="let line of selectedBreakdown">
+          <span>{{ line.label }}</span>
+          <strong [class.positive]="line.value < 0">{{ line.value }}</strong>
+        </div>
+        <div class="rc-breakdown-row total">
+          <span>Total</span>
+          <strong>{{ selectedGrandTotal }}</strong>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="card" *ngIf="showForm">
+    <div class="rc-section-head">
+      <div>
+        <h2>{{ form.id ? 'Update order' : 'Create order' }}</h2>
+        <p>Backoffice-safe order form with eco metrics coming from backend-persisted values.</p>
+      </div>
+      <button class="btn btn-outline btn-sm" type="button" (click)="closeForm()">Close</button>
+    </div>
+
+    <div class="rc-form-grid">
+      <div class="form-group">
+        <label>Company</label>
+        <input [(ngModel)]="form.companyName" />
+      </div>
+      <div class="form-group">
+        <label>Material</label>
+        <input [(ngModel)]="form.material" />
+      </div>
+      <div class="form-group">
+        <label>Supplier</label>
+        <input [(ngModel)]="form.supplier" />
+      </div>
+      <div class="form-group">
+        <label>Quantity (kg)</label>
+        <input type="number" min="1" [(ngModel)]="form.qtyKg" />
+      </div>
+      <div class="form-group">
+        <label>Distance (km)</label>
+        <input type="number" min="0" [(ngModel)]="form.distanceKm" />
+      </div>
+      <div class="form-group">
+        <label>Order date</label>
+        <input type="date" [(ngModel)]="form.orderDate" />
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select [(ngModel)]="form.status">
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>CO2 saved</label>
+        <input type="number" [(ngModel)]="form.co2Saved" />
+      </div>
+      <div class="form-group">
+        <label>Water saved</label>
+        <input type="number" [(ngModel)]="form.waterSaved" />
+      </div>
+      <div class="form-group">
+        <label>Waste avoided</label>
+        <input type="number" [(ngModel)]="form.wasteAvoided" />
+      </div>
+      <div class="form-group" *ngIf="context.isAdmin">
+        <label>Owner enterprise ID</label>
+        <input type="number" [(ngModel)]="form.enterpriseId" />
       </div>
     </div>
 
-    <div class="card">
-      <h2 style="margin:0 0 10px">Eco Score</h2>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="badge badge-neutral">Grade {{ ecoImpactScore.grade }}</span>
-        <strong>{{ ecoImpactScore.averageCo2 }} CO2</strong>
-      </div>
-      <p style="margin:10px 0 0;color:var(--text2)">{{ ecoImpactScore.message }}</p>
-    </div>
+    <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+    <div class="alert alert-success" *ngIf="success">{{ success }}</div>
 
-    <div class="card">
-      <h2 style="margin:0 0 10px">Lifecycle Tracking</h2>
-      <div style="display:flex;justify-content:space-between;color:var(--text2)">
-        <span>Created</span>
-        <strong>{{ lifecycleSummary.created }}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;color:var(--text2);margin-top:8px">
-        <span>Processing</span>
-        <strong>{{ lifecycleSummary.processing }}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;color:var(--text2);margin-top:8px">
-        <span>Completed</span>
-        <strong>{{ lifecycleSummary.completed }}</strong>
-      </div>
+    <div class="rc-actions">
+      <button class="btn btn-primary" type="button" (click)="saveOrder()" [disabled]="saving">
+        {{ saving ? 'Saving...' : (form.id ? 'Update order' : 'Create order') }}
+      </button>
+      <button class="btn btn-outline" type="button" (click)="closeForm()">Cancel</button>
     </div>
-  </div>
+  </section>
 
   <section class="card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+    <div class="rc-section-head">
       <div>
-        <h2 style="margin:0 0 8px">My Data</h2>
-        <p style="margin:0;color:var(--text2)">{{ isAdminView ? 'Full CRUD for all orders in the system.' : 'Full CRUD for orders owned by your enterprise.' }}</p>
-      </div>
-      <button class="btn btn-primary" type="button" (click)="openCreate()">Create Order</button>
-    </div>
-
-    <div class="card" *ngIf="showForm" style="margin-top:16px;padding:16px;background:#f8fafc">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
-        <div>
-          <h3 style="margin:0 0 6px">{{ editMode ? 'Update Order' : 'Create Order' }}</h3>
-          <p style="margin:0;color:var(--text2)">The eco score uses backend `co2Saved` values and solar context from marketplace reservations when available.</p>
-        </div>
-        <button class="btn btn-outline btn-sm" type="button" (click)="closeForm()" [disabled]="savingForm">
-          Close
-        </button>
-      </div>
-
-      <div class="form-row" style="margin-top:16px">
-        <div class="form-group" *ngIf="isAdminView">
-          <label>Enterprise ID</label>
-          <input type="number" name="enterpriseId" [(ngModel)]="form.enterpriseId" />
-        </div>
-
-        <div class="form-group">
-          <label>Company</label>
-          <input type="text" name="companyName" [(ngModel)]="form.companyName" />
-        </div>
-
-        <div class="form-group">
-          <label>Material</label>
-          <input type="text" name="material" [(ngModel)]="form.material" />
-        </div>
-
-        <div class="form-group">
-          <label>Supplier</label>
-          <input type="text" name="supplier" [(ngModel)]="form.supplier" />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Quantity (kg)</label>
-          <input type="number" min="1" name="qtyKg" [(ngModel)]="form.qtyKg" (ngModelChange)="recomputeOrderMetrics()" />
-        </div>
-
-        <div class="form-group">
-          <label>Distance (km)</label>
-          <input type="number" min="0" name="distanceKm" [(ngModel)]="form.distanceKm" (ngModelChange)="recomputeOrderMetrics()" />
-        </div>
-
-        <div class="form-group">
-          <label>Order Date</label>
-          <input type="date" name="orderDate" [(ngModel)]="form.orderDate" />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Status</label>
-          <select name="status" [(ngModel)]="form.status">
-            <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>CO2 Saved</label>
-          <input type="number" name="co2Saved" [(ngModel)]="form.co2Saved" (ngModelChange)="recomputeOrderMetrics()" />
-        </div>
-
-        <div class="form-group">
-          <label>Water Saved</label>
-          <input type="number" name="waterSaved" [(ngModel)]="form.waterSaved" />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Waste Avoided</label>
-          <input type="number" name="wasteAvoided" [(ngModel)]="form.wasteAvoided" />
-        </div>
-
-        <div class="form-group">
-          <label>Duration (hours)</label>
-          <input type="number" min="1" name="sourceDuration" [(ngModel)]="form.sourceDuration" (ngModelChange)="recomputeOrderMetrics()" />
-        </div>
-
-        <div class="form-group">
-          <label>Grade</label>
-          <input type="text" [value]="formEcoScore.grade" disabled />
-        </div>
-
-        <div class="form-group checkbox-group">
-          <label>Solar Source</label>
-          <label class="toggle-row">
-            <input type="checkbox" name="sourceSolar" [(ngModel)]="form.sourceSolar" (ngModelChange)="recomputeOrderMetrics()" />
-            <span>Reservation source used solar</span>
-          </label>
-        </div>
-      </div>
-
-      <div style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;margin-bottom:12px">
-        <strong>AI Eco Score</strong>
-        <div style="margin-top:6px;color:var(--text2)">Grade {{ formEcoScore.grade }} — {{ formEcoScore.message }}</div>
-      </div>
-
-      <div class="message error" *ngIf="error">{{ error }}</div>
-      <div class="message success" *ngIf="success">{{ success }}</div>
-
-      <div class="actions-row">
-        <button class="btn btn-primary" type="button" (click)="saveOrder()" [disabled]="savingForm">
-          {{ savingForm ? 'Saving...' : (editMode ? 'Update Order' : 'Create Order') }}
-        </button>
-        <button class="btn btn-outline" type="button" (click)="closeForm()" [disabled]="savingForm">
-          Cancel
-        </button>
+        <h2>Order analytics</h2>
+        <p>History trends powered by real order records from the backend.</p>
       </div>
     </div>
 
-    <div class="table-state error" *ngIf="error">{{ error }}</div>
-    <div class="table-state" *ngIf="loading">Loading orders...</div>
+    <div class="rc-trends" *ngIf="trends.length; else noTrends">
+      <div class="rc-trend" *ngFor="let point of trends">
+        <strong>{{ point.label }}</strong>
+        <span>{{ point.count }} orders</span>
+        <span>{{ point.totalQtyKg }} kg</span>
+      </div>
+    </div>
 
-    <table class="data-table" *ngIf="!loading && myOrders.length" style="margin-top:16px">
+    <ng-template #noTrends>
+      <div class="rc-empty">Trend cards will appear once orders exist across multiple periods.</div>
+    </ng-template>
+  </section>
+
+  <section class="card">
+    <div class="rc-section-head">
+      <div>
+        <h2>{{ context.isAdmin ? 'All orders' : 'My orders' }}</h2>
+        <p>{{ context.isAdmin ? 'Admin can update, advance, cancel, or inspect any order.' : 'Orders owned by your enterprise.' }}</p>
+      </div>
+    </div>
+
+    <div class="rc-empty" *ngIf="loading">Loading orders...</div>
+    <div class="rc-empty" *ngIf="!loading && !scopedOrders.length">No orders found.</div>
+
+    <table class="data-table" *ngIf="!loading && scopedOrders.length">
       <thead>
         <tr>
           <th>Reference</th>
           <th>Company</th>
           <th>Material</th>
-          <th>Qty (kg)</th>
-          <th>Lifecycle</th>
-          <th>Impact</th>
+          <th>Qty</th>
           <th>Status</th>
           <th>Grade</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let order of myOrders">
+        <tr *ngFor="let order of scopedOrders" (click)="selectOrder(order)">
           <td>{{ order.ref }}</td>
           <td>{{ order.companyName }}</td>
           <td>{{ order.material }}</td>
           <td>{{ order.qtyKg }}</td>
-          <td style="min-width:170px">
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px">
-              <span>created</span>
-              <span>processing</span>
-              <span>completed</span>
-            </div>
-            <div style="height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden">
-              <div
-                [style.width.%]="lifecycleProgress(order)"
-                style="height:100%;background:linear-gradient(90deg,#0ea5e9,#16a34a)"
-              ></div>
-            </div>
-          </td>
-          <td>
-            <div>{{ impactMessage(order) }}</div>
-            <div style="font-size:12px;color:var(--text2)">CO2: {{ estimatedCo2(order) }}</div>
-          </td>
-          <td><span class="badge badge-neutral">{{ order.status }}</span></td>
+          <td><app-status-chip [label]="order.status" [variant]="statusVariant(order.status)" /></td>
           <td>{{ order.grade }}</td>
-          <td>
-            <div class="status-actions" style="flex-wrap:wrap">
-              <select [(ngModel)]="statusDrafts[order.id]" [name]="'status-' + order.id">
-                <option *ngFor="let status of statuses" [ngValue]="status">{{ status }}</option>
-              </select>
-              <button class="btn btn-primary btn-sm" type="button" (click)="saveStatus(order)" [disabled]="savingId === order.id">
-                Save
-              </button>
-              <button class="btn btn-outline btn-sm" type="button" (click)="openEdit(order)">Edit</button>
-              <button
-                class="btn btn-outline btn-sm"
-                type="button"
-                (click)="cancelOrder(order)"
-                [disabled]="savingId === order.id || order.status === 'cancelled'"
-              >
-                Cancel
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="table-state" *ngIf="!loading && !myOrders.length" style="margin-top:16px">
-      {{ isAdminView ? 'No orders found in the system.' : 'No orders found for your enterprise.' }}
-    </div>
-  </section>
-
-  <section class="card" *ngIf="!isAdminView">
-    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
-      <div>
-        <h2 style="margin:0 0 8px">Marketplace</h2>
-        <p style="margin:0;color:var(--text2)">Create a new order from confirmed reservations owned by other enterprises. Marketplace data is read-only.</p>
-      </div>
-      <div style="color:var(--text2)">{{ marketplaceReservations.length }} reservation(s) available</div>
-    </div>
-
-    <table class="data-table" *ngIf="marketplaceReservations.length" style="margin-top:16px">
-      <thead>
-        <tr>
-          <th>Enterprise ID</th>
-          <th>Company</th>
-          <th>Machine</th>
-          <th>Date</th>
-          <th>Hours</th>
-          <th>Solar</th>
-          <th>Create Order</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let reservation of marketplaceReservations">
-          <td>{{ reservation.enterprise?.id ?? reservation.enterpriseId }}</td>
-          <td>{{ reservation.company }}</td>
-          <td>{{ reservation.machine }}</td>
-          <td>{{ reservation.date }}</td>
-          <td>{{ reservation.hours }}</td>
-          <td>{{ reservation.solar ? 'Yes' : 'No' }}</td>
-          <td>
-            <button class="btn btn-primary btn-sm" type="button" (click)="createFromReservation(reservation)">
-              Create Order
+          <td class="rc-row-actions">
+            <button class="btn btn-outline btn-sm" type="button" (click)="edit(order); $event.stopPropagation()">Edit</button>
+            <button class="btn btn-primary btn-sm" type="button" (click)="advance(order); $event.stopPropagation()" [disabled]="order.status === 'delivered' || order.status === 'cancelled'">
+              Advance
+            </button>
+            <button class="btn btn-outline btn-sm" type="button" (click)="cancel(order); $event.stopPropagation()" [disabled]="order.status === 'cancelled'">
+              Cancel
             </button>
           </td>
         </tr>
       </tbody>
     </table>
-
-    <div class="table-state" *ngIf="!marketplaceReservations.length" style="margin-top:16px">
-      No confirmed marketplace reservations are available for order creation.
-    </div>
   </section>
 </div>

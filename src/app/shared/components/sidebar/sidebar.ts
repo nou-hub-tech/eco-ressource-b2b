@@ -71,18 +71,16 @@ export class Sidebar implements OnInit {
     { label: 'Home', icon: 'home', route: '/enterprise/dashboard' },
 
     { section: 'Marketplace' },
-    { label: 'Browse Listings', icon: 'marketplace', route: '/enterprise/marketplace' },
-    { label: 'My Listings', icon: 'listings', route: '/enterprise/my-listings' },
-    { label: 'Requests', icon: 'requests', route: '/enterprise/requests' },
+    { label: 'Marketplace', icon: 'marketplace', route: '/enterprise/marketplace' },
+    { label: 'My Slots', icon: 'reservations', route: '/enterprise/slots' },
+    { label: 'My Reservations', icon: 'requests', route: '/enterprise/reservations' },
+    { label: 'Incoming Requests', icon: 'requests', route: '/enterprise/incoming-requests' },
+    { label: 'Orders', icon: 'transactions', route: '/enterprise/orders' },
 
     { section: 'Operations' },
+    { label: 'My Listings', icon: 'listings', route: '/enterprise/my-listings' },
     { label: 'My Stock', icon: 'stock', route: '/enterprise/my-stock' },
     { label: 'My Deliveries', icon: 'deliveries', route: '/enterprise/my-deliveries' },
-
-    { section: 'Circular Economy' },
-    { label: 'Reservations', icon: 'reservations', route: '/enterprise/reservations' },
-    { label: 'Orders', icon: 'transactions', route: '/enterprise/orders' },
-    { label: 'Slots', icon: 'reservations', route: '/enterprise/slots' },
 
     { section: 'Finance' },
     { label: 'Transactions', icon: 'transactions', route: '/enterprise/transactions' },

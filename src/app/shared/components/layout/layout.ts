@@ -24,10 +24,11 @@ export class Layout implements OnInit {
     'stock':           'Stock & Products',
     'deliveries':      'Deliveries',
     'listings':        'Listings & Posts',
-    'reservations':    'Reservations & Orders',
+    'reservations':    'My Reservations',
     'treasury':        'Treasury & Finance',
     'solidarity':      'Solidarity & Associations',
     'marketplace':     'Marketplace',
+    'incoming-requests': 'Incoming Requests',
     'my-stock':        'My Stock',
     'my-deliveries':   'My Deliveries',
     'my-listings':     'My Posts & Surplus',
@@ -41,7 +42,7 @@ export class Layout implements OnInit {
     'earnings':        'Earnings',
     // eco module
     'orders':          'Eco Orders',
-    'slots':           'Slots Calendar',
+    'slots':           'My Slots',
     'slot-management': 'Slot Inventory',
     'new-slot':        'New Slot',
   };

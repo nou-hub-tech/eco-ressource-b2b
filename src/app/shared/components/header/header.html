@@ -4,8 +4,6 @@
     <h2 class="hdr-title">{{pageTitle}}</h2>
   </div>
   <div class="hdr-right">
-
-    <!-- DARK MODE TOGGLE -->
     <button class="theme-toggle" (click)="toggleTheme()" [title]="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
       <span class="theme-toggle-track">
         <span class="theme-toggle-thumb">
@@ -13,10 +11,9 @@
           <span *ngIf="isDark">🌙</span>
         </span>
       </span>
-<span class="theme-toggle-label">{{isDark ? 'Light Mode' : 'Dark Mode'}}</span>
+      <span class="theme-toggle-label">{{isDark ? 'Light Mode' : 'Dark Mode'}}</span>
     </button>
 
-    <!-- NOTIFICATIONS -->
     <div style="position:relative">
       <button class="hdr-btn" (click)="showNotif = !showNotif">
         🔔
@@ -32,6 +29,12 @@
           <div>
             <div class="notif-text">{{n.text}}</div>
             <div class="notif-time">{{n.time}}</div>
+          </div>
+        </div>
+        <div class="notif-row" *ngIf="!notifications.length">
+          <div>
+            <div class="notif-text">No live reservation, slot, or order alerts.</div>
+            <div class="notif-time">Backend synced</div>
           </div>
         </div>
       </div>

@@ -1,0 +1,39 @@
+.rc-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.rc-chip-success {
+  background: rgba(5, 150, 105, 0.12);
+  color: #047857;
+  border-color: rgba(5, 150, 105, 0.18);
+}
+
+.rc-chip-warning {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.18);
+}
+
+.rc-chip-danger {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b42318;
+  border-color: rgba(220, 38, 38, 0.16);
+}
+
+.rc-chip-info {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0369a1;
+  border-color: rgba(14, 165, 233, 0.18);
+}
+
+.rc-chip-neutral {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+  border-color: rgba(100, 116, 139, 0.16);
+}

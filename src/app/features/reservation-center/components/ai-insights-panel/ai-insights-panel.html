@@ -1,0 +1,26 @@
+<section class="rc-ai-panel card">
+  <div class="rc-ai-head">
+    <div>
+      <h2>{{ title }}</h2>
+      <p>{{ subtitle }}</p>
+    </div>
+    <span class="ai-tip">AI backend</span>
+  </div>
+
+  <div class="rc-ai-grid" *ngIf="insights.length; else emptyState">
+    <article class="rc-ai-card" *ngFor="let insight of insights; trackBy: trackByInsight" [ngClass]="'tone-' + insight.tone">
+      <div class="rc-ai-card-head">
+        <strong>{{ insight.title }}</strong>
+        <span *ngIf="insight.score != null">{{ insight.score }}</span>
+      </div>
+      <p>{{ insight.message }}</p>
+      <button class="btn btn-outline btn-sm" type="button" *ngIf="insight.actionLabel" (click)="action.emit(insight)">
+        {{ insight.actionLabel }}
+      </button>
+    </article>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="rc-ai-empty">No AI insight was returned by the backend for this module.</div>
+  </ng-template>
+</section>

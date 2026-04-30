@@ -1,0 +1,79 @@
+.rc-ai-panel {
+  padding: 20px;
+}
+
+.rc-ai-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.rc-ai-head h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.rc-ai-head p {
+  margin: 0;
+  color: var(--text3);
+  font-size: 13px;
+}
+
+.rc-ai-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.rc-ai-card {
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94));
+}
+
+.rc-ai-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rc-ai-card p {
+  margin: 0 0 12px;
+  color: var(--text2);
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.rc-ai-card.tone-eco {
+  border-left-color: #16a34a;
+}
+
+.rc-ai-card.tone-warn {
+  border-left-color: #d97706;
+}
+
+.rc-ai-card.tone-danger {
+  border-left-color: #dc2626;
+}
+
+.rc-ai-card.tone-info {
+  border-left-color: #0ea5e9;
+}
+
+.rc-ai-card.tone-neutral {
+  border-left-color: #64748b;
+}
+
+.rc-ai-empty {
+  padding: 18px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.9);
+  color: var(--text3);
+  border: 1px dashed var(--border2);
+}

@@ -1,24 +1,72 @@
 import { Component, OnInit } from '@angular/core';
-@Component({ selector: 'app-marketplace', standalone: false, templateUrl: './marketplace.html', styleUrls: ['./marketplace.css'] })
+import { Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+import { ReservationCenterState } from '../../../features/reservation-center/state/reservation-center.state';
+import { BackendReservationSlot } from '../../../pages/moduleReservation/shared/api/reservation-slot-api.service';
+
+@Component({
+  selector: 'app-marketplace',
+  standalone: false,
+  templateUrl: './marketplace.html',
+  styleUrls: ['./marketplace.css'],
+})
 export class Marketplace implements OnInit {
-  search = ''; filterCat = 'all'; showModal = false;
-  listings = [
-    { id:1, title:'Aluminum Scrap 2T',     company:'Industrie Slim',   category:'Metal',   price:1200, qty:'2,000 kg', status:'active',  ai:'High demand — act fast' },
-    { id:2, title:'PET Plastic Pellets',   company:'Chimie Anis',      category:'Plastic', price:340,  qty:'500 kg',   status:'active',  ai:'Price drop expected' },
-    { id:3, title:'Cardboard Bales 1T',   company:'Textile Mona',     category:'Paper',   price:180,  qty:'1,000 kg', status:'active',  ai:'Best value match' },
-    { id:4, title:'Steel Offcuts 800kg',  company:'Métallurgie Sud',  category:'Metal',   price:620,  qty:'800 kg',   status:'active',  ai:'Optimal price' },
-    { id:5, title:'Glass Cullet 300kg',   company:'Vitro Indinya',    category:'Glass',   price:90,   qty:'300 kg',   status:'active',  ai:'Recommend reallocation' },
-    { id:6, title:'Fabric Offcuts 150kg', company:'Textile Mona',     category:'Textile', price:55,   qty:'150 kg',   status:'active',  ai:'Surplus confirmed' },
-  ];
-  categories = ['all','Metal','Plastic','Paper','Glass','Textile'];
-  get filtered() {
-    return this.listings.filter(l => {
-      const ms = l.title.toLowerCase().includes(this.search.toLowerCase()) || l.company.toLowerCase().includes(this.search.toLowerCase());
-      const mc = this.filterCat === 'all' || l.category === this.filterCat;
-      return ms && mc;
+  loading = true;
+  error = '';
+  search = '';
+  solarOnly = false;
+
+  slots: BackendReservationSlot[] = [];
+  currentEnterpriseId: number | null = null;
+
+  constructor(
+    private readonly auth: AuthService,
+    private readonly router: Router,
+    private readonly state: ReservationCenterState,
+  ) {}
+
+  ngOnInit(): void {
+    this.currentEnterpriseId = this.auth.currentUser?.enterprise?.id ?? this.auth.currentUser?.enterpriseId ?? null;
+    this.state.loadAll().subscribe({
+      next: snapshot => {
+        this.loading = false;
+        this.slots = snapshot.slots;
+      },
+      error: error => {
+        this.loading = false;
+        this.error = error?.error?.message ?? 'Failed to load marketplace slots.';
+      },
     });
   }
-  ngOnInit(): void {}
-  openModal(): void { this.showModal = true; }
-  closeModal(): void { this.showModal = false; }
+
+  get marketplaceSlots(): BackendReservationSlot[] {
+    const query = this.search.trim().toLowerCase();
+
+    return this.slots
+      .filter(slot => slot.status === 'open')
+      .filter(slot => (slot.enterprise?.id ?? slot.enterpriseId ?? null) !== this.currentEnterpriseId)
+      .filter(slot => !this.solarOnly || slot.solar)
+      .filter(slot => {
+        if (!query) {
+          return true;
+        }
+
+        const provider = slot.enterprise?.companyName ?? `enterprise ${slot.enterprise?.id ?? slot.enterpriseId ?? ''}`;
+        return [slot.machine, slot.date, provider].some(value => value.toLowerCase().includes(query));
+      })
+      .sort((left, right) => left.date.localeCompare(right.date) || left.startHour - right.startHour);
+  }
+
+  reserve(slot: BackendReservationSlot): void {
+    this.router.navigate(['/enterprise/reservations'], {
+      queryParams: {
+        slotId: slot.id,
+        machine: slot.machine,
+        date: slot.date,
+        startHour: slot.startHour,
+        hours: Math.max(1, slot.endHour - slot.startHour),
+        solar: slot.solar,
+      },
+    });
+  }
 }

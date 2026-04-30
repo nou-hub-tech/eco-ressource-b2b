@@ -10,6 +10,9 @@ import { Transactions } from './transactions/transactions';
 import { Reports } from './reports/reports';
 import { Requests } from './requests/requests';
 import { Events } from './events/events';
+import { EnterpriseReservations } from './enterprise-reservations/enterprise-reservations';
+import { EnterpriseSlots } from './enterprise-slots/enterprise-slots';
+import { EnterpriseOrders } from './enterprise-orders/enterprise-orders';
 
 const routes: Routes = [
   {
@@ -26,21 +29,10 @@ const routes: Routes = [
       { path: 'reports', component: Reports },
       { path: 'requests', component: Requests },
       { path: 'events', component: Events },
-      {
-        path: 'reservations',
-        loadComponent: () =>
-          import('./enterprise-reservations/enterprise-reservations').then(m => m.EnterpriseReservations),
-      },
-      {
-        path: 'slots',
-        loadComponent: () =>
-          import('./enterprise-slots/enterprise-slots').then(m => m.EnterpriseSlots),
-      },
-      {
-        path: 'orders',
-        loadComponent: () =>
-          import('./enterprise-orders/enterprise-orders').then(m => m.EnterpriseOrders),
-      },
+      { path: 'reservations', component: EnterpriseReservations },
+      { path: 'incoming-requests', component: EnterpriseReservations },
+      { path: 'slots', component: EnterpriseSlots },
+      { path: 'orders', component: EnterpriseOrders },
     ],
   },
 ];

@@ -1,145 +1,170 @@
-<div class="page-wrapper">
-  <div class="page-header">
-    <h1>Enterprise Slots</h1>
-    <p>{{ isAdminView ? 'Administrative supervision for all marketplace slots.' : 'Provider mode for your published slots and consumer mode for marketplace slot reservation.' }}</p>
-  </div>
-
-  <div class="card" *ngIf="aiRecommendations.length">
-    <h2 style="margin:0 0 10px">AI Recommendations</h2>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
-      <div *ngFor="let recommendation of aiRecommendations" style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc">
-        {{ recommendation }}
+<div class="rc-page">
+  <section class="rc-hero card">
+    <div>
+      <p class="rc-kicker">Slot operations</p>
+      <h1>{{ context.isAdmin ? 'Slot Supervision' : 'My Slots' }}</h1>
+      <p class="rc-subtitle">
+        {{ context.isAdmin
+          ? 'Override, inspect, and rebalance capacity across every enterprise slot.'
+          : 'Manage the slots your enterprise owns while keeping marketplace availability healthy.' }}
+      </p>
+    </div>
+    <div class="rc-hero-stats">
+      <div class="rc-stat">
+        <span>Open</span>
+        <strong>{{ openSlotsCount }}</strong>
+      </div>
+      <div class="rc-stat">
+        <span>Booked</span>
+        <strong>{{ bookedSlotsCount }}</strong>
+      </div>
+      <div class="rc-stat">
+        <span>Blocked</span>
+        <strong>{{ blockedSlotsCount }}</strong>
+      </div>
+      <div class="rc-stat warning">
+        <span>Utilization</span>
+        <strong>{{ totalUtilization }}%</strong>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
-      <div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong>Usage Rate</strong>
-          <span class="badge badge-neutral">{{ usagePercent }}% booked</span>
-        </div>
-        <div style="height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden">
-          <div
-            [style.width.%]="usagePercent"
-            style="height:100%;background:linear-gradient(90deg,#f59e0b,#16a34a)"
-          ></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:10px;color:var(--text2)">
-          <span>Booked: {{ bookedSlotsCount }}</span>
-          <span>Available: {{ availableSlotsCount }}</span>
+  <app-ai-insights-panel
+    [title]="'Slot AI suggestions'"
+    [subtitle]="'Backend recommendations for availability optimization and demand balancing.'"
+    [insights]="aiInsights"
+    (action)="applyInsight($event)"
+  />
+
+  <section class="rc-grid">
+    <article class="card">
+      <div class="rc-section-head">
+        <div>
+          <h2>{{ form.id ? 'Update slot' : 'Create slot' }}</h2>
+          <p>Full CRUD for slot inventory with backend-synced availability.</p>
         </div>
       </div>
 
-      <div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc" *ngIf="smartSuggestion">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong>Best Slot Suggestion</strong>
-          <span class="badge badge-neutral">{{ smartSuggestion.recommendedDiscountPct }}% discount</span>
-        </div>
-        <p style="margin:0 0 8px;color:var(--text2)">
-          {{ smartSuggestion.date }} | {{ smartSuggestion.startHour }}:00 - {{ smartSuggestion.endHour }}:00
-        </p>
-        <p style="margin:0;color:var(--text2)">{{ smartSuggestion.reason }}</p>
-      </div>
-
-      <div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc" *ngIf="bestMarketplaceSlot && !isAdminView">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong>Marketplace Recommendation</strong>
-          <span class="badge badge-neutral">Reserve</span>
-        </div>
-        <p style="margin:0 0 8px;color:var(--text2)">
-          {{ bestMarketplaceSlot.machine }} | {{ bestMarketplaceSlot.date }} | {{ bestMarketplaceSlot.startHour }}:00 - {{ bestMarketplaceSlot.endHour }}:00
-        </p>
-        <p style="margin:0;color:var(--text2)">
-          Solar: {{ bestMarketplaceSlot.solar ? 'Yes' : 'No' }} | Discount: {{ bestMarketplaceSlot.discountPct || 0 }}%
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <section class="card">
-    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
-      <div>
-        <h2 style="margin:0 0 8px">My Data</h2>
-        <p style="margin:0;color:var(--text2)">{{ isAdminView ? 'Create, update, and delete any slot in the system.' : 'Create, update, and delete slots owned by your enterprise.' }}</p>
-      </div>
-      <button class="btn btn-outline" type="button" (click)="optimizeMySchedule()" [disabled]="saving || !smartSuggestion" *ngIf="!isAdminView">
-        Optimize My Schedule
-      </button>
-    </div>
-
-    <form (ngSubmit)="save()" style="margin-top:20px">
-      <div class="form-row" *ngIf="isAdminView">
-        <div class="form-group">
-          <label>Enterprise ID</label>
-          <input type="number" name="enterpriseId" [(ngModel)]="form.enterpriseId" required />
-        </div>
-      </div>
-
-      <div class="form-row">
+      <div class="rc-form-grid">
         <div class="form-group">
           <label>Machine</label>
-          <input type="text" name="machine" [(ngModel)]="form.machine" placeholder="e.g. CNC Press" required />
+          <input [(ngModel)]="form.machine" />
         </div>
-
         <div class="form-group">
           <label>Date</label>
-          <input type="date" name="date" [(ngModel)]="form.date" required />
+          <input type="date" [(ngModel)]="form.date" />
         </div>
-      </div>
-
-      <div class="form-row">
         <div class="form-group">
-          <label>Start Hour</label>
-          <input type="number" name="startHour" [(ngModel)]="form.startHour" min="0" max="23" required />
+          <label>Start hour</label>
+          <input type="number" min="0" max="23" [(ngModel)]="form.startHour" />
         </div>
-
         <div class="form-group">
-          <label>End Hour</label>
-          <input type="number" name="endHour" [(ngModel)]="form.endHour" min="1" max="24" required />
+          <label>End hour</label>
+          <input type="number" min="1" max="24" [(ngModel)]="form.endHour" />
         </div>
-
-        <div class="form-group">
-          <label>Hours</label>
-          <input type="text" [value]="durationHours" disabled />
-        </div>
-      </div>
-
-      <div class="form-row">
         <div class="form-group">
           <label>Discount (%)</label>
-          <input type="number" name="discountPct" [(ngModel)]="form.discountPct" min="0" max="100" />
+          <input type="number" min="0" max="100" [(ngModel)]="form.discountPct" />
         </div>
+        <div class="form-group" *ngIf="context.isAdmin">
+          <label>Owner enterprise ID</label>
+          <input type="number" [(ngModel)]="form.enterpriseId" />
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select [(ngModel)]="form.status">
+            <option value="open">Open</option>
+            <option value="booked">Booked</option>
+            <option value="blocked">Blocked</option>
+          </select>
+        </div>
+        <label class="rc-toggle">
+          <input type="checkbox" [(ngModel)]="form.solar" />
+          <span>Solar-backed slot</span>
+        </label>
+      </div>
 
-        <div class="form-group checkbox-group">
-          <label>Solar Slot</label>
-          <label class="toggle-row">
-            <input type="checkbox" name="solar" [(ngModel)]="form.solar" />
-            <span>Uses solar energy</span>
-          </label>
+      <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+      <div class="alert alert-success" *ngIf="success">{{ success }}</div>
+
+      <div class="rc-actions">
+        <button class="btn btn-primary" type="button" (click)="saveSlot()" [disabled]="saving">
+          {{ saving ? 'Saving...' : (form.id ? 'Update slot' : 'Create slot') }}
+        </button>
+        <button class="btn btn-outline" type="button" (click)="resetForm()">Clear</button>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="rc-section-head">
+        <div>
+          <h2>Calendar view</h2>
+          <p>Weekly and monthly capacity map from backend slot data.</p>
+        </div>
+        <div class="rc-actions">
+          <button class="btn btn-outline btn-sm" type="button" (click)="moveCalendar(-1)">Prev</button>
+          <button class="btn btn-outline btn-sm" type="button" (click)="setCalendarMode('week')">Week</button>
+          <button class="btn btn-outline btn-sm" type="button" (click)="setCalendarMode('month')">Month</button>
+          <button class="btn btn-outline btn-sm" type="button" (click)="moveCalendar(1)">Next</button>
         </div>
       </div>
 
-      <div class="message error" *ngIf="error">{{ error }}</div>
-      <div class="message success" *ngIf="success">{{ success }}</div>
-
-      <div class="actions-row">
-        <button class="btn btn-primary" type="submit" [disabled]="saving">
-          {{ editingId ? 'Update Slot' : 'Create Slot' }}
-        </button>
-        <button class="btn btn-outline" type="button" (click)="resetForm()" [disabled]="saving">
-          Clear
-        </button>
+      <div class="rc-calendar" *ngIf="calendarCells.length; else noCalendar">
+        <div class="rc-calendar-cell" *ngFor="let cell of calendarCells">
+          <strong>{{ cell.label }}</strong>
+          <span>{{ cell.slotCount }} slots</span>
+          <span>{{ cell.openCount }} open</span>
+          <span>{{ cell.bookedCount }} booked</span>
+          <span>{{ cell.pendingCount }} pending req.</span>
+        </div>
       </div>
-    </form>
 
-    <table class="data-table" *ngIf="mine.length" style="margin-top:20px">
+      <ng-template #noCalendar>
+        <div class="rc-empty">No slot data is available for the current range.</div>
+      </ng-template>
+    </article>
+  </section>
+
+  <section class="card">
+    <div class="rc-section-head">
+      <div>
+        <h2>Availability heatmap</h2>
+        <p>Occupancy by daypart, calculated from real slots and related reservation requests.</p>
+      </div>
+    </div>
+
+    <div class="rc-heatmap" *ngIf="heatmapCells.length; else noHeatmap">
+      <div class="rc-heatmap-cell" *ngFor="let cell of heatmapCells" [ngClass]="heatmapClass(cell.occupancy)">
+        <strong>{{ cell.date }}</strong>
+        <span>{{ cell.label }}</span>
+        <span>{{ cell.occupancy }}% occupied</span>
+        <span>{{ cell.reservationCount }} requests</span>
+      </div>
+    </div>
+
+    <ng-template #noHeatmap>
+      <div class="rc-empty">Heatmap data will appear once slots exist for your enterprise.</div>
+    </ng-template>
+  </section>
+
+  <section class="card">
+    <div class="rc-section-head">
+      <div>
+        <h2>{{ context.isAdmin ? 'All slots' : 'Owned slots' }}</h2>
+        <p>{{ context.isAdmin ? 'Override all slot records.' : 'Slots where slot.ownerEnterpriseId equals your enterprise ID.' }}</p>
+      </div>
+      <a class="btn btn-outline btn-sm" [routerLink]="['/enterprise/marketplace']" *ngIf="!context.isAdmin">Browse marketplace</a>
+    </div>
+
+    <div class="rc-empty" *ngIf="loading">Loading slots...</div>
+    <div class="rc-empty" *ngIf="!loading && !ownedSlots.length">No slot records found.</div>
+
+    <table class="data-table" *ngIf="!loading && ownedSlots.length">
       <thead>
         <tr>
           <th>Machine</th>
           <th>Date</th>
-          <th>Hours</th>
+          <th>Window</th>
           <th>Solar</th>
           <th>Discount</th>
           <th>Status</th>
@@ -147,115 +172,19 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let slot of mine">
+        <tr *ngFor="let slot of ownedSlots">
           <td>{{ slot.machine }}</td>
           <td>{{ slot.date }}</td>
           <td>{{ slot.startHour }}:00 - {{ slot.endHour }}:00</td>
           <td>{{ slot.solar ? 'Yes' : 'No' }}</td>
           <td>{{ slot.discountPct || 0 }}%</td>
-          <td><span class="badge badge-neutral">{{ slot.status }}</span></td>
-          <td>
-            <div class="row-actions">
-              <button class="btn btn-outline btn-sm" type="button" (click)="edit(slot)">Edit</button>
-              <button class="btn btn-outline btn-sm danger" type="button" (click)="remove(slot)">Delete</button>
-            </div>
+          <td><app-status-chip [label]="slot.status" [variant]="statusVariant(slot.status)" /></td>
+          <td class="rc-row-actions">
+            <button class="btn btn-outline btn-sm" type="button" (click)="edit(slot)">Edit</button>
+            <button class="btn btn-outline btn-sm" type="button" (click)="deleteSlot(slot)">Delete</button>
           </td>
         </tr>
       </tbody>
     </table>
-
-    <div class="table-state" *ngIf="!mine.length" style="margin-top:16px">
-      {{ isAdminView ? 'No slots found in the system.' : 'No slots found for your enterprise.' }}
-    </div>
-  </section>
-
-  <section class="card" *ngIf="!isAdminView">
-    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
-      <div>
-        <h2 style="margin:0 0 8px">Heatmap</h2>
-        <p style="margin:0;color:var(--text2)">Rendered from backend slots and reservations across the shared network.</p>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <span class="badge" style="background:#ef444422;color:#ef4444">Red</span>
-        <span class="badge" style="background:#22c55e22;color:#22c55e">Green</span>
-        <span class="badge" style="background:#facc1522;color:#b45309">Yellow</span>
-        <span class="badge" style="background:#3b82f622;color:#3b82f6">Blue</span>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:16px">
-      <div
-        *ngFor="let row of heatmapRows"
-        style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff"
-      >
-        <strong style="display:block;margin-bottom:10px">{{ row[0]?.date }}</strong>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
-          <div
-            *ngFor="let bucket of row"
-            [style.background]="heatmapBackground(bucket)"
-            [style.color]="heatmapTextColor(bucket)"
-            style="padding:10px;border-radius:10px"
-          >
-            <div style="font-weight:700">{{ bucket.label }}</div>
-            <div style="font-size:12px">{{ bucket.text }}</div>
-            <div style="font-size:12px">Reservations: {{ bucket.reservationCount }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-state" *ngIf="!heatmapRows.length" style="margin-top:16px">
-      No backend slot or reservation data is available for the heatmap yet.
-    </div>
-  </section>
-
-  <section class="card">
-    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
-      <div>
-        <h2 style="margin:0 0 8px">Marketplace</h2>
-        <p style="margin:0;color:var(--text2)">Reserve slots offered by other enterprises. No edit or delete is available here.</p>
-      </div>
-      <div *ngIf="bestMarketplaceSlot" style="color:var(--text2)">
-        Best option: {{ bestMarketplaceSlot.machine }} on {{ bestMarketplaceSlot.date }}
-      </div>
-    </div>
-
-    <table class="data-table" *ngIf="marketplaceSlots.length" style="margin-top:16px">
-      <thead>
-        <tr>
-          <th>Provider ID</th>
-          <th>Machine</th>
-          <th>Date</th>
-          <th>Window</th>
-          <th>Solar</th>
-          <th>Discount</th>
-          <th>Reserve</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let slot of marketplaceSlots">
-          <td>{{ slot.enterprise?.id ?? slot.enterpriseId }}</td>
-          <td>{{ slot.machine }}</td>
-          <td>{{ slot.date }}</td>
-          <td>{{ slot.startHour }}:00 - {{ slot.endHour }}:00</td>
-          <td>{{ slot.solar ? 'Yes' : 'No' }}</td>
-          <td>{{ slot.discountPct || 0 }}%</td>
-          <td>
-            <button
-              class="btn btn-primary btn-sm"
-              type="button"
-              (click)="reserve(slot)"
-              [disabled]="reserveSavingId === slot.id"
-            >
-              {{ reserveSavingId === slot.id ? 'Saving...' : 'Reserve' }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="table-state" *ngIf="!marketplaceSlots.length" style="margin-top:16px">
-      No marketplace slots are currently available.
-    </div>
   </section>
 </div>
