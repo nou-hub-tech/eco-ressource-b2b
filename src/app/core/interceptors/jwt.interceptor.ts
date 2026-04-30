@@ -26,12 +26,16 @@ export class JwtInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
-    const authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    // Ne pas forcer application/json sur multipart (ex. POST listing-images avec FormData) :
+    // le navigateur doit définir multipart/form-data; boundary=...
+    const setHeaders: Record<string, string> = {
+      Authorization: `Bearer ${token}`
+    };
+    if (!(req.body instanceof FormData)) {
+      setHeaders['Content-Type'] = 'application/json';
+    }
+
+    const authReq = req.clone({ setHeaders });
     return next.handle(authReq);
   }
 }
