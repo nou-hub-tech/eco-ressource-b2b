@@ -1,19 +1,31 @@
 <div class="page-wrapper">
+
   <!-- Welcome banner -->
   <div class="t-banner">
     <div>
-      <h2 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:4px">Good morning, Karim 👋</h2>
-      <p style="font-size:13px;color:var(--text3)">You have 3 active trips today. 1 pickup pending.</p>
+      <h2 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:4px">
+        {{ greeting }}, {{ transporterName }} 👋
+      </h2>
+      <p style="font-size:13px;color:var(--text3)" *ngIf="activeCount > 0">
+        Vous avez <strong>{{ activeCount }}</strong> trip(s) en cours.
+      </p>
+      <p style="font-size:13px;color:var(--text3)" *ngIf="activeCount === 0">
+        Aucun trip actif. Acceptez une commande depuis <a routerLink="/transporter/trips" style="color:var(--accent)">Trips</a>.
+      </p>
     </div>
     <div style="text-align:right">
       <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);border-radius:100px;font-size:12px;font-weight:600;color:var(--success,#34d399);margin-bottom:8px">
         <span style="width:6px;height:6px;border-radius:50%;background:#34d399;display:inline-block;animation:pulseDot 2s infinite"></span>
         Online &amp; Available
       </div>
-      <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--accent);letter-spacing:-1px">3,240 <span style="font-size:13px;font-weight:400;color:var(--text3)">TND this month</span></div>
+      <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--accent);letter-spacing:-1px">
+        {{ formatEarnings(monthlyEarnings) }}
+        <span style="font-size:13px;font-weight:400;color:var(--text3)">TND ce mois</span>
+      </div>
     </div>
   </div>
 
+  <!-- Stats cards -->
   <div class="stats-grid">
     <div class="stat-card" *ngFor="let s of stats">
       <div class="stat-icon" [style.background]="s.bg">{{s.icon}}</div>
@@ -25,54 +37,81 @@
     </div>
   </div>
 
-  <!-- Active Route Map Mock -->
-  <div class="card" style="margin-bottom:20px;overflow:hidden">
+  <!-- Active Route (si un trip est en cours) -->
+  <div class="card" style="margin-bottom:20px;overflow:hidden" *ngIf="activeTrip">
     <div class="card-header">
-      <h3>Active Route — DEL-1046</h3>
-      <span class="badge badge-info">In Transit</span>
+      <h3>Route Active — DEL-{{ activeTrip.id }}</h3>
+      <span class="badge badge-info">En Transit</span>
     </div>
     <div class="t-map-mock">
       <div class="t-map-grid"></div>
       <div class="t-map-content">
         <div class="t-route-line">
           <div class="t-dot t-dot-start">
-            <span class="t-city">GABÈS</span>
+            <span class="t-city">DÉPART</span>
           </div>
           <div class="t-line"></div>
           <div class="t-truck">🚚</div>
           <div class="t-dot t-dot-end">
-            <span class="t-city">TUNIS</span>
+            <span class="t-city">{{ (activeTrip.to || activeTrip.address || 'DESTINATION') | uppercase }}</span>
           </div>
         </div>
         <div class="t-map-info">
-          <span style="color:var(--text3);font-size:11px">Cargo: Steel Offcuts 2,000kg · ETA: 14:30</span>
-          <span style="color:var(--accent);font-weight:600;font-size:12px">212 km remaining</span>
+          <span style="color:var(--text3);font-size:11px">
+            Client : {{ activeTrip.clientName || '—' }} · Date : {{ activeTrip.date | date:'dd/MM/yyyy' }}
+          </span>
+          <span style="color:var(--accent);font-weight:600;font-size:12px">
+            {{ activeTrip.distance || '—' }} km
+          </span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Trips -->
+  <!-- Message si aucun trip actif -->
+  <div class="card" style="margin-bottom:20px;text-align:center;padding:32px" *ngIf="!activeTrip">
+    <p style="color:var(--text3);font-size:14px;margin:0">
+      🗺 Aucune route active. Allez sur <a routerLink="/transporter/trips" style="color:var(--accent);font-weight:600">Trips</a> pour accepter une commande.
+    </p>
+  </div>
+
+  <!-- Today's Trips -->
   <div class="card" style="padding:0">
-    <div class="card-header"><h3>Today's Trips</h3><a routerLink="/transporter/trips" class="card-link">All trips →</a></div>
-    <table class="data-table">
-      <thead><tr><th>ID</th><th>Route</th><th>Cargo</th><th>Status</th><th>Earnings</th><th>Date</th><th></th></tr></thead>
+    <div class="card-header">
+      <h3>Mes Trips ({{ trips.length }})</h3>
+      <a routerLink="/transporter/trips" class="card-link">Tous les trips →</a>
+    </div>
+
+    <!-- Aucun trip -->
+    <div style="padding:32px;text-align:center;color:var(--text3);font-size:13px" *ngIf="trips.length === 0">
+      Aucun trip accepté pour le moment.<br>
+      <a routerLink="/transporter/trips" style="color:var(--accent);font-weight:600">Voir les commandes disponibles →</a>
+    </div>
+
+    <table class="data-table" *ngIf="trips.length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Adresse de livraison</th>
+          <th>Cargo</th>
+          <th>Statut</th>
+          <th>Gains</th>
+          <th>Date</th>
+        </tr>
+      </thead>
       <tbody>
         <tr *ngFor="let t of trips">
           <td><code style="font-size:11px;color:var(--text3)">{{t.id}}</code></td>
           <td><strong style="color:var(--text)">{{t.route}}</strong></td>
           <td style="font-size:12px;color:var(--text2)">{{t.cargo}}</td>
           <td>
-            <span class="badge" [ngClass]="t.status==='delivered'?'badge-success':t.status==='in-transit'?'badge-info':'badge-warning'">{{t.status}}</span>
+            <span class="badge" [ngClass]="t.statusClass">{{t.status}}</span>
           </td>
           <td><strong style="color:var(--accent)">{{t.earn}} TND</strong></td>
           <td style="font-size:12px;color:var(--text3)">{{t.date}}</td>
-          <td>
-            <button class="btn btn-outline btn-sm" *ngIf="t.status==='pickup'">Confirm Pickup</button>
-            <button class="btn btn-ghost btn-sm" *ngIf="t.status!=='pickup'">View</button>
-          </td>
         </tr>
       </tbody>
     </table>
   </div>
+
 </div>

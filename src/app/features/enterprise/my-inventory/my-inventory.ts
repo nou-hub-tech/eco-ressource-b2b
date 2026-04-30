@@ -209,7 +209,26 @@ export class MyInventory implements OnInit, AfterViewChecked {
 
   private decodeWithQuagga(imageSrc: string): Promise<string | null> {
 
-    // Timeout helper – Quagga sometimes never calls back on failure
+    // ── MÉTHODE 1 : API native BarcodeDetector (Chrome/Edge) ──────────
+    // Beaucoup plus fiable que Quagga pour les images statiques
+    const tryNativeDetector = (): Promise<string | null> => {
+      return new Promise<string | null>((resolve) => {
+        if (!('BarcodeDetector' in window)) { resolve(null); return; }
+        const bd = new (window as any).BarcodeDetector({
+          formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code', 'itf']
+        });
+        const img = new Image();
+        img.onload = () => {
+          bd.detect(img)
+            .then((results: any[]) => resolve(results.length > 0 ? results[0].rawValue : null))
+            .catch(() => resolve(null));
+        };
+        img.onerror = () => resolve(null);
+        img.src = imageSrc;
+      });
+    };
+
+    // Timeout helper – Quagga peut bloquer indéfiniment
     const withTimeout = <T>(ms: number, p: Promise<T>): Promise<T | null> =>
       Promise.race([p, new Promise<null>(res => setTimeout(() => res(null), ms))]);
 
@@ -277,8 +296,9 @@ export class MyInventory implements OnInit, AfterViewChecked {
         } catch { resolve(null); }
       }));
 
-    // Chain: size 800 → size 1600 → canvas pre-process → give up
-    return tryQuagga(800)
+    // ── Chaîne complète : BarcodeDetector → Quagga 800 → Quagga 1600 → Canvas ──
+    return tryNativeDetector()
+      .then(c => c ?? tryQuagga(800))
       .then(c => c ?? tryQuagga(1600))
       .then(c => c ?? tryCanvasOcr())
       .catch(() => null);

@@ -26,11 +26,15 @@ export class JwtInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
+    // Si la requête envoie un FormData (upload fichier),
+    // NE PAS forcer Content-Type — le navigateur le gère automatiquement
+    // avec le bon boundary multipart/form-data.
+    const isFormData = req.body instanceof FormData;
+
     const authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+      setHeaders: isFormData
+        ? { Authorization: `Bearer ${token}` }
+        : { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     });
     return next.handle(authReq);
   }
