@@ -65,6 +65,10 @@ export class StockItemListComponent implements OnInit, OnDestroy {
   }
 
   loadPaginated(): void {
+    this.loadPaginatedPage();
+  }
+
+  private loadPaginatedPage(): void {
     this.stockItemService.getPaginated(
       this.currentPage, this.pageSize, this.sortBy, this.direction
     ).pipe(
@@ -78,17 +82,16 @@ export class StockItemListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (data) => {
         this.ngZone.run(() => {
-          this.stockItems = data.content || [];
-          this.totalPages = data.totalPages || 0;
-          this.totalElements = data.totalElements || 0;
-          this.currentPage = data.number || 0;
+          this.applyPageResponse(data);
+          if (this.stockItems.length > 0 && this.totalElements === 0) {
+            this.applyClientResult(this.stockItems);
+          }
           this.cdr.detectChanges();
         });
       },
       error: (err) => {
         console.error('Error loading stock items:', err);
-        this.stockItems = [];
-        this.cdr.detectChanges();
+        this.loadAllAsFallback();
       }
     });
   }
@@ -169,8 +172,7 @@ export class StockItemListComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (data) => { 
         this.ngZone.run(() => {
-          this.stockItems = data || [];
-          this.totalElements = this.stockItems.length;
+          this.applyClientResult(data || []);
           this.cdr.detectChanges();
         });
       },
@@ -233,7 +235,84 @@ export class StockItemListComponent implements OnInit, OnDestroy {
   }
 
   getPages(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i);
+    return Array.from({ length: Math.max(this.totalPages, 0) }, (_, i) => i);
+  }
+
+  canGoPrevious(): boolean {
+    return this.currentPage > 0;
+  }
+
+  canGoNext(): boolean {
+    return this.totalPages > 0 && this.currentPage < this.totalPages - 1;
+  }
+
+  displayedCurrentPage(): number {
+    return this.totalPages > 0 ? this.currentPage + 1 : 0;
+  }
+
+  private applyPageResponse(data: any): void {
+    const content = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.content)
+        ? data.content
+        : [];
+    const pageMeta = Array.isArray(data) ? null : data?.page;
+    const rawTotalElements = Array.isArray(data)
+      ? content.length
+      : data?.totalElements ?? pageMeta?.totalElements ?? data?.numberOfElements ?? content.length;
+    const totalElements = Math.max(this.toSafeNumber(rawTotalElements, content.length), content.length);
+    const rawTotalPages = Array.isArray(data)
+      ? undefined
+      : data?.totalPages ?? pageMeta?.totalPages;
+    const computedPages = totalElements > 0 ? Math.ceil(totalElements / this.pageSize) : 0;
+    const totalPages = this.toSafeNumber(rawTotalPages, computedPages);
+    const rawPage = Array.isArray(data)
+      ? this.currentPage
+      : data?.number ?? pageMeta?.number ?? data?.pageable?.pageNumber ?? this.currentPage;
+
+    this.stockItems = content;
+    this.totalElements = totalElements;
+    this.totalPages = totalPages > 0 ? totalPages : computedPages;
+    this.currentPage = this.clampPage(this.toSafeNumber(rawPage, this.currentPage));
+  }
+
+  private applyClientResult(items: StockItem[]): void {
+    this.stockItems = Array.isArray(items) ? items : [];
+    this.totalElements = this.stockItems.length;
+    this.totalPages = this.totalElements > 0 ? Math.ceil(this.totalElements / this.pageSize) : 0;
+    this.currentPage = 0;
+  }
+
+  private toSafeNumber(value: unknown, fallback: number): number {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  private clampPage(page: number): number {
+    if (this.totalPages <= 0) return 0;
+    return Math.min(Math.max(page, 0), this.totalPages - 1);
+  }
+
+  private loadAllAsFallback(): void {
+    this.stockItemService.getAll().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (items) => {
+        this.ngZone.run(() => {
+          this.applyClientResult(items || []);
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        });
+      },
+      error: () => {
+        this.ngZone.run(() => {
+          this.stockItems = [];
+          this.totalElements = 0;
+          this.totalPages = 0;
+          this.currentPage = 0;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        });
+      }
+    });
   }
 
   isExpired(date: string | Date | null | undefined): boolean {

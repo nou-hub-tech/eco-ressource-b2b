@@ -274,84 +274,6 @@ export class AdminApiService {
     );
   }
 
-  getPlatformEvents(): Observable<PlatformEventDto[]> {
-    return this.http.get<PlatformEventDto[]>(`${this.apiUrl}/platform-events`);
-  }
-
-  getPlatformEvent(id: number): Observable<PlatformEventDto> {
-    return this.http.get<PlatformEventDto>(
-      `${this.apiUrl}/platform-events/${id}`
-    );
-  }
-
-  createPlatformEvent(
-    body: PlatformEventRequestPayload
-  ): Observable<PlatformEventDto> {
-    return this.http.post<PlatformEventDto>(
-      `${this.apiUrl}/platform-events`,
-      body
-    );
-  }
-
-  updatePlatformEvent(
-    id: number,
-    body: PlatformEventRequestPayload
-  ): Observable<PlatformEventDto> {
-    return this.http.put<PlatformEventDto>(
-      `${this.apiUrl}/platform-events/${id}`,
-      body
-    );
-  }
-
-  deletePlatformEvent(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/platform-events/${id}`);
-  }
-
-  uploadEventDocument(eventId: number, file: File): Observable<EventDocumentDto> {
-    const formData = new FormData();
-    formData.append('file', file);
-    return this.http.post<EventDocumentDto>(
-      `${this.apiUrl}/platform-events/${eventId}/documents`,
-      formData
-    );
-  }
-
-  getEventDocuments(eventId: number): Observable<EventDocumentDto[]> {
-    return this.http.get<EventDocumentDto[]>(
-      `${this.apiUrl}/platform-events/${eventId}/documents`
-    );
-  }
-
-  deleteEventDocument(documentId: number): Observable<void> {
-    return this.http.delete<void>(
-      `${this.apiUrl}/platform-events/documents/${documentId}`
-    );
-  }
-
-  getNearbyEvents(
-    latitude: number,
-    longitude: number,
-    radius: number = 50.0
-  ): Observable<PlatformEventDto[]> {
-    return this.http.get<PlatformEventDto[]>(
-      `${this.apiUrl}/platform-events/nearby`,
-      {
-        params: {
-          latitude: latitude.toString(),
-          longitude: longitude.toString(),
-          radius: radius.toString()
-        }
-      }
-    );
-  }
-
-  searchEvents(searchRequest: EventSearchRequest): Observable<EventSearchResponse> {
-    return this.http.post<EventSearchResponse>(
-      `${this.apiUrl}/platform-events/search`,
-      searchRequest
-    );
-  }
-
   getReservations(): Observable<ReservationDto[]> {
     return this.withTimeout(
       this.http.get<ReservationDto[]>(`${this.apiUrl}/reservations`),
@@ -436,17 +358,4 @@ export class AdminApiService {
       { responseType: 'text' });
   }
 
-  generateDescription(req: GenerateDescriptionRequest): Observable<{ description: string }> {
-    return this.http.post<{ description: string }>(
-      `${this.apiUrl}/ai/generate-description`,
-      req
-    );
-  }
-
-  publishToFacebook(eventId: number, imageBlob: Blob): Observable<string> {
-    const formData = new FormData();
-    formData.append('image', imageBlob, 'poster.png');
-    return this.http.post(`${this.apiUrl}/platform-events/${eventId}/publish-facebook`, formData,
-      { responseType: 'text' });
-  }
 }

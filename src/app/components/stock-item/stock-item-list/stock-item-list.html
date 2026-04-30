@@ -226,15 +226,15 @@
     <!-- Pagination -->
     <div class="pagination-bar">
       <span class="pagination-info">
-        Page <strong>{{ currentPage + 1 }}</strong> of <strong>{{ totalPages }}</strong>
+        Page <strong>{{ displayedCurrentPage() }}</strong> of <strong>{{ totalPages }}</strong>
         — {{ totalElements }} items total
       </span>
       <div class="pagination-controls">
-        <button class="pag-btn" (click)="goToPage(0)" [disabled]="currentPage === 0">⏮</button>
-        <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0">◀</button>
+        <button class="pag-btn" (click)="goToPage(0)" [disabled]="!canGoPrevious()">⏮</button>
+        <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="!canGoPrevious()">◀</button>
         <button *ngFor="let p of getPages()" class="pag-btn" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p + 1 }}</button>
-        <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">▶</button>
-        <button class="pag-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1">⏭</button>
+        <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="!canGoNext()">▶</button>
+        <button class="pag-btn" (click)="goToPage(totalPages - 1)" [disabled]="!canGoNext()">⏭</button>
       </div>
     </div>
 

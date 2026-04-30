@@ -78,7 +78,6 @@ const routes: Routes = [
   declarations: [
     Dashboard,
     Users,
-    AdminEvents,
     Stock,
     TreasuryAdmin,
     Deliveries,

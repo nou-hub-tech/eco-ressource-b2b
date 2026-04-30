@@ -64,7 +64,7 @@ const routes: Routes = [
   declarations: [
     Dashboard, Marketplace, MyStock, MyProducts, MyInventory,
     MyDeliveries, MyListings, MyReservations,
-    Transactions, Reports, Requests, Events, Treasury, Invoices,
+    Transactions, Reports, Requests, Treasury, Invoices,
     InvoiceChatComponent, ProductFinder, MarketChatbot, MyReclamations, Solidarity
   ],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, FeaturesEventsModule, RouterModule.forChild(routes)],
