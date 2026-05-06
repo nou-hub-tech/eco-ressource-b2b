@@ -1,14 +1,11 @@
 <div class="page-wrapper">
   <div class="page-header-row">
-<<<<<<< HEAD
     <div class="page-header" style="margin:0">
       <h1>My Stock</h1>
       <p>Manage stock items associated with your enterprise</p>
     </div>
     <div class="header-actions">
-      <button class="btn btn-danger"
-              *ngIf="selectedItems.size > 0"
-              (click)="openBulkReclamation()">
+      <button class="btn btn-danger" *ngIf="selectedItems.size > 0" (click)="openBulkReclamation()">
         ⚠️ Report Issue ({{ selectedItems.size }} selected)
       </button>
       <button class="btn btn-primary" (click)="openAdd()">+ Add Stock Item</button>
@@ -20,8 +17,7 @@
       <span>🔍</span>
       <input type="text" placeholder="Search by product or location..." [(ngModel)]="search">
     </div>
-    <select [(ngModel)]="filterStatus"
-      style="width:160px;padding:8px;border-radius:6px;border:1px solid var(--border)">
+    <select [(ngModel)]="filterStatus" style="width:160px;padding:8px;border-radius:6px;border:1px solid var(--border)">
       <option value="">All statuses</option>
       <option value="available">Available</option>
       <option value="reserved">Reserved</option>
@@ -47,15 +43,12 @@
 
       <!-- Selection Checkbox -->
       <div class="stock-card-checkbox">
-        <input type="checkbox"
-               [id]="'stock_' + i.idStock"
-               [checked]="isSelected(i.idStock!)"
-               (change)="toggleSelection(i.idStock!, $event)">
+        <input type="checkbox" [id]="'stock_' + i.idStock" [checked]="isSelected(i.idStock!)"
+          (change)="toggleSelection(i.idStock!, $event)">
         <label [attr.for]="'stock_' + i.idStock"></label>
       </div>
 
-      <div class="stock-card-bar"
-        [style.background]="i.status === 'available' ? '#22c55e' :
+      <div class="stock-card-bar" [style.background]="i.status === 'available' ? '#22c55e' :
                             i.status === 'reserved'  ? '#f59e0b' :
                             i.status === 'expired'   ? '#ef4444' : '#6b7280'">
       </div>
@@ -91,7 +84,8 @@
         </div>
 
         <div class="stock-details">
-          <div class="stock-detail-item"><span class="stock-detail-icon">📍</span><span>{{ i.location || 'No location' }}</span></div>
+          <div class="stock-detail-item"><span class="stock-detail-icon">📍</span><span>{{ i.location || 'No location'
+              }}</span></div>
           <div class="stock-detail-item"><span class="stock-detail-icon">🔧</span><span>{{ i.condition }}</span></div>
           <div class="stock-detail-item">
             <span class="stock-detail-icon">📅</span>
@@ -112,10 +106,8 @@
   <!-- Select All Bar -->
   <div class="select-all-bar" *ngIf="filtered.length > 0">
     <label class="select-all-checkbox">
-      <input type="checkbox"
-             [checked]="isAllSelected()"
-             [indeterminate]="isSomeSelected()"
-             (change)="toggleSelectAll($event)">
+      <input type="checkbox" [checked]="isAllSelected()" [indeterminate]="isSomeSelected()"
+        (change)="toggleSelectAll($event)">
       <span>Select All ({{ filtered.length }} items)</span>
     </label>
   </div>
@@ -131,7 +123,8 @@
     <div class="form-row">
       <div class="form-group" [class.has-error]="productError">
         <label for="productSelect">PRODUCT <span class="required">*</span></label>
-        <select id="productSelect" name="productSelect" [(ngModel)]="selectedProductId" [class.input-error]="productError">
+        <select id="productSelect" name="productSelect" [(ngModel)]="selectedProductId"
+          [class.input-error]="productError">
           <option [ngValue]="undefined">— Select product —</option>
           <option *ngFor="let p of myProducts" [ngValue]="p.id_product">{{ p.name }}</option>
         </select>
@@ -150,8 +143,8 @@
     <div class="form-row">
       <div class="form-group" [class.has-error]="quantityError">
         <label for="quantityInput">QUANTITY <span class="required">*</span></label>
-        <input id="quantityInput" name="quantityInput" type="number" [(ngModel)]="form.quantity"
-               min="0" step="1" placeholder="e.g. 500" [class.input-error]="quantityError">
+        <input id="quantityInput" name="quantityInput" type="number" [(ngModel)]="form.quantity" min="0" step="1"
+          placeholder="e.g. 500" [class.input-error]="quantityError">
         <div class="error-msg" *ngIf="quantityError">⚠ {{ quantityError }}</div>
       </div>
       <div class="form-group">
@@ -169,8 +162,8 @@
     <div class="form-row">
       <div class="form-group" [class.has-error]="unitPriceError">
         <label for="priceInput">UNIT PRICE (DT) <span class="required">*</span></label>
-        <input id="priceInput" name="priceInput" type="number" [(ngModel)]="form.unitPrice"
-               min="0" step="0.01" placeholder="e.g. 1200.00" [class.input-error]="unitPriceError">
+        <input id="priceInput" name="priceInput" type="number" [(ngModel)]="form.unitPrice" min="0" step="0.01"
+          placeholder="e.g. 1200.00" [class.input-error]="unitPriceError">
         <div class="error-msg" *ngIf="unitPriceError">⚠ {{ unitPriceError }}</div>
       </div>
       <div class="form-group">
@@ -187,22 +180,15 @@
     <div class="form-row">
       <div class="form-group" [class.has-error]="locationError">
         <label for="locationInput">LOCATION <span class="required">*</span></label>
-        <input id="locationInput" name="locationInput" type="text"
-               placeholder="e.g. Warehouse A"
-               [(ngModel)]="form.location"
-               maxlength="100"
-               [class.input-error]="locationError">
+        <input id="locationInput" name="locationInput" type="text" placeholder="e.g. Warehouse A"
+          [(ngModel)]="form.location" maxlength="100" [class.input-error]="locationError">
         <div class="error-msg" *ngIf="locationError">⚠ {{ locationError }}</div>
       </div>
       <div class="form-group" [class.has-error]="expirationDateError">
         <label for="expirationDate">EXPIRATION DATE <span class="required">*</span></label>
-        <input id="expirationDate" name="expirationDate" type="text"
-               appDatepicker
-               [(ngModel)]="form.expirationDate"
-               dateFormat="Y-m-d"
-               placeholder="Select expiration date"
-               class="datepicker-input"
-               [class.input-error]="expirationDateError">
+        <input id="expirationDate" name="expirationDate" type="text" appDatepicker [(ngModel)]="form.expirationDate"
+          dateFormat="Y-m-d" placeholder="Select expiration date" class="datepicker-input"
+          [class.input-error]="expirationDateError">
         <div class="error-msg" *ngIf="expirationDateError">⚠ {{ expirationDateError }}</div>
       </div>
     </div>
@@ -222,7 +208,8 @@
         </div>
         <div *ngIf="form.image && !uploading" class="upload-preview">
           <img [src]="form.image" alt="preview" style="width:100%;height:120px;object-fit:cover;border-radius:8px">
-          <button type="button" class="upload-remove" (click)="$event.stopPropagation(); removeImage()">✕ Remove</button>
+          <button type="button" class="upload-remove" (click)="$event.stopPropagation(); removeImage()">✕
+            Remove</button>
         </div>
       </div>
     </div>
@@ -243,7 +230,9 @@
 <!-- Delete Confirm -->
 <div class="modal-overlay" *ngIf="deleteConfirmId !== null" (click)="cancelDelete()">
   <div class="modal" (click)="$event.stopPropagation()" style="max-width:400px">
-    <div class="modal-header"><h2>Confirm Delete</h2></div>
+    <div class="modal-header">
+      <h2>Confirm Delete</h2>
+    </div>
     <div style="padding:20px">Are you sure you want to delete this stock item? This action cannot be undone.</div>
     <div class="modal-footer">
       <button class="btn btn-outline" (click)="cancelDelete()">Cancel</button>
@@ -285,7 +274,7 @@
         <label>Upload Photo of Damaged Product</label>
         <div class="upload-zone" (click)="reclamationFileInput.click()">
           <input #reclamationFileInput type="file" accept="image/*" style="display:none"
-                 (change)="onReclamationImageSelected($event)">
+            (change)="onReclamationImageSelected($event)">
           <div *ngIf="!reclamationImagePreview && !uploadingReclamationImage">
             <div style="font-size: 28px">📷</div>
             <div>Click to upload photo of the damage</div>
@@ -297,8 +286,8 @@
           </div>
           <div *ngIf="reclamationImagePreview && !uploadingReclamationImage">
             <img [src]="reclamationImagePreview" style="max-height: 150px; border-radius: 8px">
-            <button type="button" class="upload-remove"
-                    (click)="$event.stopPropagation(); removeReclamationImage()">✕ Remove</button>
+            <button type="button" class="upload-remove" (click)="$event.stopPropagation(); removeReclamationImage()">✕
+              Remove</button>
           </div>
         </div>
       </div>
@@ -306,14 +295,14 @@
       <div class="form-group">
         <label for="issueDescription">Description of the Issue <span class="required">*</span></label>
         <textarea id="issueDescription" name="issueDescription" [(ngModel)]="reclamationDescription" rows="4"
-                  placeholder="Describe what's wrong with the product(s)..."
-                  class="form-control"></textarea>
+          placeholder="Describe what's wrong with the product(s)..." class="form-control"></textarea>
       </div>
 
       <div class="quick-issues">
         <span class="quick-issue-tag" (click)="setQuickIssue('Screen is cracked / broken')">📱 Screen cracked</span>
         <span class="quick-issue-tag" (click)="setQuickIssue('Packaging is damaged / torn')">📦 Packaging damaged</span>
-        <span class="quick-issue-tag" (click)="setQuickIssue('Product has scratches / cosmetic damage')">✨ Scratches</span>
+        <span class="quick-issue-tag" (click)="setQuickIssue('Product has scratches / cosmetic damage')">✨
+          Scratches</span>
         <span class="quick-issue-tag" (click)="setQuickIssue('Missing parts / components')">🔧 Missing parts</span>
         <span class="quick-issue-tag" (click)="setQuickIssue('Water damage detected')">💧 Water damage</span>
       </div>
@@ -321,10 +310,11 @@
     <div class="modal-footer">
       <button class="btn btn-outline" (click)="closeReclamationModal()">Cancel</button>
       <button class="btn btn-primary" (click)="submitBulkReclamation()"
-              [disabled]="!reclamationDescription || submittingReclamation">
-        {{ submittingReclamation ? 'Submitting...' : 'Submit Reclamation for ' + selectedStockItemsForReclamation.length + ' item(s)' }}
+        [disabled]="!reclamationDescription || submittingReclamation">
+        {{ submittingReclamation ? 'Submitting...' : 'Submit Reclamation for ' + selectedStockItemsForReclamation.length
+        + ' item(s)' }}
       </button>
     </div>
 
   </div>
-</div>
+</div>

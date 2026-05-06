@@ -26,16 +26,17 @@ export class JwtInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
-    // Ne pas forcer application/json sur multipart (ex. POST listing-images avec FormData) :
-    // le navigateur doit définir multipart/form-data; boundary=...
-    const setHeaders: Record<string, string> = {
-      Authorization: `Bearer ${token}`
-    };
-    if (!(req.body instanceof FormData)) {
-      setHeaders['Content-Type'] = 'application/json';
-    }
+    // Si la requête envoie un FormData (upload fichier),
+    // NE PAS forcer Content-Type — le navigateur le gère automatiquement
+    // avec le bon boundary multipart/form-data.
+    const isFormData = req.body instanceof FormData;
 
-    const authReq = req.clone({ setHeaders });
+    const authReq = req.clone({
+      setHeaders: isFormData
+        ? { Authorization: `Bearer ${token}` }
+        : { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+
     return next.handle(authReq);
   }
 }

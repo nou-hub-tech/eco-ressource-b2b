@@ -75,26 +75,26 @@ textarea {
   color: var(--text)
 }
 
-/* ===== THEME: ENTERPRISE — clean blue ===== */
+/* ===== THEME: ENTERPRISE — Eco Modern Green ===== */
 .theme-enterprise {
-  --bg: #f8fafb;
-  --bg2: #ffffff;
-  --bg3: #f1f5f9;
-  --card: #ffffff;
-  --card2: #f8fafc;
-  --border: #e5e9eb;
-  --border2: #cbd5e1;
-  --primary: #0284c7;
-  --primary2: #0369a1;
-  --accent: #38bdf8;
-  --text: #0c1a24;
-  --text2: #334155;
-  --text3: #64748b;
-  --muted: #94a3b8;
-  --success: #059669;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --info: #0284c7;
+  --bg:      #f2f9f4;
+  --bg2:     #ffffff;
+  --bg3:     #e8f5ec;
+  --card:    #ffffff;
+  --card2:   #f2f9f4;
+  --border:  #c6e8d0;
+  --border2: #90cfa4;
+  --primary:  #16a34a;
+  --primary2: #15803d;
+  --accent:   #4ade80;
+  --text:     #0d2414;
+  --text2:    #1a4d2e;
+  --text3:    #4a7c59;
+  --muted:    #9abfaa;
+  --success:  #16a34a;
+  --warning:  #ca8a04;
+  --danger:   #dc2626;
+  --info:     #0891b2;
   background: var(--bg);
   color: var(--text)
 }
@@ -190,9 +190,9 @@ textarea {
 }
 
 .theme-enterprise .sb-orb {
-  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  background: linear-gradient(135deg, #16a34a, #4ade80);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, .2)
+  box-shadow: 0 4px 12px rgba(22, 163, 74, .25)
 }
 
 .theme-transporter .sb-orb {
@@ -274,9 +274,9 @@ textarea {
 }
 
 .theme-enterprise .sb-item:hover {
-  background: #f0f9ff;
-  color: #0284c7;
-  border-color: #bfdbfe
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0
 }
 
 .theme-transporter .sb-item:hover {
@@ -296,9 +296,9 @@ textarea {
 }
 
 .theme-enterprise .sb-item.active {
-  background: #eff6ff;
-  color: #0284c7;
-  border-color: #bfdbfe;
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #86efac;
   font-weight: 600
 }
 
@@ -356,8 +356,8 @@ textarea {
 }
 
 .theme-enterprise .sb-badge {
-  background: #eff6ff;
-  color: #0284c7
+  background: #dcfce7;
+  color: #16a34a
 }
 
 .theme-transporter .sb-badge {
@@ -402,7 +402,7 @@ textarea {
 }
 
 .theme-enterprise .sb-avatar {
-  background: linear-gradient(135deg, #0284c7, #38bdf8)
+  background: linear-gradient(135deg, #16a34a, #4ade80)
 }
 
 .theme-transporter .sb-avatar {
@@ -567,7 +567,7 @@ textarea {
 }
 
 .theme-enterprise .hdr-avatar {
-  background: linear-gradient(135deg, #0284c7, #38bdf8)
+  background: linear-gradient(135deg, #16a34a, #4ade80)
 }
 
 .theme-transporter .hdr-avatar {
@@ -5065,3 +5065,262 @@ textarea {
   color: var(--primary);
   border-right-color: transparent;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   🎨 GLOBAL PREMIUM ENHANCEMENTS — Modern UI Upgrade
+   Applies to all enterprise pages via global selectors.
+   Does NOT override page-specific CSS (treasury, etc.)
+   All changes are additive / cosmetic only.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Page background subtle gradient ── */
+.theme-enterprise .page-wrapper {
+  background: linear-gradient(160deg, #f0fdf4 0%, #f2f9f4 45%, #ecfdf5 100%);
+  min-height: 100%;
+  animation: pageFadeIn .35s ease;
+}
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Page header h1 gradient text ── */
+.theme-enterprise .page-header h1 {
+  background: linear-gradient(135deg, #0d2414 0%, #16a34a 55%, #4ade80 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 24px;
+}
+
+/* ── Cards — glassmorphism ── */
+.theme-enterprise .card {
+  background: rgba(255,255,255,.92) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(198,232,208,.8) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 4px 24px rgba(22,163,74,.06), inset 0 1px 0 rgba(255,255,255,.9) !important;
+  transition: box-shadow .28s ease, transform .28s ease;
+}
+.theme-enterprise .card:hover {
+  box-shadow: 0 10px 40px rgba(22,163,74,.12), inset 0 1px 0 rgba(255,255,255,.9) !important;
+  transform: translateY(-2px);
+}
+.theme-enterprise .card-header {
+  background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(240,253,244,.7)) !important;
+  border-bottom: 1px solid rgba(22,163,74,.08) !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+/* ── Stat cards ── */
+.theme-enterprise .stat-card {
+  background: rgba(255,255,255,.92) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 18px !important;
+  border: 1px solid rgba(198,232,208,.7) !important;
+  box-shadow: 0 4px 20px rgba(22,163,74,.07) !important;
+  transition: transform .28s cubic-bezier(.4,0,.2,1), box-shadow .28s ease;
+  position: relative;
+  overflow: hidden;
+}
+.theme-enterprise .stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #16a34a, #4ade80);
+  opacity: 0;
+  transition: opacity .25s;
+  border-radius: 18px 18px 0 0;
+}
+.theme-enterprise .stat-card:hover::after { opacity: 1; }
+.theme-enterprise .stat-card:hover {
+  transform: translateY(-5px) scale(1.01);
+  box-shadow: 0 16px 40px rgba(22,163,74,.14) !important;
+}
+.theme-enterprise .stat-value {
+  background: linear-gradient(135deg, #0d2414, #16a34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Buttons — primary ── */
+.theme-enterprise .btn-primary,
+.theme-enterprise .btn.btn-primary {
+  background: linear-gradient(135deg, #16a34a, #4ade80) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  letter-spacing: .2px;
+  box-shadow: 0 4px 14px rgba(22,163,74,.3) !important;
+  transition: all .2s ease !important;
+}
+.theme-enterprise .btn-primary:hover,
+.theme-enterprise .btn.btn-primary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(22,163,74,.4) !important;
+}
+
+/* ── Buttons — secondary / ghost ── */
+.theme-enterprise .btn-secondary,
+.theme-enterprise .btn.btn-secondary,
+.theme-enterprise .btn-outline,
+.theme-enterprise .btn.btn-outline {
+  background: rgba(255,255,255,.9) !important;
+  border: 1.5px solid var(--border2) !important;
+  border-radius: 10px !important;
+  color: var(--text2) !important;
+  font-weight: 600 !important;
+  transition: all .18s ease !important;
+}
+.theme-enterprise .btn-secondary:hover,
+.theme-enterprise .btn.btn-secondary:hover {
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+  background: rgba(22,163,74,.05) !important;
+}
+
+/* ── Success / Danger buttons ── */
+.theme-enterprise .btn-success {
+  background: linear-gradient(135deg, #059669, #10b981) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 14px rgba(5,150,105,.25) !important;
+  transition: all .2s ease !important;
+}
+.theme-enterprise .btn-success:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 22px rgba(5,150,105,.35) !important;
+}
+.theme-enterprise .btn-danger {
+  background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 14px rgba(220,38,38,.22) !important;
+  transition: all .2s ease !important;
+}
+.theme-enterprise .btn-danger:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 22px rgba(220,38,38,.35) !important;
+}
+
+/* ── Data table — modern headers ── */
+.theme-enterprise .data-table th {
+  background: linear-gradient(135deg, #f0fdf4, #f2f9f4) !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: .8px !important;
+  text-transform: uppercase !important;
+  color: var(--text3) !important;
+  border-bottom: 2px solid rgba(22,163,74,.15) !important;
+  padding: 12px 16px !important;
+}
+.theme-enterprise .data-table td {
+  border-bottom: 1px solid rgba(198,232,208,.6) !important;
+  transition: background .15s ease !important;
+  padding: 12px 16px !important;
+  font-size: 13px;
+}
+.theme-enterprise .data-table tr:hover td {
+  background: linear-gradient(135deg, rgba(22,163,74,.04), rgba(74,222,128,.02)) !important;
+}
+
+/* ── Form inputs — modern style ── */
+.theme-enterprise input[type="text"],
+.theme-enterprise input[type="email"],
+.theme-enterprise input[type="number"],
+.theme-enterprise input[type="password"],
+.theme-enterprise input[type="date"],
+.theme-enterprise input[type="search"],
+.theme-enterprise select,
+.theme-enterprise textarea {
+  border: 1.5px solid var(--border2) !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.9) !important;
+  color: var(--text) !important;
+  padding: 9px 14px !important;
+  transition: border-color .18s, box-shadow .18s !important;
+  outline: none !important;
+}
+.theme-enterprise input:focus,
+.theme-enterprise select:focus,
+.theme-enterprise textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(2,132,199,.12) !important;
+}
+
+/* ── Status badges ── */
+.theme-enterprise .badge,
+.theme-enterprise [class*="badge-"] {
+  border-radius: 8px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: .4px !important;
+  padding: 3px 9px !important;
+}
+
+/* ── Modal overlay enhancement ── */
+.theme-enterprise .modal-overlay {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(12,26,36,.55) !important;
+}
+.theme-enterprise .modal {
+  border-radius: 20px !important;
+  box-shadow: 0 30px 80px rgba(0,0,0,.18) !important;
+  border: 1px solid rgba(255,255,255,.6) !important;
+  animation: modalBounceIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalBounceIn {
+  from { opacity: 0; transform: scale(.93) translateY(14px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Grid sections ── */
+.theme-enterprise .stats-grid {
+  gap: 16px !important;
+}
+
+/* ── Scrollbar ── */
+.theme-enterprise ::-webkit-scrollbar { width: 5px; height: 5px; }
+.theme-enterprise ::-webkit-scrollbar-track { background: transparent; }
+.theme-enterprise ::-webkit-scrollbar-thumb {
+  background: rgba(2,132,199,.2);
+  border-radius: 10px;
+}
+.theme-enterprise ::-webkit-scrollbar-thumb:hover {
+  background: rgba(2,132,199,.4);
+}
+
+/* ── Section headings inside pages ── */
+.theme-enterprise h2 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  letter-spacing: -.4px;
+  color: var(--text);
+}
+.theme-enterprise h3 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: -.2px;
+}
+
+/* ── Loading skeleton animation ── */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e9f0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Smooth page transitions ── */
+.theme-enterprise router-outlet + * {
+  animation: pageFadeIn .3s ease;
+}

@@ -25,6 +25,9 @@ import { MyReclamations } from './my-reclamations/my-reclamations';
 import { Solidarity } from './solidarity/solidarity';
 import { EventsMapComponent } from '../events/events-map/events-map';
 import { FeaturesEventsModule } from '../events/events-module';
+import { PaymentSuccessComponent } from './payment/payment-success.component';
+import { PaymentFailureComponent } from './payment/payment-failure.component';
+import { StripePaymentModalComponent } from './payment/stripe-payment-modal.component';
 
 const routes: Routes = [
   {
@@ -51,6 +54,8 @@ const routes: Routes = [
       { path: 'market-chatbot', component: MarketChatbot },
       { path: 'my-reclamations', component: MyReclamations },
       { path: 'solidarity', component: Solidarity },
+      { path: 'payment/success', component: PaymentSuccessComponent },
+      { path: 'payment/failure', component: PaymentFailureComponent },
       {
         path: 'annonces',
         loadChildren: () =>
@@ -64,8 +69,10 @@ const routes: Routes = [
   declarations: [
     Dashboard, Marketplace, MyStock, MyProducts, MyInventory,
     MyDeliveries, MyListings, MyReservations,
-    Transactions, Reports, Requests, Events, Treasury, Invoices,
-    InvoiceChatComponent, ProductFinder, MarketChatbot, MyReclamations, Solidarity
+    Transactions, Reports, Requests, Treasury, Invoices,
+    InvoiceChatComponent, ProductFinder, MarketChatbot, MyReclamations,
+    Solidarity,
+    PaymentSuccessComponent, PaymentFailureComponent, StripePaymentModalComponent
   ],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, SharedModule, FeaturesEventsModule, RouterModule.forChild(routes)],
   providers: [DatePipe, DecimalPipe]

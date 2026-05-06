@@ -143,22 +143,30 @@ export class Invoices implements OnInit, AfterViewInit, OnDestroy {
     this.form.get('amountHT')!.valueChanges.subscribe(() => this.cd.detectChanges());
     this.form.get('tva')!.valueChanges.subscribe(() => this.cd.detectChanges());
     
-    // Auto-remplissage Article Fiscal
+    // ── Auto-remplissage Article Fiscal CLIENT (type VENTE)
     this.form.get('clientName')!.valueChanges.subscribe(val => {
-      if (this.formInvoiceType === 'VENTE' && val) {
-        const ent = this.globalEnterprises.find(e => e.companyName === val);
-        if (ent && ent.taxId) {
-          this.form.get('buyerArticleFiscal')!.setValue(ent.taxId);
-        }
+      const type = this.form.get('invoiceType')?.value;
+      if (type === 'VENTE' && val) {
+        const ent = this.globalEnterprises.find(
+          e => e.companyName === val || e.companyName?.toLowerCase() === val?.toLowerCase()
+        );
+        // Remplit taxId si disponible, sinon vide le champ
+        const fiscal = ent?.taxId ?? '';
+        this.form.get('buyerArticleFiscal')!.setValue(fiscal, { emitEvent: false });
+        this.cd.detectChanges();
       }
     });
 
+    // ── Auto-remplissage Article Fiscal FOURNISSEUR (type ACHAT)
     this.form.get('sellerName')!.valueChanges.subscribe(val => {
-      if (this.formInvoiceType === 'ACHAT' && val) {
-        const ent = this.globalEnterprises.find(e => e.companyName === val);
-        if (ent && ent.taxId) {
-          this.form.get('sellerArticleFiscal')!.setValue(ent.taxId);
-        }
+      const type = this.form.get('invoiceType')?.value;
+      if (type === 'ACHAT' && val) {
+        const ent = this.globalEnterprises.find(
+          e => e.companyName === val || e.companyName?.toLowerCase() === val?.toLowerCase()
+        );
+        const fiscal = ent?.taxId ?? '';
+        this.form.get('sellerArticleFiscal')!.setValue(fiscal, { emitEvent: false });
+        this.cd.detectChanges();
       }
     });
 

@@ -574,8 +574,15 @@
               </div>
             </div>
             <div class="form-group">
-              <label>Article fiscal client <span class="optional-tag">optionnel</span></label>
-              <input type="text" formControlName="buyerArticleFiscal" placeholder="Ex: 1234567/A/M/000">
+              <label>Article fiscal client
+                <span class="optional-tag" *ngIf="!form.get('buyerArticleFiscal')?.value">optionnel</span>
+                <span class="auto-filled-tag" *ngIf="form.get('buyerArticleFiscal')?.value">🔒 Auto</span>
+              </label>
+              <input type="text" formControlName="buyerArticleFiscal" placeholder="Ex: 1234567/A/M/000"
+                [style.background]="form.get('buyerArticleFiscal')?.value ? 'rgba(22,163,74,0.06)' : ''"
+                [style.border-color]="form.get('buyerArticleFiscal')?.value ? '#16a34a' : ''"
+                [style.color]="form.get('buyerArticleFiscal')?.value ? '#15803d' : ''"
+                [style.font-weight]="form.get('buyerArticleFiscal')?.value ? '600' : 'normal'">
             </div>
           </div>
           <div class="form-row">
@@ -613,8 +620,15 @@
               </div>
             </div>
             <div class="form-group">
-              <label>Article fiscal fournisseur <span class="optional-tag">optionnel</span></label>
-              <input type="text" formControlName="sellerArticleFiscal" placeholder="Ex: 1234567/A/M/000">
+              <label>Article fiscal fournisseur
+                <span class="optional-tag" *ngIf="!form.get('sellerArticleFiscal')?.value">optionnel</span>
+                <span class="auto-filled-tag" *ngIf="form.get('sellerArticleFiscal')?.value">🔒 Auto</span>
+              </label>
+              <input type="text" formControlName="sellerArticleFiscal" placeholder="Ex: 1234567/A/M/000"
+                [style.background]="form.get('sellerArticleFiscal')?.value ? 'rgba(22,163,74,0.06)' : ''"
+                [style.border-color]="form.get('sellerArticleFiscal')?.value ? '#16a34a' : ''"
+                [style.color]="form.get('sellerArticleFiscal')?.value ? '#15803d' : ''"
+                [style.font-weight]="form.get('sellerArticleFiscal')?.value ? '600' : 'normal'">
             </div>
           </div>
           <div class="form-row">

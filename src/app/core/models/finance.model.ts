@@ -34,6 +34,9 @@ export interface EscrowEntry {
   // 🔗 Liaison livraison (renseigné quand intégration active)
   deliveryOrderId?: number;
   linkedInvoiceId?: number;
+
+  // 💳 Stripe / Konnect — référence de paiement (rempli après paiement)
+  konnectPaymentRef?: string;
 }
 
 // 🏦 Financement (IMPORTANT ⭐)
@@ -116,7 +119,7 @@ export interface Invoice {
 
 // 📌 Statut facture
 export enum InvoiceStatus {
-  PAID   = 'PAID',
+  PAID = 'PAID',
   UNPAID = 'UNPAID'
 }
 

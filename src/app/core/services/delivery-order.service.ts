@@ -38,6 +38,11 @@ export class DeliveryOrderService {
         return this.http.patch<DeliveryOrder>(`${this.apiUrl}/update-statut/${id}?statut=${statut}`, {});
     }
 
+    /** 🔓 Libère explicitement l'escrow lié à cette livraison */
+    releaseEscrow(id: number): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/${id}/release-escrow`, {});
+    }
+
     getByStatut(statut: string): Observable<DeliveryOrder[]> {
         return this.http.get<DeliveryOrder[]>(`${this.apiUrl}/statut/${statut}`);
     }
