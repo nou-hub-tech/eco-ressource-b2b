@@ -1,0 +1,26 @@
+To kick off this phase properly, we will organize a workshop focused on the tools will be used in the next phase Kubernetes and Ansible.
+
+You are invited to prepare an in-depth presentation on kubernets and Ansible, which should include the following:
+
+
+
+Introduction: Brief overview of Kubernetes and Ansible, and their importance in modern IT workflows.
+
+
+Kubernetes Architecture: Explain the main components (Master Node, Worker Nodes, Pods, Services) and their roles in container orchestration.
+
+
+Ansible for Cluster Deployment: Describe how Ansible is used to automate the deployment of a Kubernetes cluster, including Playbook creation and configuration management.
+
+
+Research Findings: Present insights from the research, including challenges, solutions, and a step-by-step explanation of a Kubernetes cluster deployment using Ansible.
+
+
+Conclusion: Summarize key takeaways, the synergy between Kubernetes and Ansible, and potential use cases for further exploration.
+
+
+This work will provide a solid foundation for the upcoming phases and ensure the successful implementation of the solution. We count on your dedication and thoroughness to make this phase a success.
+
+Good luck to all of you, and feel free to reach out with any questions or clarifications!
+
+Remise

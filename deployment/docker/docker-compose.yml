@@ -1,0 +1,54 @@
+services:
+  eco-db:
+    image: mysql:8.4
+    container_name: eco-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: eco_ressource_db
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - eco-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  eco-backend:
+    build:
+      context: ../../../eco-ressource-backend-main
+      dockerfile: ../eco-ressource-b2b-main/deployment/docker/backend.Dockerfile
+    image: eco-backend:v1
+    container_name: eco-backend
+    restart: unless-stopped
+    depends_on:
+      eco-db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 9090
+      SPRING_DATASOURCE_URL: jdbc:mysql://eco-db:3306/eco_ressource_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      FILE_UPLOAD_DIR: /app/uploads
+    ports:
+      - "9090:9090"
+    volumes:
+      - eco-uploads:/app/uploads
+
+  eco-frontend:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/frontend.Dockerfile
+    image: eco-frontend:v1
+    container_name: eco-frontend
+    restart: unless-stopped
+    depends_on:
+      - eco-backend
+    ports:
+      - "8080:80"
+
+volumes:
+  eco-db-data:
+  eco-uploads:

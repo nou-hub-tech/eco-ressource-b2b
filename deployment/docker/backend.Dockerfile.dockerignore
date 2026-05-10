@@ -1,0 +1,9 @@
+target
+.git
+.idea
+uploads
+*.log
+*.err.log
+backend-*-run.log
+backend-*-run.err.log
+eco-ressource-backend-main

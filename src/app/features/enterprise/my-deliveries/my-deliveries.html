@@ -11,8 +11,8 @@
       <!-- Bouton cloche -->
       <button type="button" class="btn-notification" (click)="openNotifications()" title="Notifications">
         <i class="bi bi-bell-fill"></i>
-        <span class="notification-badge" *ngIf="notifications.filter(n=>!n.read).length > 0">
-          {{ notifications.filter(n=>!n.read).length }}
+        <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+          {{ unreadNotificationsCount }}
         </span>
       </button>
 

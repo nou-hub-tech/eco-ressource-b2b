@@ -38,6 +38,10 @@ export class MyDeliveries implements OnInit, OnDestroy {
     notifications: NotificationData[] = [];
     showNotifications = false;
 
+    get unreadNotificationsCount(): number {
+        return this.notifications.filter(notification => !notification.read).length;
+    }
+
     // Cache pour éviter les recalculs fréquents
     private productNamesCache: Map<number, string> = new Map();
     private co2Cache: Map<string, string> = new Map();
