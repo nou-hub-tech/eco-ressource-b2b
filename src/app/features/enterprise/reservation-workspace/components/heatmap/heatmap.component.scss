@@ -1,0 +1,60 @@
+:host {
+  display: block;
+}
+
+.rs-heatmap-grid {
+  display: grid;
+  grid-template-columns: 54px repeat(7, minmax(54px, 1fr));
+  gap: 6px;
+}
+
+.rs-heatmap-corner,
+.rs-heatmap-head,
+.rs-heatmap-day,
+.rs-heatmap-cell {
+  border-radius: 8px;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 11px;
+}
+
+.rs-heatmap-corner,
+.rs-heatmap-head,
+.rs-heatmap-day {
+  background: var(--bg3, var(--card2));
+  color: var(--text3);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.rs-heatmap-cell {
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.rs-heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.rs-heatmap-scale {
+  width: 96px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981, #38bdf8, #f59e0b, #ef4444);
+}
+
+@media (max-width: 720px) {
+  .rs-heatmap-grid {
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+}

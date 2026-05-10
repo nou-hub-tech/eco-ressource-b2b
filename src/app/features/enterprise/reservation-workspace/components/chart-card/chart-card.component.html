@@ -1,0 +1,33 @@
+<section class="card chart-card">
+  <div class="card-header chart-card-header">
+    <div class="chart-card-copy">
+      <h3>{{ title }}</h3>
+      <p *ngIf="subtitle">{{ subtitle }}</p>
+    </div>
+    <div class="chart-card-meta">
+      <span class="badge badge-primary" *ngIf="badge">{{ badge }}</span>
+      <div class="chart-card-tools">
+        <ng-content select="[chart-actions]"></ng-content>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body chart-card-body">
+    <apx-chart
+      [series]="series"
+      [chart]="resolvedChart"
+      [stroke]="stroke"
+      [fill]="fill"
+      [colors]="colors"
+      [xaxis]="xaxis"
+      [yaxis]="yaxis"
+      [grid]="grid"
+      [tooltip]="tooltip"
+      [legend]="legend"
+      [labels]="labels"
+      [responsive]="responsive"
+      [plotOptions]="plotOptions"
+      [dataLabels]="dataLabels">
+    </apx-chart>
+  </div>
+</section>

@@ -1,0 +1,20 @@
+:host {
+  display: block;
+}
+
+.rs-map-shell {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg3, var(--card2));
+}
+
+.rs-map {
+  width: 100%;
+  min-height: 320px;
+}
+
+:host ::ng-deep .leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+}

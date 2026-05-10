@@ -1,0 +1,20 @@
+<div class="rs-dialog">
+  <div class="rs-dialog-head">
+    <span class="rs-dialog-pill" [ngClass]="data.tone === 'danger' ? 'danger' : 'primary'">
+      {{ data.tone === 'danger' ? 'Critical action' : 'Confirm action' }}
+    </span>
+    <h2>{{ data.title }}</h2>
+    <p>{{ data.message }}</p>
+  </div>
+
+  <div class="rs-dialog-actions">
+    <button mat-button class="rs-btn rs-btn-ghost" (click)="close(false)">Cancel</button>
+    <button
+      mat-flat-button
+      class="rs-btn"
+      [ngClass]="data.tone === 'danger' ? 'rs-btn-danger' : 'rs-btn-primary'"
+      (click)="close(true)">
+      {{ data.confirmLabel || 'Confirm' }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,626 @@
+<section class="workspace-page">
+  <div class="page-header-row workspace-section-header">
+    <div class="workspace-section-copy">
+      <h2>Spaces</h2>
+      <p>Manage your published spaces and partner capacity with the same list, detail, and analytics rhythm used elsewhere in the enterprise portal.</p>
+    </div>
+
+    <div class="workspace-header-actions">
+      <button class="btn btn-outline" type="button" *ngIf="selectedSlot" (click)="startEditSlot(selectedSlot)">Edit selected</button>
+      <button class="btn btn-primary" type="button" (click)="startCreateSlot()">+ Add space</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dbeafe;color:#1d4ed8">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 21h18"></path>
+          <path d="M5 21V7l7-4 7 4v14"></path>
+          <path d="M9 9h.01"></path>
+          <path d="M9 13h.01"></path>
+          <path d="M15 9h.01"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ slots.length }}</div>
+        <div class="stat-label">All spaces</div>
+        <div class="stat-change up">Published network</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dcfce7;color:#047857">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 20V10"></path>
+          <path d="M10 20V4"></path>
+          <path d="M16 20v-7"></path>
+          <path d="M22 20v-3"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ ownedCount }}</div>
+        <div class="stat-label">Your offer</div>
+        <div class="stat-change up">Owned portfolio</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef3c7;color:#b45309">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="6" cy="12" r="2"></circle>
+          <circle cx="18" cy="6" r="2"></circle>
+          <circle cx="18" cy="18" r="2"></circle>
+          <path d="M8 12h8"></path>
+          <path d="M16.5 7.5 8 11"></path>
+          <path d="m16.5 16.5-8-3.5"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ partnerCount }}</div>
+        <div class="stat-label">Partner capacity</div>
+        <div class="stat-change down">Shared network</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#e0f2fe;color:#0369a1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 12h18"></path>
+          <path d="M12 3v18"></path>
+          <path d="M7 7h10v10H7z"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ openCapacity }}</div>
+        <div class="stat-label">Open capacity</div>
+        <div class="stat-change up">Ready to activate</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input [(ngModel)]="search" type="text" placeholder="Search by space, city, zone, or owner">
+    </div>
+
+    <select class="filter-select" [(ngModel)]="portfolioFilter">
+      <option value="all">All portfolios</option>
+      <option value="owned">Your offer</option>
+      <option value="partner">Partner site</option>
+    </select>
+
+    <select class="filter-select" [(ngModel)]="filter">
+      <option value="all">All statuses</option>
+      <option value="available">Open</option>
+      <option value="balanced">Balanced</option>
+      <option value="peak">Busy</option>
+      <option value="maintenance">Pause</option>
+    </select>
+
+    <div class="spacer"></div>
+    <span class="toolbar-count">{{ filteredSlots.length }} spaces</span>
+  </div>
+
+  <div class="workspace-content-grid">
+    <section class="card workspace-table-card">
+      <div class="card-header">
+        <div>
+          <h3>Space list</h3>
+          <span class="workspace-card-subtitle">The main CRUD list stays table-first, exactly like the other management screens.</span>
+        </div>
+      </div>
+
+      <div class="workspace-table-scroll" *ngIf="filteredSlots.length; else slotsEmpty">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Space</th>
+              <th>Portfolio</th>
+              <th>City</th>
+              <th>Status</th>
+              <th>Occupancy</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let slot of filteredSlots"
+              [class.active-row]="slot.id === selectedSlotId"
+              (click)="selectSlot(slot.id)">
+              <td>
+                <div class="workspace-slot-row">
+                  <img class="workspace-slot-thumb" [src]="coverImageFor(slot)" [alt]="slot.name + ' preview'">
+                  <div>
+                    <div class="workspace-row-title">{{ slot.name }}</div>
+                    <div class="workspace-row-meta">{{ slot.type }} | {{ slot.zone }} | {{ slot.ownerCompany }}</div>
+                    <div class="workspace-row-cue">{{ imageCountLabel(slot) }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="slot.portfolio === 'owned' ? 'badge-primary' : 'badge-success'">
+                  {{ portfolioLabel(slot) }}
+                </span>
+              </td>
+              <td>
+                <div class="workspace-row-title">{{ slot.city }}</div>
+                <div class="workspace-row-meta">{{ slot.coordinates[0] | number:'1.2-2' }}, {{ slot.coordinates[1] | number:'1.2-2' }}</div>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'badge-success': slot.status === 'available',
+                    'badge-info': slot.status === 'balanced',
+                    'badge-warning': slot.status === 'peak',
+                    'badge-danger': slot.status === 'maintenance'
+                  }">
+                  {{ statusLabel(slot.status) }}
+                </span>
+              </td>
+              <td>
+                <div class="workspace-row-title">{{ slot.utilizationRate }}%</div>
+                <div class="workspace-row-meta">{{ slot.capacity - slot.occupied }} free</div>
+              </td>
+              <td (click)="$event.stopPropagation()">
+                <div class="workspace-row-actions">
+                  <button class="btn btn-ghost btn-sm" type="button" (click)="openSlotDetails(slot)">View</button>
+                  <button class="btn btn-outline btn-sm" type="button" (click)="startEditSlot(slot)">Edit</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #slotsEmpty>
+        <div class="empty-state">
+          <h3>No spaces found</h3>
+          <p>Try another filter or add a new space to the portfolio.</p>
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="card workspace-detail-card" [class.workspace-detail-card-modal]="showSlotModal">
+      <div class="card-header">
+        <div>
+          <h3>{{ editorMode ? (editorMode === 'create' ? 'Create space' : 'Edit space') : 'Space details' }}</h3>
+          <span class="workspace-card-subtitle">
+            {{ editorMode ? 'Use the same structured record form already used elsewhere in the system.' : 'Capacity, ownership, and operational guidance stay together in one side panel.' }}
+          </span>
+        </div>
+        <button class="workspace-modal-close" type="button" *ngIf="showSlotModal" (click)="closeSlotModal()">Close</button>
+      </div>
+
+      <div class="card-body" *ngIf="editorMode; else slotDetail">
+        <form [formGroup]="editorForm" class="workspace-editor-form">
+          <div class="alert alert-danger" *ngIf="editorErrorMessage">{{ editorErrorMessage }}</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Space name</label>
+              <input formControlName="name" type="text" placeholder="Sfax secondary warehouse">
+            </div>
+            <div class="form-group">
+              <label>Owner company</label>
+              <input formControlName="ownerCompany" type="text" placeholder="Company name">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Portfolio</label>
+              <select formControlName="portfolio">
+                <option value="owned">Your offer</option>
+                <option value="partner">Partner site</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Type</label>
+              <select formControlName="type">
+                <option value="Dock">Dock</option>
+                <option value="Storage">Storage</option>
+                <option value="Meeting">Meeting</option>
+                <option value="Production">Production</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select formControlName="status">
+                <option value="available">Open</option>
+                <option value="balanced">Balanced</option>
+                <option value="peak">Busy</option>
+                <option value="maintenance">Pause</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>City</label>
+              <input formControlName="city" type="text" placeholder="Tunis">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Zone</label>
+              <input formControlName="zone" type="text" placeholder="Industrial zone">
+            </div>
+            <div class="form-group">
+              <label>Equipment</label>
+              <input formControlName="equipment" type="text" placeholder="Cold chain, shelves, loading bridge">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Latitude</label>
+              <input formControlName="latitude" type="number" step="0.0001">
+            </div>
+            <div class="form-group">
+              <label>Longitude</label>
+              <input formControlName="longitude" type="number" step="0.0001">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Total capacity</label>
+              <input formControlName="capacity" type="number" min="1">
+            </div>
+            <div class="form-group">
+              <label>Occupied now</label>
+              <input formControlName="occupied" type="number" min="0">
+            </div>
+          </div>
+
+          <div class="workspace-photo-fieldset">
+            <div class="workspace-photo-fieldset-head">
+              <div>
+                <h4>Space pictures</h4>
+                <p>Upload a few clean views so buyers can understand the site before reserving it.</p>
+              </div>
+              <label class="btn btn-outline workspace-photo-upload-btn" [class.disabled]="uploadingImages || editorImages.length >= slotImageLimit">
+                {{ uploadingImages ? 'Adding...' : 'Add pictures' }}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  [disabled]="uploadingImages || editorImages.length >= slotImageLimit"
+                  (change)="onSlotImageFilesSelected($event)">
+              </label>
+            </div>
+
+            <div class="workspace-photo-status">
+              <span>{{ editorImages.length }} / {{ slotImageLimit }} pictures</span>
+              <span *ngIf="!editorImages.length">If you leave this empty, the platform shows a generated visual preview.</span>
+            </div>
+
+            <div class="alert alert-warning" *ngIf="imageUploadErrorMessage">{{ imageUploadErrorMessage }}</div>
+
+            <div class="workspace-photo-grid" *ngIf="editorImages.length; else noEditorPictures">
+              <article class="workspace-photo-card" *ngFor="let image of editorImages; let imageIndex = index">
+                <img [src]="image" [alt]="'Space picture ' + (imageIndex + 1)">
+                <div class="workspace-photo-card-meta">
+                  <span>{{ imageIndex === 0 ? 'Cover image' : 'Picture ' + (imageIndex + 1) }}</span>
+                  <button class="btn btn-ghost btn-sm" type="button" (click)="removeEditorImage(imageIndex)">Remove</button>
+                </div>
+              </article>
+            </div>
+
+            <ng-template #noEditorPictures>
+              <div class="workspace-photo-empty">
+                <strong>No picture added yet</strong>
+                <p>The first uploaded picture becomes the main visual shown to buyers and viewers.</p>
+              </div>
+            </ng-template>
+          </div>
+
+          <div class="workspace-editor-actions">
+            <button class="btn btn-outline" type="button" (click)="cancelEditor()">Cancel</button>
+            <button class="btn btn-primary" type="button" (click)="saveSlot()">
+              {{ editorMode === 'create' ? 'Create space' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <ng-template #slotDetail>
+        <div class="card-body" *ngIf="selectedSlot as slot; else slotDetailEmpty">
+          <div class="workspace-detail-top">
+            <span class="badge" [ngClass]="slot.portfolio === 'owned' ? 'badge-primary' : 'badge-success'">{{ portfolioLabel(slot) }}</span>
+            <span
+              class="badge"
+              [ngClass]="{
+                'badge-success': slot.status === 'available',
+                'badge-info': slot.status === 'balanced',
+                'badge-warning': slot.status === 'peak',
+                'badge-danger': slot.status === 'maintenance'
+              }">
+              {{ statusLabel(slot.status) }}
+            </span>
+          </div>
+
+          <div class="workspace-detail-stack">
+            <div>
+              <div class="workspace-detail-title">{{ slot.name }}</div>
+              <div class="workspace-detail-subtitle">{{ slot.city }} | {{ slot.zone }} | {{ slot.ownerCompany }}</div>
+            </div>
+
+            <section class="workspace-gallery-panel">
+              <div class="workspace-gallery-stage" *ngIf="selectedSlotImage">
+                <img [src]="selectedSlotImage" [alt]="slot.name + ' visual'">
+                <div class="workspace-gallery-overlay">
+                  <span class="badge badge-info">{{ galleryBadgeLabel(slot) }}</span>
+                  <strong>{{ slot.name }}</strong>
+                  <p>{{ slot.city }} | {{ slot.type }} | {{ slot.zone }}</p>
+                </div>
+
+                <div class="workspace-gallery-nav" *ngIf="selectedSlotGallery.length > 1">
+                  <button class="workspace-gallery-nav-btn" type="button" (click)="showPreviousSlotImage()" aria-label="Previous image">
+                    &#8249;
+                  </button>
+                  <button class="workspace-gallery-nav-btn" type="button" (click)="showNextSlotImage()" aria-label="Next image">
+                    &#8250;
+                  </button>
+                </div>
+              </div>
+
+              <div class="workspace-gallery-strip" *ngIf="selectedSlotGallery.length > 1">
+                <button
+                  class="workspace-gallery-thumb"
+                  type="button"
+                  *ngFor="let image of selectedSlotGallery; let imageIndex = index"
+                  [class.active]="imageIndex === selectedSlotImageIndex"
+                  (click)="selectSlotImage(imageIndex)">
+                  <img [src]="image" [alt]="slot.name + ' view ' + (imageIndex + 1)">
+                </button>
+              </div>
+            </section>
+
+            <section class="workspace-spotlight workspace-spotlight-slot">
+              <div class="workspace-spotlight-head">
+                <div>
+                  <span class="badge badge-info">Capacity spotlight</span>
+                  <h4>Signal view for this space</h4>
+                </div>
+                <span class="workspace-spotlight-copy">{{ slot.spotlightMessage || slot.recoveryAction }}</span>
+              </div>
+
+              <div class="workspace-spotlight-grid">
+                <article class="workspace-spotlight-card">
+                  <span>Occupancy</span>
+                  <strong>{{ slot.utilizationRate }}%</strong>
+                  <div class="workspace-signal-track">
+                    <div class="workspace-signal-fill info" [style.width]="occupancyWidth(slot)"></div>
+                  </div>
+                  <p>{{ slot.occupied }}/{{ slot.capacity }} units in active use</p>
+                </article>
+
+                <article class="workspace-spotlight-card">
+                  <span>Expected free</span>
+                  <strong>{{ slot.predictedAvailability }}%</strong>
+                  <div class="workspace-signal-track">
+                    <div class="workspace-signal-fill success" [style.width.%]="slot.predictedAvailability"></div>
+                  </div>
+                  <p>{{ slot.quietWindow }}</p>
+                </article>
+
+                <article class="workspace-spotlight-card">
+                  <span>Activation fit</span>
+                  <strong>{{ slot.underusedScore }}%</strong>
+                  <div class="workspace-chip-row">
+                    <span class="badge badge-neutral">{{ slot.bestUseMode }}</span>
+                    <span class="badge badge-neutral">{{ slot.capacity - slot.occupied }} open</span>
+                  </div>
+                  <p>{{ slot.ecoFitNote || slot.recoveryAction }}</p>
+                </article>
+              </div>
+
+              <div class="workspace-spotlight-story">
+                <article class="workspace-story-card">
+                  <span>Use pattern</span>
+                  <strong>Best activation mode</strong>
+                  <p>{{ slot.bestUseMode }}</p>
+                </article>
+
+                <article class="workspace-story-card">
+                  <span>Availability cue</span>
+                  <strong>Quiet window</strong>
+                  <p>{{ slot.quietWindow }}</p>
+                </article>
+              </div>
+            </section>
+
+            <div class="workspace-mini-grid">
+              <article>
+                <span>Occupancy</span>
+                <strong>{{ slot.utilizationRate }}%</strong>
+                <p>{{ slot.occupied }}/{{ slot.capacity }} in use</p>
+              </article>
+              <article>
+                <span>Expected free</span>
+                <strong>{{ slot.predictedAvailability }}%</strong>
+                <p>{{ slot.quietWindow }}</p>
+              </article>
+              <article>
+                <span>Open units</span>
+                <strong>{{ slot.capacity - slot.occupied }}</strong>
+                <p>{{ slot.bestUseMode }}</p>
+              </article>
+            </div>
+
+            <div class="workspace-detail-block">
+              <h4>Activation note</h4>
+              <p>{{ slot.spotlightMessage || slot.recoveryAction }}</p>
+              <p class="workspace-note" *ngIf="slot.ecoFitNote">{{ slot.ecoFitNote }}</p>
+            </div>
+
+            <div class="workspace-detail-block" *ngIf="slot.activationChecklist?.length">
+              <h4>Activation checklist</h4>
+              <div class="workspace-pill-list">
+                <span class="badge badge-neutral" *ngFor="let item of slot.activationChecklist">{{ item }}</span>
+              </div>
+            </div>
+
+            <div class="workspace-detail-block" *ngIf="slot.equipment.length">
+              <h4>Equipment</h4>
+              <div class="workspace-pill-list">
+                <span class="badge badge-neutral" *ngFor="let item of slot.equipment">{{ item }}</span>
+              </div>
+            </div>
+
+            <div class="workspace-detail-actions">
+              <button class="btn btn-outline" type="button" (click)="startEditSlot(slot)">Edit</button>
+              <button class="btn btn-danger" type="button" (click)="requestDeleteSlot(slot)">Delete</button>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+
+      <ng-template #slotDetailEmpty>
+        <div class="empty-state">
+          <h3>Select a space</h3>
+          <p>Choose a row from the table to inspect the selected site here.</p>
+        </div>
+      </ng-template>
+    </section>
+  </div>
+
+  <div class="workspace-modal-backdrop" *ngIf="showSlotModal || showDeleteModal" (click)="showDeleteModal ? closeDeleteModal() : closeSlotModal()"></div>
+
+  <section class="card workspace-confirm-modal" *ngIf="showDeleteModal && selectedSlot as slot">
+    <div class="card-header">
+      <div>
+        <h3>Delete space</h3>
+        <span class="workspace-card-subtitle">This action removes {{ slot.name }} from the published capacity network.</span>
+      </div>
+      <button class="workspace-modal-close" type="button" (click)="closeDeleteModal()">Close</button>
+    </div>
+    <div class="card-body">
+      <p class="workspace-confirm-copy">This space, its pictures, and its operational guidance will be removed from the workspace. Continue only if this listing should no longer be available.</p>
+      <div class="workspace-detail-actions">
+        <button class="btn btn-outline" type="button" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" type="button" (click)="deleteSlot(slot.id)">Delete space</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="workspace-secondary-grid">
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h3>Network map</h3>
+          <span class="workspace-card-subtitle">The full footprint stays on the same page in a normal content card.</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <app-slot-map [slots]="slots"></app-slot-map>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h3>Weekly occupancy</h3>
+          <span class="workspace-card-subtitle">Heatmap for the selected space.</span>
+        </div>
+      </div>
+      <div class="card-body" *ngIf="selectedSlot as slot; else heatmapEmpty">
+        <app-heatmap [matrix]="slot.heatmap"></app-heatmap>
+      </div>
+      <ng-template #heatmapEmpty>
+        <div class="empty-state">
+          <h3>No space selected</h3>
+          <p>Select a space to inspect its weekly occupancy pattern.</p>
+        </div>
+      </ng-template>
+    </section>
+  </div>
+
+  <div class="workspace-chart-grid">
+    <app-chart-card
+      [title]="'Utilization by space'"
+      [subtitle]="'Switch the portfolio view or click a bar to jump straight into that space.'"
+      [badge]="utilizationBadge"
+      [series]="utilizationSeries"
+      [chart]="utilizationChart"
+      [xaxis]="utilizationXAxis"
+      [colors]="['#0284c7']"
+      (pointSelected)="onUtilizationChartSelect($event)">
+      <div chart-actions class="workspace-chart-actions">
+        <button class="btn btn-sm" type="button" [class.btn-primary]="utilizationView === 'all'" [class.btn-outline]="utilizationView !== 'all'" (click)="setUtilizationView('all')">All</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="utilizationView === 'owned'" [class.btn-outline]="utilizationView !== 'owned'" (click)="setUtilizationView('owned')">Your offer</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="utilizationView === 'partner'" [class.btn-outline]="utilizationView !== 'partner'" (click)="setUtilizationView('partner')">Partner</button>
+      </div>
+    </app-chart-card>
+
+    <app-chart-card
+      [title]="'Expected occupancy'"
+      [subtitle]="'Switch between occupancy and free-capacity reading for the selected space.'"
+      [badge]="forecastBadge"
+      [series]="forecastSeries"
+      [chart]="forecastChart"
+      [xaxis]="forecastXAxis"
+      [colors]="forecastMode === 'occupancy' ? ['#0f766e'] : ['#0284c7']">
+      <div chart-actions class="workspace-chart-actions">
+        <button class="btn btn-sm" type="button" [class.btn-primary]="forecastMode === 'occupancy'" [class.btn-outline]="forecastMode !== 'occupancy'" (click)="setForecastMode('occupancy')">Occupancy</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="forecastMode === 'free'" [class.btn-outline]="forecastMode !== 'free'" (click)="setForecastMode('free')">Free capacity</button>
+      </div>
+    </app-chart-card>
+  </div>
+
+  <div class="workspace-secondary-grid">
+    <app-chart-card
+      [title]="'Availability split'"
+      [subtitle]="'Switch between the selected space and the whole visible network.'"
+      [badge]="availabilityBadge"
+      [series]="availabilitySeries"
+      [chart]="availabilityChart"
+      [labels]="['Expected free', 'Occupied']"
+      [colors]="['#0284c7', '#cbd5e1']">
+      <div chart-actions class="workspace-chart-actions">
+        <button class="btn btn-sm" type="button" [class.btn-primary]="availabilityView === 'selected'" [class.btn-outline]="availabilityView !== 'selected'" (click)="setAvailabilityView('selected')">Selected</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="availabilityView === 'network'" [class.btn-outline]="availabilityView !== 'network'" (click)="setAvailabilityView('network')">Network</button>
+      </div>
+    </app-chart-card>
+
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h3>Guidance</h3>
+          <span class="workspace-card-subtitle">Operational insights for capacity planning.</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="workspace-list-stack" *ngIf="insights.length; else noSpaceGuidance">
+          <article class="workspace-list-card" *ngFor="let insight of insights">
+            <div class="workspace-list-card-top">
+              <span
+                class="badge"
+                [ngClass]="{
+                  'badge-danger': insight.tone === 'danger',
+                  'badge-warning': insight.tone === 'warning',
+                  'badge-success': insight.tone === 'success',
+                  'badge-info': insight.tone === 'info'
+                }">
+                {{ insight.badge }}
+              </span>
+            </div>
+            <strong>{{ insight.title }}</strong>
+            <p>{{ insight.description }}</p>
+          </article>
+        </div>
+        <ng-template #noSpaceGuidance>
+          <p class="workspace-list-muted">Guidance will appear here as the space portfolio changes.</p>
+        </ng-template>
+      </div>
+    </section>
+  </div>
+</section>

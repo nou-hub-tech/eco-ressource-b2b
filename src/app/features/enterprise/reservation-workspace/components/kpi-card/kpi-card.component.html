@@ -1,0 +1,17 @@
+<article class="rs-kpi-card" [ngClass]="'tone-' + tone">
+  <div class="rs-kpi-shell">
+    <div class="rs-kpi-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path [attr.d]="iconPath"></path>
+      </svg>
+    </div>
+    <div class="rs-kpi-copy">
+      <span class="rs-kpi-label">{{ label }}</span>
+      <strong class="rs-kpi-value">{{ value }}</strong>
+      <div class="rs-kpi-meta">
+        <span class="rs-kpi-delta" *ngIf="delta">{{ delta }}</span>
+        <span class="rs-kpi-subtext">{{ subtext }}</span>
+      </div>
+    </div>
+  </div>
+</article>

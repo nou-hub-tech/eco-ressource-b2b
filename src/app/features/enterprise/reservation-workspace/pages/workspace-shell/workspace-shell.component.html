@@ -1,0 +1,81 @@
+<div class="page-wrapper workspace-shell">
+  <ng-container *ngIf="summary$ | async as summary">
+    <div class="page-header-row">
+      <div class="page-header" style="margin:0">
+        <h1>Reservations workspace</h1>
+        <p>Manage hosted services, requested services, available spaces, and order follow-up from the enterprise reservation area.</p>
+      </div>
+
+      <div class="workspace-shell-status">
+        <span class="badge badge-primary">{{ enterpriseName }}</span>
+        <span class="workspace-shell-note">Provider and consumer view</span>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dbeafe;color:#1d4ed8">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <div>
+          <div class="stat-value">{{ summary.hostedReservations + summary.requestedReservations }}</div>
+          <div class="stat-label">Total Bookings</div>
+          <div class="stat-change up">{{ summary.bestWindow }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7;color:#047857">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 20v-6"></path>
+            <path d="M16 20V10"></path>
+            <path d="M8 20v-3"></path>
+            <path d="M4 20h16"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="stat-value">{{ summary.occupancySignal }}%</div>
+          <div class="stat-label">Capacity Signal</div>
+          <div class="stat-change up">{{ summary.conflictCount }} timing checks</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7;color:#b45309">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 3"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="stat-value">{{ summary.receivableTotal | number:'1.0-0' }} TND</div>
+          <div class="stat-label">Still To Collect</div>
+          <div class="stat-change down">{{ summary.flaggedOrders }} files need review</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#e0f2fe;color:#0369a1">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 1v22"></path>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="stat-value">{{ summary.payableTotal | number:'1.0-0' }} TND</div>
+          <div class="stat-label">Still To Pay</div>
+          <div class="stat-change up">Shared financial view</div>
+        </div>
+      </div>
+    </div>
+
+    <section class="workspace-route-host">
+      <router-outlet></router-outlet>
+    </section>
+  </ng-container>
+</div>

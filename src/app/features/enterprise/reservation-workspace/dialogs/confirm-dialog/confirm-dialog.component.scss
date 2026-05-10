@@ -1,0 +1,64 @@
+.rs-dialog {
+  width: min(420px, 92vw);
+  padding: 24px;
+  color: var(--text);
+}
+
+.rs-dialog-head h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.rs-dialog-head p {
+  color: var(--text3);
+  line-height: 1.6;
+}
+
+.rs-dialog-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.rs-dialog-pill.primary {
+  color: var(--primary);
+  background: rgba(2, 132, 199, 0.12);
+}
+
+.rs-dialog-pill.danger {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.rs-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.rs-btn {
+  border-radius: 999px;
+  padding-inline: 18px;
+}
+
+.rs-btn-ghost {
+  color: var(--text3);
+}
+
+.rs-btn-primary {
+  background: linear-gradient(135deg, #0284c7, #38bdf8) !important;
+  color: white !important;
+}
+
+.rs-btn-danger {
+  background: linear-gradient(135deg, #dc2626, #f97316) !important;
+  color: white !important;
+}

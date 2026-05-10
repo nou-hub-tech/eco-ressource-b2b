@@ -12,7 +12,6 @@ import { FeaturesEventsModule } from '../events/events-module';
 import { Stock } from './stock/stock';
 import { Deliveries } from './deliveries/deliveries';
 import { Listings } from './listings/listings';
-import { Reservations } from './reservations/reservations';
 import { Treasury } from './treasury/treasury';
 import { TreasuryAdmin } from './treasury/treasuryadmin';
 import { Solidarity } from './solidarity/solidarity';
@@ -52,7 +51,6 @@ const routes: Routes = [
       { path: 'delivery-orders', loadChildren: () => import('../transporter/delivery-order/delivery-order.module').then(m => m.DeliveryOrderModule) },
       { path: 'shipments', loadChildren: () => import('../transporter/shipment/shipment.module').then(m => m.ShipmentModule) },
       { path: 'listings', component: Listings },
-      { path: 'reservations', component: Reservations },
       { path: 'treasury', component: Treasury },
       { path: 'treasury-finance', component: TreasuryAdmin },
       { path: 'solidarity', component: Solidarity },
@@ -69,7 +67,46 @@ const routes: Routes = [
       { path: 'stockitems/history/:id', component: StockItemHistoryComponent },
       { path: 'chatbot', component: Chatbot },
       { path: 'broken-product', component: BrokenProductDetectComponent },
-      { path: 'inventory', component: InventoryScanComponent }
+      { path: 'inventory', component: InventoryScanComponent },
+      {
+  path: 'reservations',
+  loadComponent: () =>
+    import('./reservation-workspace/admin-workspace-shell.component').then(
+      (m) => m.AdminWorkspaceShellComponent
+    ),
+
+  children: [
+    {
+      path: '',
+      redirectTo: 'bookings',
+      pathMatch: 'full'
+    },
+
+    {
+      path: 'bookings',
+      loadComponent: () =>
+        import('./reservation-workspace/admin-bookings-page.component').then(
+          (m) => m.AdminBookingsPageComponent
+        )
+    },
+
+    {
+      path: 'slots',
+      loadComponent: () =>
+        import('./reservation-workspace/admin-slots-page.component').then(
+          (m) => m.AdminSlotsPageComponent
+        )
+    },
+
+    {
+      path: 'orders',
+      loadComponent: () =>
+        import('./reservation-workspace/admin-orders-page.component').then(
+          (m) => m.AdminOrdersPageComponent
+        )
+    }
+  ]
+}
     ]
   }
 ];
@@ -82,7 +119,6 @@ const routes: Routes = [
     TreasuryAdmin,
     Deliveries,
     Listings,
-    Reservations,
     Treasury,
     Solidarity,
     ProductListComponent,
