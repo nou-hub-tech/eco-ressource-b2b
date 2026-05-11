@@ -16,6 +16,14 @@ export class Earnings implements OnInit {
   filteredEarnings: any[] = [];
   viewMode: string = 'monthly';
 
+  get filteredEarningsTotal(): number {
+    return this.filteredEarnings.reduce((sum, earning) => sum + earning.amount, 0);
+  }
+
+  get filteredEarningsAverage(): number {
+    return this.filteredEarnings.length > 0 ? this.filteredEarningsTotal / this.filteredEarnings.length : 0;
+  }
+
   constructor() {}
 
   ngOnInit(): void {

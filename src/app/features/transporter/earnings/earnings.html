@@ -113,14 +113,14 @@
             <div class="summary-icon"><i class="bi bi-cash-stack"></i></div>
             <div class="summary-info">
               <span class="summary-label">Total gains</span>
-              <span class="summary-value earnings">{{ filteredEarnings.reduce((sum, e) => sum + e.amount, 0) }} TND</span>
+              <span class="summary-value earnings">{{ filteredEarningsTotal }} TND</span>
             </div>
           </div>
           <div class="summary-card">
             <div class="summary-icon"><i class="bi bi-calculator"></i></div>
             <div class="summary-info">
               <span class="summary-label">Moyenne / livraison</span>
-              <span class="summary-value">{{ filteredEarnings.length > 0 ? (filteredEarnings.reduce((sum, e) => sum + e.amount, 0) / filteredEarnings.length) : 0 }} TND</span>
+              <span class="summary-value">{{ filteredEarningsAverage }} TND</span>
             </div>
           </div>
         </div>

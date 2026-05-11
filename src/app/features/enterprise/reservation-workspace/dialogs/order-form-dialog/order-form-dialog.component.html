@@ -1,0 +1,116 @@
+<div class="entity-dialog">
+  <div class="entity-head">
+    <span class="entity-chip">Order</span>
+    <h2>{{ data.order ? 'Update order' : 'Create order' }}</h2>
+    <p>Keep the payment follow-up aligned with the side you play in the booking.</p>
+  </div>
+
+  <form [formGroup]="form" class="entity-form">
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Reservation</span>
+        <select formControlName="reservationId">
+          <option *ngFor="let reservation of data.reservations" [value]="reservation.id">
+            {{ reservation.code }} &middot; {{ reservation.title }}
+          </option>
+        </select>
+      </label>
+      <label>
+        <span>Counterparty</span>
+        <input formControlName="customer" type="text">
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-3">
+      <label>
+        <span>Role</span>
+        <select formControlName="role">
+          <option value="provider">We collect this order</option>
+          <option value="consumer">We settle this order</option>
+        </select>
+      </label>
+      <label>
+        <span>City</span>
+        <input formControlName="city" type="text">
+      </label>
+      <label>
+        <span>Slot</span>
+        <select formControlName="slotId">
+          <option *ngFor="let slot of data.slots" [value]="slot.id">{{ slot.name }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Tax</span>
+        <input formControlName="tax" type="number" min="0">
+      </label>
+      <label>
+        <span>Payment state</span>
+        <select formControlName="paymentStatus">
+          <option value="pending">Pending</option>
+          <option value="review">Manual check</option>
+          <option value="paid">Paid</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Created</span>
+        <input formControlName="createdAt" type="date">
+      </label>
+      <label>
+        <span>Due date</span>
+        <input formControlName="dueDate" type="date">
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Status</span>
+        <select formControlName="status">
+          <option value="draft">Draft</option>
+          <option value="processing">In follow-up</option>
+          <option value="invoiced">Invoiced</option>
+          <option value="fulfilled">Closed</option>
+          <option value="flagged">Manual check</option>
+        </select>
+      </label>
+      <div></div>
+    </div>
+
+    <div class="line-items" formArrayName="items">
+      <div class="line-items-head">
+        <span>Line items</span>
+        <button type="button" mat-button class="entity-btn entity-btn-outline" (click)="addItem()">Add line</button>
+      </div>
+
+      <div class="line-item-row" *ngFor="let control of items.controls; let index = index" [formGroupName]="index">
+        <input formControlName="label" type="text" placeholder="Line item">
+        <input formControlName="quantity" type="number" min="1" placeholder="Qty">
+        <input formControlName="unitPrice" type="number" min="0" placeholder="Unit price">
+        <button type="button" mat-button class="line-item-remove" (click)="removeItem(index)">Remove</button>
+      </div>
+    </div>
+
+    <div class="order-total">
+      <div>
+        <span>Subtotal</span>
+        <strong>{{ subtotal | number:'1.2-2' }} TND</strong>
+      </div>
+      <div>
+        <span>Total with tax</span>
+        <strong>{{ grandTotal | number:'1.2-2' }} TND</strong>
+      </div>
+    </div>
+  </form>
+
+  <div class="entity-actions">
+    <button mat-button class="entity-btn entity-btn-ghost" mat-dialog-close>Cancel</button>
+    <button mat-flat-button class="entity-btn entity-btn-primary" (click)="save()">
+      {{ data.order ? 'Save order' : 'Create order' }}
+    </button>
+  </div>
+</div>

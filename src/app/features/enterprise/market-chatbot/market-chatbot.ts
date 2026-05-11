@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from '../../../../environments/environment';
 
 interface ChatMessage {
   role: 'user' | 'bot';
@@ -39,9 +40,9 @@ export class MarketChatbot implements OnInit {
   isListening = false;
   recognition: any = null;
 
-  private readonly finderApi    = 'http://localhost:9090/api/enterprise/finder';
-  private readonly aiApi        = 'http://localhost:9090/ai/chat';
-  private readonly classifyApi  = 'http://localhost:9090/ai/classify-image';  // HuggingFace VIT — uses confirmed HF key
+  private readonly finderApi    = `${environment.apiUrl}/enterprise/finder`;
+  private readonly aiApi        = '/ai/chat';
+  private readonly classifyApi  = '/ai/classify-image';  // HuggingFace VIT — uses confirmed HF key
 
   constructor(
     private http: HttpClient,
@@ -520,7 +521,7 @@ Rules:
   getImageUrl(img: string | undefined): string {
     if (!img || img === 'default.png' || img === 'undefined') return '';
     if (img.startsWith('http')) return img;
-    return `http://localhost:9090/files/${img}`;
+    return `/files/${img}`;
   }
 
   getCategoryColor(cat: string): string {

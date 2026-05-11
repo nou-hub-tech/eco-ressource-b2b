@@ -1,0 +1,130 @@
+<div class="entity-dialog">
+  <div class="entity-head">
+    <span class="entity-chip">Reservation</span>
+    <h2>{{ data.reservation ? 'Update booking' : 'Create booking' }}</h2>
+    <p>Choose whether this booking is one you host for others or one you request from a partner.</p>
+  </div>
+
+  <form [formGroup]="form" class="entity-form">
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Title</span>
+        <input formControlName="title" type="text" placeholder="PET pallet loading">
+      </label>
+      <label>
+        <span>Counterparty</span>
+        <input formControlName="customer" type="text" placeholder="Partner company name">
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-3">
+      <label>
+        <span>Role</span>
+        <select formControlName="role">
+          <option value="provider">I host this booking</option>
+          <option value="consumer">I request this booking</option>
+        </select>
+      </label>
+      <label>
+        <span>City</span>
+        <input formControlName="city" type="text" placeholder="Tunis">
+      </label>
+      <label>
+        <span>Category</span>
+        <select formControlName="category">
+          <option value="Machine">Machine</option>
+          <option value="Space">Space</option>
+          <option value="Storage">Storage</option>
+          <option value="Production">Production</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Resource</span>
+        <input formControlName="resource" type="text" placeholder="Machine, zone, or room">
+      </label>
+      <label>
+        <span>Slot</span>
+        <select formControlName="slotId">
+          <option *ngFor="let slot of data.slots" [value]="slot.id">{{ slot.name }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Start</span>
+        <input formControlName="start" type="datetime-local">
+      </label>
+      <label>
+        <span>End</span>
+        <input formControlName="end" type="datetime-local">
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-3">
+      <label>
+        <span>Headcount</span>
+        <input formControlName="headcount" type="number" min="1">
+      </label>
+      <label>
+        <span>Amount</span>
+        <input formControlName="amount" type="number" min="100">
+      </label>
+      <label>
+        <span>Status</span>
+        <select formControlName="status">
+          <option value="confirmed">Confirmed</option>
+          <option value="pending">Pending</option>
+          <option value="risk">Watch</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </label>
+    </div>
+
+    <label>
+      <span>Tags</span>
+      <input formControlName="tags" type="text" placeholder="Export, Priority, Lake">
+    </label>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Contact person</span>
+        <input formControlName="contactName" type="text" placeholder="Operational contact">
+      </label>
+      <label>
+        <span>Notification channel</span>
+        <select formControlName="notificationChannel">
+          <option value="email">Email</option>
+          <option value="sms">Phone message</option>
+          <option value="both">Email and phone message</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Email</span>
+        <input formControlName="contactEmail" type="email" placeholder="name@company.tn">
+      </label>
+      <label>
+        <span>Phone number</span>
+        <input formControlName="contactPhone" type="text" placeholder="+216 20 000 000">
+      </label>
+    </div>
+
+    <label>
+      <span>Notes</span>
+      <textarea formControlName="notes" rows="4" placeholder="Extra follow-up notes"></textarea>
+    </label>
+  </form>
+
+  <div class="entity-actions">
+    <button mat-button class="entity-btn entity-btn-ghost" mat-dialog-close>Cancel</button>
+    <button mat-flat-button class="entity-btn entity-btn-primary" (click)="save()">
+      {{ data.reservation ? 'Save changes' : 'Create reservation' }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,570 @@
+<div class="workspace-toast alert alert-success" *ngIf="toastVisible">{{ toastMessage }}</div>
+
+<section class="workspace-page">
+  <div class="page-header-row workspace-section-header">
+    <div class="workspace-section-copy">
+      <h2>Bookings</h2>
+      <p>Review hosted and requested reservations, confirm the service, and keep the calendar in sync with the operational detail.</p>
+    </div>
+
+    <div class="workspace-header-actions">
+      <button class="btn btn-outline" type="button" *ngIf="selectedReservation" (click)="startEditReservation(selectedReservation)">Edit selected</button>
+      <button class="btn btn-primary" type="button" (click)="startCreateReservation()">+ New booking</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dbeafe;color:#1d4ed8">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ reservations.length }}</div>
+        <div class="stat-label">All bookings</div>
+        <div class="stat-change up">Shared planning view</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dcfce7;color:#047857">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ hostedCount }}</div>
+        <div class="stat-label">Hosted by you</div>
+        <div class="stat-change up">Provider side</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef3c7;color:#b45309">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 7h16"></path>
+          <path d="M4 12h16"></path>
+          <path d="M4 17h10"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ requestedCount }}</div>
+        <div class="stat-label">Requested by you</div>
+        <div class="stat-change down">Consumer side</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fee2e2;color:#b91c1c">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <line x1="12" y1="8" x2="12" y2="13"></line>
+          <circle cx="12" cy="16.5" r="0.5" fill="currentColor"></circle>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ watchCount }}</div>
+        <div class="stat-label">Watch list</div>
+        <div class="stat-change down">{{ conflicts.length }} timing checks</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input [(ngModel)]="search" type="text" placeholder="Search by code, company, city, or resource">
+    </div>
+
+    <select class="filter-select" [(ngModel)]="roleFilter">
+      <option value="all">All sides</option>
+      <option value="provider">Host side</option>
+      <option value="consumer">Request side</option>
+    </select>
+
+    <select class="filter-select" [(ngModel)]="filter">
+      <option value="all">All statuses</option>
+      <option value="confirmed">Confirmed</option>
+      <option value="pending">Pending</option>
+      <option value="risk">Watch</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+
+    <div class="spacer"></div>
+    <span class="toolbar-count">{{ filteredReservations.length }} bookings</span>
+  </div>
+
+  <div class="workspace-content-grid">
+    <section class="card workspace-table-card">
+      <div class="card-header">
+        <div>
+          <h3>Booking list</h3>
+          <span class="workspace-card-subtitle">The list matches the same scan-first workflow used in the rest of the platform.</span>
+        </div>
+      </div>
+
+      <div class="workspace-table-scroll" *ngIf="filteredReservations.length; else bookingsEmpty">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Booking</th>
+              <th>Side</th>
+              <th>Schedule</th>
+              <th>Status</th>
+              <th>Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let reservation of filteredReservations"
+              [class.active-row]="reservation.id === selectedReservationId"
+              (click)="selectReservation(reservation.id)">
+              <td>
+                <div class="workspace-row-title">{{ reservation.code }} - {{ reservation.title }}</div>
+                <div class="workspace-row-meta">{{ reservation.customer }} | {{ reservation.city }} | {{ reservation.slotName }}</div>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="reservation.role === 'provider' ? 'badge-primary' : 'badge-success'">
+                  {{ roleLabel(reservation) }}
+                </span>
+              </td>
+              <td>
+                <div class="workspace-row-title">{{ reservation.start | date:'MMM d, HH:mm' }}</div>
+                <div class="workspace-row-meta">to {{ reservation.end | date:'MMM d, HH:mm' }}</div>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'badge-success': reservation.status === 'confirmed',
+                    'badge-warning': reservation.status === 'pending' || reservation.status === 'risk',
+                    'badge-danger': reservation.status === 'cancelled'
+                  }">
+                  {{ statusLabel(reservation.status) }}
+                </span>
+              </td>
+              <td>
+                <div class="workspace-row-title">{{ reservation.amount | number:'1.0-0' }} TND</div>
+                <div class="workspace-row-meta">{{ reservation.headcount }} people</div>
+              </td>
+              <td (click)="$event.stopPropagation()">
+                <div class="workspace-row-actions">
+                  <button class="btn btn-ghost btn-sm" type="button" (click)="openReservationDetails(reservation)">View</button>
+                  <button class="btn btn-outline btn-sm" type="button" (click)="startEditReservation(reservation)">Edit</button>
+                  <button class="btn btn-primary btn-sm" type="button" *ngIf="reservation.status !== 'confirmed'" (click)="confirmReservation(reservation)">Confirm</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #bookingsEmpty>
+        <div class="empty-state">
+          <h3>No bookings found</h3>
+          <p>Try another search or add a new booking to start the workflow.</p>
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="card workspace-detail-card" [class.workspace-detail-card-modal]="showReservationModal">
+      <div class="card-header">
+        <div>
+          <h3>{{ editorMode ? (editorMode === 'create' ? 'Create booking' : 'Edit booking') : 'Booking details' }}</h3>
+          <span class="workspace-card-subtitle">
+            {{ editorMode ? 'Use the same structured form logic used in the other CRUD pages.' : 'Contacts, operational notes, and readiness stay together in one review panel.' }}
+          </span>
+        </div>
+        <button class="workspace-modal-close" type="button" *ngIf="showReservationModal" (click)="closeReservationModal()">Close</button>
+      </div>
+
+      <div class="card-body" *ngIf="editorMode; else bookingDetail">
+        <form [formGroup]="editorForm" class="workspace-editor-form">
+          <div class="alert alert-danger" *ngIf="editorErrorMessage">{{ editorErrorMessage }}</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Title</label>
+              <input formControlName="title" type="text" placeholder="PET pallet loading">
+            </div>
+            <div class="form-group">
+              <label>Counterparty</label>
+              <input formControlName="customer" type="text" placeholder="Partner company">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Role</label>
+              <select formControlName="role">
+                <option value="provider">I host this booking</option>
+                <option value="consumer">I request this booking</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select formControlName="category">
+                <option value="Machine">Machine</option>
+                <option value="Space">Space</option>
+                <option value="Storage">Storage</option>
+                <option value="Production">Production</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Resource</label>
+              <input formControlName="resource" type="text" placeholder="Machine, zone, or room">
+            </div>
+            <div class="form-group">
+              <label>Site</label>
+              <select formControlName="slotId">
+                <option *ngFor="let slot of slots" [value]="slot.id">{{ slot.name }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>City</label>
+              <input formControlName="city" type="text">
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select formControlName="status">
+                <option value="confirmed">Confirmed</option>
+                <option value="pending">Pending</option>
+                <option value="risk">Watch</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start</label>
+              <input formControlName="start" type="datetime-local">
+            </div>
+            <div class="form-group">
+              <label>End</label>
+              <input formControlName="end" type="datetime-local">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Headcount</label>
+              <input formControlName="headcount" type="number" min="1">
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input formControlName="amount" type="number" min="100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Contact person</label>
+              <input formControlName="contactName" type="text" placeholder="Operational contact">
+            </div>
+            <div class="form-group">
+              <label>Notification channel</label>
+              <select formControlName="notificationChannel">
+                <option value="email">Email</option>
+                <option value="sms">Phone message</option>
+                <option value="both">Email and phone message</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email</label>
+              <input formControlName="contactEmail" type="email" placeholder="name@company.tn">
+            </div>
+            <div class="form-group">
+              <label>Phone number</label>
+              <input formControlName="contactPhone" type="text" placeholder="+216 20 000 000">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Tags</label>
+            <input formControlName="tags" type="text" placeholder="Export, Priority, Tunis">
+          </div>
+
+          <div class="form-group">
+            <label>Operational notes</label>
+            <textarea formControlName="notes" rows="4" placeholder="Access steps, preparation notes, or service instructions"></textarea>
+          </div>
+
+          <div class="workspace-editor-actions">
+            <button class="btn btn-outline" type="button" (click)="cancelEditor()">Cancel</button>
+            <button class="btn btn-primary" type="button" (click)="saveReservation()">
+              {{ editorMode === 'create' ? 'Create booking' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <ng-template #bookingDetail>
+        <div class="card-body" *ngIf="selectedReservation as reservation; else bookingDetailEmpty">
+          <div class="workspace-detail-top">
+            <span class="badge" [ngClass]="reservation.role === 'provider' ? 'badge-primary' : 'badge-success'">{{ roleLabel(reservation) }}</span>
+            <span
+              class="badge"
+              [ngClass]="{
+                'badge-success': reservation.status === 'confirmed',
+                'badge-warning': reservation.status === 'pending' || reservation.status === 'risk',
+                'badge-danger': reservation.status === 'cancelled'
+              }">
+              {{ statusLabel(reservation.status) }}
+            </span>
+          </div>
+
+          <div class="workspace-detail-stack">
+            <div>
+              <div class="workspace-detail-title">{{ reservation.code }} - {{ reservation.title }}</div>
+              <div class="workspace-detail-subtitle">{{ companyLine(reservation) }}</div>
+            </div>
+
+            <section class="workspace-spotlight workspace-spotlight-booking">
+              <div class="workspace-spotlight-head">
+                <div>
+                  <span class="badge badge-info">Planning spotlight</span>
+                  <h4>Decision view for this booking</h4>
+                </div>
+                <span class="workspace-spotlight-copy">{{ reservation.bookingSuggestion }}</span>
+              </div>
+
+              <div class="workspace-spotlight-grid">
+                <article class="workspace-spotlight-card">
+                  <span>Cancellation watch</span>
+                  <strong>{{ reservation.cancellationRisk }}%</strong>
+                  <div class="workspace-signal-track">
+                    <div class="workspace-signal-fill danger" [style.width]="riskWidth(reservation)"></div>
+                  </div>
+                  <p>{{ reservation.cancellationRisk >= 65 ? 'High follow-up needed' : reservation.cancellationRisk >= 45 ? 'Keep an eye on this file' : 'Booking looks stable' }}</p>
+                </article>
+
+                <article class="workspace-spotlight-card">
+                  <span>Readiness</span>
+                  <strong>{{ reservation.readinessScore || 0 }}%</strong>
+                  <div class="workspace-signal-track">
+                    <div class="workspace-signal-fill success" [style.width.%]="reservation.readinessScore || 0"></div>
+                  </div>
+                  <p>{{ reservation.recommendedTime }}</p>
+                </article>
+
+                <article class="workspace-spotlight-card">
+                  <span>Confirmation route</span>
+                  <strong>{{ reservation.notificationChannel | titlecase }}</strong>
+                  <div class="workspace-chip-row">
+                    <span class="badge badge-neutral">{{ reservation.contactName }}</span>
+                    <span class="badge badge-neutral">{{ reservation.city }}</span>
+                  </div>
+                  <p>{{ contactLine(reservation) }}</p>
+                </article>
+              </div>
+
+              <div class="workspace-spotlight-story">
+                <article class="workspace-story-card">
+                  <span>Suggested message</span>
+                  <strong>Prepared follow-up</strong>
+                  <p>{{ reservation.messageDraft || reservation.serviceBrief }}</p>
+                </article>
+
+                <article class="workspace-story-card">
+                  <span>Service brief</span>
+                  <strong>Operational direction</strong>
+                  <p>{{ reservation.serviceBrief || reservation.bookingSuggestion }}</p>
+                </article>
+              </div>
+            </section>
+
+            <div class="workspace-mini-grid">
+              <article>
+                <span>Schedule</span>
+                <strong>{{ reservation.start | date:'MMM d, HH:mm' }}</strong>
+                <p>to {{ reservation.end | date:'MMM d, HH:mm' }}</p>
+              </article>
+              <article>
+                <span>Readiness</span>
+                <strong>{{ reservation.readinessScore || 0 }}%</strong>
+                <p>{{ reservation.recommendedTime }}</p>
+              </article>
+              <article>
+                <span>Confirmation</span>
+                <strong>{{ reservation.notificationChannel | titlecase }}</strong>
+                <p>{{ contactLine(reservation) }}</p>
+              </article>
+            </div>
+
+            <div class="workspace-detail-block">
+              <h4>Service guidance</h4>
+              <p>{{ reservation.serviceBrief || reservation.bookingSuggestion }}</p>
+              <p class="workspace-note" *ngIf="reservation.ecoNote">{{ reservation.ecoNote }}</p>
+            </div>
+
+            <div class="workspace-detail-block" *ngIf="reservation.coordinationChecklist?.length">
+              <h4>Checklist</h4>
+              <div class="workspace-pill-list">
+                <span class="badge badge-neutral" *ngFor="let item of reservation.coordinationChecklist">{{ item }}</span>
+              </div>
+            </div>
+
+            <div class="workspace-detail-block" *ngIf="reservation.tags.length">
+              <h4>Tags</h4>
+              <div class="workspace-pill-list">
+                <span class="badge badge-neutral" *ngFor="let tag of reservation.tags">{{ tag }}</span>
+              </div>
+            </div>
+
+            <div class="workspace-detail-block">
+              <h4>Operational note</h4>
+              <p>{{ reservation.notes || 'No additional operational notes were added yet.' }}</p>
+            </div>
+
+            <div class="workspace-detail-block">
+              <h4>Confirmation route</h4>
+              <p>{{ notificationLabel(reservation) }}</p>
+            </div>
+          </div>
+
+          <div class="workspace-detail-actions">
+            <button class="btn btn-outline" type="button" (click)="startEditReservation(reservation)">Edit</button>
+            <button class="btn btn-primary" type="button" *ngIf="reservation.status !== 'confirmed'" (click)="confirmReservation(reservation)">Confirm service</button>
+            <button class="btn btn-danger" type="button" (click)="requestDeleteReservation(reservation)">Delete</button>
+          </div>
+        </div>
+      </ng-template>
+
+      <ng-template #bookingDetailEmpty>
+        <div class="empty-state">
+          <h3>Select a booking</h3>
+          <p>Choose a row from the table to review the reservation details here.</p>
+        </div>
+      </ng-template>
+    </section>
+  </div>
+
+  <div class="workspace-modal-backdrop" *ngIf="showReservationModal || showDeleteModal" (click)="showDeleteModal ? closeDeleteModal() : closeReservationModal()"></div>
+
+  <section class="card workspace-confirm-modal" *ngIf="showDeleteModal && selectedReservation as reservation">
+    <div class="card-header">
+      <div>
+        <h3>Delete booking</h3>
+        <span class="workspace-card-subtitle">This action removes {{ reservation.code }} from the planning flow.</span>
+      </div>
+      <button class="workspace-modal-close" type="button" (click)="closeDeleteModal()">Close</button>
+    </div>
+    <div class="card-body">
+      <p class="workspace-confirm-copy">This booking, its follow-up history, and its schedule trace will be removed from the workspace. Continue only if this record should no longer exist.</p>
+      <div class="workspace-detail-actions">
+        <button class="btn btn-outline" type="button" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" type="button" (click)="deleteReservation(reservation.id)">Delete booking</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="workspace-secondary-grid workspace-secondary-grid-wide">
+    <section class="card workspace-calendar-card">
+      <div class="card-header">
+        <div>
+          <h3>Schedule</h3>
+          <span class="workspace-card-subtitle">The booking calendar stays in the familiar card layout instead of becoming a separate interface.</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <full-calendar [options]="calendarOptions"></full-calendar>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h3>Follow-up</h3>
+          <span class="workspace-card-subtitle">Conflicts and notices stay visible beside the calendar.</span>
+        </div>
+      </div>
+      <div class="card-body workspace-side-list">
+        <div class="workspace-side-section">
+          <h4>Timing checks</h4>
+          <div class="workspace-list-stack" *ngIf="conflicts.length; else noConflicts">
+            <article class="workspace-list-card" *ngFor="let conflict of conflicts | slice:0:4">
+              <div class="workspace-list-card-top">
+                <span class="badge" [ngClass]="conflict.severity === 'high' ? 'badge-danger' : 'badge-warning'">{{ conflict.severity }}</span>
+                <span class="workspace-list-muted">{{ conflict.slotName }}</span>
+              </div>
+              <strong>{{ conflict.overlapLabel }}</strong>
+              <p>{{ conflict.reservationIds.length }} booking entries share this slot window.</p>
+            </article>
+          </div>
+          <ng-template #noConflicts>
+            <p class="workspace-list-muted">No timing conflicts are active right now.</p>
+          </ng-template>
+        </div>
+
+        <div class="workspace-side-section">
+          <h4>Recent notices</h4>
+          <div class="workspace-list-stack" *ngIf="recentNotifications.length; else noNotices">
+            <article class="workspace-list-card" *ngFor="let notice of recentNotifications">
+              <div class="workspace-list-card-top">
+                <span class="badge badge-info">{{ notice.channel | uppercase }}</span>
+                <span class="workspace-list-muted">{{ notice.sentAt | date:'MMM d, HH:mm' }}</span>
+              </div>
+              <strong>{{ notice.reservationCode }} - {{ notice.customer }}</strong>
+              <p>{{ notice.summary }}</p>
+            </article>
+          </div>
+          <ng-template #noNotices>
+            <p class="workspace-list-muted">Confirmation notices will appear here after a service is approved.</p>
+          </ng-template>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="workspace-chart-grid">
+    <app-chart-card
+      [title]="'Booking volume'"
+      [subtitle]="'Switch the side view or click a day to focus the list on that part of the week.'"
+      [badge]="bookingChartBadge"
+      [series]="bookingSeries"
+      [chart]="bookingChart"
+      [xaxis]="bookingXAxis"
+      (pointSelected)="onBookingChartSelect($event)">
+      <div chart-actions class="workspace-chart-actions">
+        <button class="btn btn-sm" type="button" [class.btn-primary]="bookingView === 'all'" [class.btn-outline]="bookingView !== 'all'" (click)="setBookingView('all')">All</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="bookingView === 'provider'" [class.btn-outline]="bookingView !== 'provider'" (click)="setBookingView('provider')">Host side</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="bookingView === 'consumer'" [class.btn-outline]="bookingView !== 'consumer'" (click)="setBookingView('consumer')">Request side</button>
+        <button class="btn btn-ghost btn-sm" type="button" *ngIf="activeBookingDay" (click)="clearBookingDayFocus()">Clear {{ activeBookingDay }}</button>
+      </div>
+    </app-chart-card>
+
+    <app-chart-card
+      [title]="'Watch level'"
+      [subtitle]="'Switch between watch pressure and readiness, then click a bar to open that booking.'"
+      [badge]="riskChartBadge"
+      [series]="riskSeries"
+      [chart]="riskChart"
+      [xaxis]="riskXAxis"
+      [colors]="riskChartColor"
+      (pointSelected)="onRiskChartSelect($event)">
+      <div chart-actions class="workspace-chart-actions">
+        <button class="btn btn-sm" type="button" [class.btn-primary]="riskMetric === 'cancellation'" [class.btn-outline]="riskMetric !== 'cancellation'" (click)="setRiskMetric('cancellation')">Watch</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="riskMetric === 'readiness'" [class.btn-outline]="riskMetric !== 'readiness'" (click)="setRiskMetric('readiness')">Readiness</button>
+      </div>
+    </app-chart-card>
+  </div>
+</section>

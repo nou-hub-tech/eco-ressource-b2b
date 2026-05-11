@@ -1,0 +1,23 @@
+<div class="rs-heatmap">
+  <div class="rs-heatmap-grid">
+    <div class="rs-heatmap-corner"></div>
+    <div class="rs-heatmap-head" *ngFor="let hour of hours">{{ hour }}</div>
+
+    <ng-container *ngFor="let row of matrix; let rowIndex = index">
+      <div class="rs-heatmap-day">{{ days[rowIndex] }}</div>
+      <div
+        *ngFor="let value of row"
+        class="rs-heatmap-cell"
+        [style.background]="cellBackground(value)"
+        [style.color]="textColor(value)">
+        {{ value }}%
+      </div>
+    </ng-container>
+  </div>
+
+  <div class="rs-heatmap-legend">
+    <span>Low</span>
+    <div class="rs-heatmap-scale"></div>
+    <span>Peak</span>
+  </div>
+</div>

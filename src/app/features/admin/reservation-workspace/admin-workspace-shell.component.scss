@@ -1,0 +1,33 @@
+:host {
+  display: block;
+}
+
+.admin-workspace-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-shell-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.admin-shell-note,
+.admin-shell-muted {
+  font-size: 12px;
+  color: var(--text3);
+}
+
+.admin-route-host {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1024px) {
+  .admin-shell-status {
+    align-items: flex-start;
+  }
+}

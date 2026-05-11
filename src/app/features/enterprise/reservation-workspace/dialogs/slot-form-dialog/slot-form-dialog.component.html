@@ -1,0 +1,93 @@
+<div class="entity-dialog">
+  <div class="entity-head">
+    <span class="entity-chip">Reservation slot</span>
+    <h2>{{ data.slot ? 'Update slot' : 'Create slot' }}</h2>
+    <p>Describe whether this site belongs to you or comes from a partner network.</p>
+  </div>
+
+  <form [formGroup]="form" class="entity-form">
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Name</span>
+        <input formControlName="name" type="text">
+      </label>
+      <label>
+        <span>Zone</span>
+        <input formControlName="zone" type="text">
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-3">
+      <label>
+        <span>City</span>
+        <input formControlName="city" type="text">
+      </label>
+      <label>
+        <span>Owner</span>
+        <input formControlName="ownerCompany" type="text">
+      </label>
+      <label>
+        <span>Portfolio</span>
+        <select formControlName="portfolio">
+          <option value="owned">Our offer</option>
+          <option value="partner">Partner site</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Type</span>
+        <select formControlName="type">
+          <option value="Dock">Dock</option>
+          <option value="Storage">Storage</option>
+          <option value="Meeting">Meeting</option>
+          <option value="Production">Production</option>
+        </select>
+      </label>
+      <label>
+        <span>Status</span>
+        <select formControlName="status">
+          <option value="available">Available</option>
+          <option value="balanced">Balanced</option>
+          <option value="peak">Peak</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Latitude</span>
+        <input formControlName="latitude" type="number" step="0.0001">
+      </label>
+      <label>
+        <span>Longitude</span>
+        <input formControlName="longitude" type="number" step="0.0001">
+      </label>
+    </div>
+
+    <div class="entity-grid entity-grid-2">
+      <label>
+        <span>Capacity</span>
+        <input formControlName="capacity" type="number" min="1">
+      </label>
+      <label>
+        <span>Occupied</span>
+        <input formControlName="occupied" type="number" min="0">
+      </label>
+    </div>
+
+    <label>
+      <span>Equipment</span>
+      <textarea formControlName="equipment" rows="4" placeholder="RFID gate, video wall, dry zone"></textarea>
+    </label>
+  </form>
+
+  <div class="entity-actions">
+    <button mat-button class="entity-btn entity-btn-ghost" mat-dialog-close>Cancel</button>
+    <button mat-flat-button class="entity-btn entity-btn-primary" (click)="save()">
+      {{ data.slot ? 'Save slot' : 'Create slot' }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,173 @@
+<section class="card admin-entity-card">
+  <div class="card-header admin-entity-head">
+    <div>
+      <h3>Booking watch</h3>
+      <span class="admin-entity-muted">Review bookings directly, without switching through a shared tab view.</span>
+    </div>
+
+    <div class="admin-entity-head-actions">
+      <button class="btn btn-primary" type="button" (click)="openCreateDialog()">+ Create booking</button>
+    </div>
+
+    <details class="admin-entity-refine">
+      <summary>Refine view</summary>
+      <div class="admin-entity-filters">
+        <button class="admin-entity-filter" [class.active]="reservationFocus==='all'" (click)="reservationFocus='all'">All</button>
+        <button class="admin-entity-filter" [class.active]="reservationFocus==='provider'" (click)="reservationFocus='provider'">Host side</button>
+        <button class="admin-entity-filter" [class.active]="reservationFocus==='consumer'" (click)="reservationFocus='consumer'">Request side</button>
+        <button class="admin-entity-filter" [class.active]="reservationFocus==='watch'" (click)="reservationFocus='watch'">Watch</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="card-body">
+    <div class="admin-entity-toolbar">
+      <div class="search-box">
+        <span>Search</span>
+        <input
+          type="text"
+          placeholder="Search bookings, cities, companies, or sites"
+          [(ngModel)]="search">
+      </div>
+      <span class="toolbar-count">{{ filteredReservations.length }} bookings</span>
+    </div>
+
+    <div class="admin-signal-strip">
+      <article class="admin-signal-card admin-signal-card-booking">
+        <span>Top watch</span>
+        <strong>{{ topReservationAlert?.cancellationRisk || 0 }}%</strong>
+        <p>{{ topReservationAlert?.code || 'No urgent file' }}</p>
+      </article>
+      <article class="admin-signal-card admin-signal-card-booking">
+        <span>Timing checks</span>
+        <strong>{{ conflicts.length }}</strong>
+        <p>{{ conflicts.length ? conflicts[0].slotName : 'Calendar aligned' }}</p>
+      </article>
+      <article class="admin-signal-card admin-signal-card-booking">
+        <span>Confirmations</span>
+        <strong>{{ recentNotifications.length }}</strong>
+        <p>{{ recentNotifications.length ? recentNotifications[0].channel : 'No recent notice' }}</p>
+      </article>
+    </div>
+
+    <div class="admin-entity-grid">
+      <div class="admin-entity-list" *ngIf="filteredReservations.length; else noBookingRows">
+        <article class="admin-entity-row" *ngFor="let reservation of filteredReservations">
+          <div class="admin-entity-row-top">
+            <strong>{{ reservation.code }} | {{ reservation.customer }}</strong>
+            <span class="badge" [ngClass]="reservation.role==='provider' ? 'badge-primary' : 'badge-success'">
+              {{ roleLabel(reservation.role) }}
+            </span>
+          </div>
+          <p>{{ reservation.title }} | {{ reservation.city }} | {{ reservation.slotName }}</p>
+          <div class="admin-entity-row-meta">
+            <span>{{ reservation.cancellationRisk }}% watch</span>
+            <span>{{ reservationStatusLabel(reservation.status) }}</span>
+          </div>
+          <div class="admin-entity-row-note">
+            {{ reservation.confirmationNotice?.summary || 'Confirmation not yet sent.' }}
+          </div>
+          <div class="admin-entity-row-actions">
+            <button class="btn btn-ghost btn-sm" type="button" (click)="openReservationDetails(reservation)">View</button>
+            <button class="btn btn-outline btn-sm" type="button" (click)="openEditDialog(reservation)">Edit</button>
+            <button class="btn btn-primary btn-sm" type="button" *ngIf="reservation.status !== 'confirmed'" (click)="confirmReservation(reservation)">Confirm</button>
+            <button class="btn btn-danger btn-sm" type="button" (click)="requestDeleteReservation(reservation)">Delete</button>
+          </div>
+        </article>
+      </div>
+
+      <aside class="admin-entity-side">
+        <article class="admin-entity-panel" *ngIf="topReservationAlert as alert; else noBookingAlert">
+          <span class="badge badge-warning">{{ alert.cancellationRisk }}% watch</span>
+          <strong>{{ alert.code }} needs attention</strong>
+          <p>{{ alert.bookingSuggestion }}</p>
+        </article>
+        <ng-template #noBookingAlert>
+          <article class="admin-entity-panel">
+            <span class="badge badge-success">Stable</span>
+            <strong>No urgent booking alert</strong>
+            <p>The booking flow is currently under control.</p>
+          </article>
+        </ng-template>
+
+        <article class="admin-entity-panel">
+          <span class="badge badge-info">{{ conflicts.length }} timing checks</span>
+          <strong>{{ conflicts.length ? conflicts[0].overlapLabel : 'Calendar aligned' }}</strong>
+          <p>{{ conflicts.length ? (conflicts[0].slotName + ' needs a timing review.') : 'No active overlap needs manual action.' }}</p>
+        </article>
+
+        <article class="admin-entity-panel">
+          <span class="badge badge-neutral">Recent confirmations</span>
+          <div class="admin-entity-note-list" *ngIf="recentNotifications.length; else noNotices">
+            <div *ngFor="let notification of recentNotifications">
+              <strong>{{ notification.reservationCode }}</strong>
+              <p>{{ notification.summary }}</p>
+            </div>
+          </div>
+          <ng-template #noNotices>
+            <p>No confirmation has been sent yet.</p>
+          </ng-template>
+        </article>
+      </aside>
+    </div>
+
+    <ng-template #noBookingRows>
+      <div class="admin-entity-empty">No booking matches the current watch filters.</div>
+    </ng-template>
+  </div>
+</section>
+
+<div class="admin-entity-modal-backdrop" *ngIf="viewModalOpen" (click)="closeReservationModal()"></div>
+
+<section class="card admin-entity-modal" *ngIf="viewModalOpen && selectedReservation as reservation">
+  <div class="card-header admin-entity-modal-head">
+    <div>
+      <h3>{{ reservation.code }} | {{ reservation.customer }}</h3>
+      <span class="admin-entity-muted">{{ reservation.title }} | {{ reservation.city }} | {{ reservation.slotName }}</span>
+    </div>
+    <button class="admin-entity-modal-close" type="button" (click)="closeReservationModal()">Close</button>
+  </div>
+
+  <div class="card-body">
+    <div class="admin-entity-detail-top">
+      <span class="badge" [ngClass]="reservation.role==='provider' ? 'badge-primary' : 'badge-success'">
+        {{ roleLabel(reservation.role) }}
+      </span>
+      <span
+        class="badge"
+        [ngClass]="{
+          'badge-success': reservation.status === 'confirmed',
+          'badge-warning': reservation.status === 'pending' || reservation.status === 'risk',
+          'badge-danger': reservation.status === 'cancelled'
+        }">
+        {{ reservationStatusLabel(reservation.status) }}
+      </span>
+    </div>
+
+    <div class="admin-entity-detail-grid">
+      <article class="admin-entity-panel">
+        <span class="badge badge-warning">{{ reservation.cancellationRisk }}% watch</span>
+        <strong>Planning alert</strong>
+        <p>{{ reservation.bookingSuggestion }}</p>
+      </article>
+
+      <article class="admin-entity-panel">
+        <span class="badge badge-info">{{ reservation.notificationChannel | titlecase }}</span>
+        <strong>Confirmation route</strong>
+        <p>{{ reservation.confirmationNotice?.summary || 'Confirmation not yet sent.' }}</p>
+      </article>
+    </div>
+
+    <div class="admin-entity-detail-copy">
+      <p><strong>Schedule:</strong> {{ reservation.start | date:'MMM d, HH:mm' }} to {{ reservation.end | date:'MMM d, HH:mm' }}</p>
+      <p><strong>Amount:</strong> {{ reservation.amount | number:'1.0-0' }} TND for {{ reservation.headcount }} people</p>
+      <p><strong>Notes:</strong> {{ reservation.notes || 'No operational note added.' }}</p>
+    </div>
+
+    <div class="admin-entity-row-actions">
+      <button class="btn btn-outline" type="button" (click)="openEditDialog(reservation)">Edit</button>
+      <button class="btn btn-primary" type="button" *ngIf="reservation.status !== 'confirmed'" (click)="confirmReservation(reservation)">Confirm</button>
+      <button class="btn btn-danger" type="button" (click)="requestDeleteReservation(reservation)">Delete</button>
+    </div>
+  </div>
+</section>

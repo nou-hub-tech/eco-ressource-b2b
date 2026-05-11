@@ -1,0 +1,51 @@
+<section class="card activity-center-card">
+  <div class="card-header activity-center-header">
+    <div>
+      <h3>{{ title }}</h3>
+      <p *ngIf="subtitle">{{ subtitle }}</p>
+    </div>
+
+    <div class="activity-center-stats" *ngIf="items.length">
+      <span class="badge badge-neutral">{{ items.length }} live</span>
+      <span class="badge badge-warning">{{ urgentCount }} watch</span>
+      <span class="badge badge-info">{{ actionCount }} actions</span>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="activity-center-list" *ngIf="visibleItems.length; else emptyState">
+      <article class="activity-center-item" *ngFor="let item of visibleItems">
+        <div class="activity-center-item-head">
+          <div class="activity-center-badges">
+            <span
+              class="badge"
+              [ngClass]="{
+                'badge-danger': item.tone === 'danger',
+                'badge-warning': item.tone === 'warning',
+                'badge-success': item.tone === 'success',
+                'badge-info': item.tone === 'info'
+              }">
+              {{ item.badge }}
+            </span>
+            <span class="badge badge-neutral">{{ entityLabel(item) }}</span>
+          </div>
+          <span class="activity-center-time">{{ item.occurredAt | date:'MMM d, HH:mm' }}</span>
+        </div>
+
+        <strong>{{ item.title }}</strong>
+        <p>{{ item.description }}</p>
+
+        <div class="activity-center-item-foot" *ngIf="showActions && item.route && item.actionLabel">
+          <a class="btn btn-ghost btn-sm" [routerLink]="item.route">{{ item.actionLabel }}</a>
+        </div>
+      </article>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-state activity-center-empty">
+        <h3>Nothing is waiting</h3>
+        <p>{{ emptyLabel }}</p>
+      </div>
+    </ng-template>
+  </div>
+</section>

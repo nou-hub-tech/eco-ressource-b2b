@@ -5,7 +5,7 @@ import { StockItemService } from '../../../core/services/stock-item';
 @Component({
   selector: 'app-stock-item-stats',
   standalone: false,
-  templateUrl: './stock-item-stats.html',
+  templateUrl: './Stock-item-stats.html',
   styleUrls: ['./stock-item-stats.css']
 })
 export class StockItemStatsComponent implements OnInit {
@@ -22,7 +22,7 @@ export class StockItemStatsComponent implements OnInit {
     private stockItemService: StockItemService,
     private router: Router,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.loadStats();
@@ -30,10 +30,10 @@ export class StockItemStatsComponent implements OnInit {
 
   loadStats(): void {
     this.loading = true;
-    
+
     this.stockItemService.getStatsByCategory().subscribe({
-      next: (data) => { 
-        this.statsByCategory = data; 
+      next: (data) => {
+        this.statsByCategory = data;
         this.calculateStats();
         this.cdr.detectChanges();
       },
@@ -43,10 +43,10 @@ export class StockItemStatsComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
-    
+
     this.stockItemService.getStatsByLocation().subscribe({
-      next: (data) => { 
-        this.statsByLocation = data; 
+      next: (data) => {
+        this.statsByLocation = data;
         this.calculateStats();
         this.cdr.detectChanges();
       },
@@ -63,11 +63,11 @@ export class StockItemStatsComponent implements OnInit {
     this.totalQuantity = this.statsByCategory.reduce((sum, item) => sum + (item['total'] || 0), 0);
     this.totalCategories = this.statsByCategory.length;
     this.totalLocations = this.statsByLocation.length;
-    
+
     // Find max quantities for percentage bars
     this.maxCategoryQuantity = Math.max(...this.statsByCategory.map(item => item['total'] || 0), 0);
     this.maxLocationQuantity = Math.max(...this.statsByLocation.map(item => item['total'] || 0), 0);
-    
+
     this.loading = false;
   }
 

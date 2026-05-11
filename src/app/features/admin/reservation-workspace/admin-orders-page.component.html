@@ -1,0 +1,169 @@
+<section class="card admin-entity-card">
+  <div class="card-header admin-entity-head">
+    <div>
+      <h3>Order watch</h3>
+      <span class="admin-entity-muted">Watch payment risk, manual checks, and open balances from a dedicated order desk.</span>
+    </div>
+
+    <div class="admin-entity-head-actions">
+      <button class="btn btn-primary" type="button" (click)="openCreateDialog()">+ Create order</button>
+    </div>
+
+    <details class="admin-entity-refine">
+      <summary>Refine view</summary>
+      <div class="admin-entity-filters">
+        <button class="admin-entity-filter" [class.active]="orderFocus==='all'" (click)="orderFocus='all'">All</button>
+        <button class="admin-entity-filter" [class.active]="orderFocus==='pending'" (click)="orderFocus='pending'">Pending</button>
+        <button class="admin-entity-filter" [class.active]="orderFocus==='review'" (click)="orderFocus='review'">Manual check</button>
+        <button class="admin-entity-filter" [class.active]="orderFocus==='review-heavy'" (click)="orderFocus='review-heavy'">Highest watch</button>
+        <button class="admin-entity-filter" [class.active]="roleFilter==='all'" (click)="roleFilter='all'">All sides</button>
+        <button class="admin-entity-filter" [class.active]="roleFilter==='provider'" (click)="roleFilter='provider'">Collect</button>
+        <button class="admin-entity-filter" [class.active]="roleFilter==='consumer'" (click)="roleFilter='consumer'">Pay</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="card-body">
+    <div class="admin-entity-toolbar">
+      <div class="search-box">
+        <span>Search</span>
+        <input
+          type="text"
+          placeholder="Search orders, invoices, cities, or customers"
+          [(ngModel)]="search">
+      </div>
+      <span class="toolbar-count">{{ filteredOrders.length }} orders</span>
+    </div>
+
+    <div class="admin-signal-strip">
+      <article class="admin-signal-card admin-signal-card-order">
+        <span>Top review</span>
+        <strong>{{ topOrderAlert?.fraudRisk || 0 }}%</strong>
+        <p>{{ topOrderAlert?.invoiceNumber || 'No urgent file' }}</p>
+      </article>
+      <article class="admin-signal-card admin-signal-card-order">
+        <span>Receivables</span>
+        <strong>{{ toCollect | number:'1.0-0' }}</strong>
+        <p>TND waiting for collection</p>
+      </article>
+      <article class="admin-signal-card admin-signal-card-order">
+        <span>Payables</span>
+        <strong>{{ toPay | number:'1.0-0' }}</strong>
+        <p>TND waiting for release</p>
+      </article>
+    </div>
+
+    <div class="admin-entity-grid">
+      <div class="admin-entity-list" *ngIf="filteredOrders.length; else noOrderRows">
+        <article class="admin-entity-row" *ngFor="let order of filteredOrders">
+          <div class="admin-entity-row-top">
+            <strong>{{ order.invoiceNumber }} | {{ order.customer }}</strong>
+            <span class="badge" [ngClass]="order.role==='provider' ? 'badge-primary' : 'badge-warning'">
+              {{ roleLabel(order) }}
+            </span>
+          </div>
+          <p>{{ order.city }} | {{ order.total | number:'1.2-2' }} TND | {{ order.spendingCluster }}</p>
+          <div class="admin-entity-row-meta">
+            <span>{{ order.fraudRisk }}% review</span>
+            <span>{{ paymentStatusLabel(order.paymentStatus) }}</span>
+          </div>
+          <div class="admin-entity-row-note">
+            {{ order.nextBestAction || orderStatusLabel(order.status) }}
+          </div>
+          <div class="admin-entity-row-actions">
+            <button class="btn btn-ghost btn-sm" type="button" (click)="openOrderDetails(order)">View</button>
+            <button class="btn btn-outline btn-sm" type="button" (click)="openEditDialog(order)">Edit</button>
+            <button class="btn btn-primary btn-sm" type="button" [disabled]="!canAdvanceOrder(order)" (click)="advanceOrder(order)">{{ advanceOrderLabel(order) }}</button>
+            <button class="btn btn-danger btn-sm" type="button" (click)="requestDeleteOrder(order)">Delete</button>
+          </div>
+        </article>
+      </div>
+
+      <aside class="admin-entity-side">
+        <article class="admin-entity-panel" *ngIf="topOrderAlert as alert; else noOrderAlert">
+          <span class="badge badge-warning">{{ alert.fraudRisk }}% watch</span>
+          <strong>{{ alert.invoiceNumber }} needs review</strong>
+          <p>{{ alert.paymentInsight }}</p>
+        </article>
+        <ng-template #noOrderAlert>
+          <article class="admin-entity-panel">
+            <span class="badge badge-success">Stable</span>
+            <strong>No urgent order alert</strong>
+            <p>The financial flow is currently under control.</p>
+          </article>
+        </ng-template>
+
+        <article class="admin-entity-panel">
+          <span class="badge badge-info">Receivables</span>
+          <strong>{{ toCollect | number:'1.0-0' }} TND</strong>
+          <p>Outstanding provider-side files still waiting for collection.</p>
+        </article>
+
+        <article class="admin-entity-panel">
+          <span class="badge badge-neutral">Payables</span>
+          <strong>{{ toPay | number:'1.0-0' }} TND</strong>
+          <p>Consumer-side files still waiting for payment release.</p>
+        </article>
+      </aside>
+    </div>
+
+    <ng-template #noOrderRows>
+      <div class="admin-entity-empty">No order matches the current payment filters.</div>
+    </ng-template>
+  </div>
+</section>
+
+<div class="admin-entity-modal-backdrop" *ngIf="viewModalOpen" (click)="closeOrderModal()"></div>
+
+<section class="card admin-entity-modal" *ngIf="viewModalOpen && selectedOrder as order">
+  <div class="card-header admin-entity-modal-head">
+    <div>
+      <h3>{{ order.invoiceNumber }} | {{ order.customer }}</h3>
+      <span class="admin-entity-muted">{{ order.city }} | {{ order.total | number:'1.2-2' }} TND | {{ orderStatusLabel(order.status) }}</span>
+    </div>
+    <button class="admin-entity-modal-close" type="button" (click)="closeOrderModal()">Close</button>
+  </div>
+
+  <div class="card-body">
+    <div class="admin-entity-detail-top">
+      <span class="badge" [ngClass]="order.role==='provider' ? 'badge-primary' : 'badge-warning'">
+        {{ roleLabel(order) }}
+      </span>
+      <span
+        class="badge"
+        [ngClass]="{
+          'badge-success': order.paymentStatus === 'paid',
+          'badge-warning': order.paymentStatus === 'pending',
+          'badge-danger': order.paymentStatus === 'review'
+        }">
+        {{ paymentStatusLabel(order.paymentStatus) }}
+      </span>
+    </div>
+
+    <div class="admin-entity-detail-grid">
+      <article class="admin-entity-panel">
+        <span class="badge badge-warning">{{ order.fraudRisk }}% watch</span>
+        <strong>Review signal</strong>
+        <p>{{ order.paymentInsight }}</p>
+      </article>
+
+      <article class="admin-entity-panel">
+        <span class="badge badge-info">{{ orderStatusLabel(order.status) }}</span>
+        <strong>Next step</strong>
+        <p>{{ order.nextBestAction || 'No additional follow-up note.' }}</p>
+      </article>
+    </div>
+
+    <div class="admin-entity-detail-copy">
+      <p><strong>Due date:</strong> {{ order.dueDate }}</p>
+      <p><strong>Payment view:</strong> {{ order.relationshipTone || order.spendingCluster }}</p>
+      <p><strong>Tracking:</strong> {{ order.tracking.length }} steps recorded</p>
+    </div>
+
+    <div class="admin-entity-row-actions">
+      <button class="btn btn-outline" type="button" (click)="openEditDialog(order)">Edit</button>
+      <button class="btn btn-primary" type="button" [disabled]="!canAdvanceOrder(order)" (click)="advanceOrder(order)">{{ advanceOrderLabel(order) }}</button>
+      <button class="btn btn-danger" type="button" (click)="requestDeleteOrder(order)">Delete</button>
+    </div>
+  </div>
+</section>

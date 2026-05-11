@@ -1,0 +1,183 @@
+<section class="card admin-entity-card">
+  <div class="card-header admin-entity-head">
+    <div>
+      <h3>Space watch</h3>
+      <span class="admin-entity-muted">Track load, availability, and underused capacity from a dedicated admin view.</span>
+    </div>
+
+    <div class="admin-entity-head-actions">
+      <button class="btn btn-primary" type="button" (click)="openCreateDialog()">+ Create space</button>
+    </div>
+
+    <details class="admin-entity-refine">
+      <summary>Refine view</summary>
+      <div class="admin-entity-filters">
+        <button class="admin-entity-filter" [class.active]="portfolioFilter==='all'" (click)="portfolioFilter='all'">All</button>
+        <button class="admin-entity-filter" [class.active]="portfolioFilter==='owned'" (click)="portfolioFilter='owned'">Owned</button>
+        <button class="admin-entity-filter" [class.active]="portfolioFilter==='partner'" (click)="portfolioFilter='partner'">Partner</button>
+        <button class="admin-entity-filter" [class.active]="statusFilter==='all'" (click)="statusFilter='all'">All states</button>
+        <button class="admin-entity-filter" [class.active]="statusFilter==='peak'" (click)="statusFilter='peak'">Busy</button>
+        <button class="admin-entity-filter" [class.active]="statusFilter==='available'" (click)="statusFilter='available'">Open</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="card-body">
+    <div class="admin-entity-toolbar">
+      <div class="search-box">
+        <span>Search</span>
+        <input
+          type="text"
+          placeholder="Search spaces, cities, owners, or zones"
+          [(ngModel)]="search">
+      </div>
+      <span class="toolbar-count">{{ filteredSlots.length }} spaces</span>
+    </div>
+
+    <div class="admin-signal-strip">
+      <article class="admin-signal-card admin-signal-card-slot">
+        <span>Peak load</span>
+        <strong>{{ topPressureSlot?.utilizationRate || 0 }}%</strong>
+        <p>{{ topPressureSlot?.name || 'No high-pressure site' }}</p>
+      </article>
+      <article class="admin-signal-card admin-signal-card-slot">
+        <span>Relief site</span>
+        <strong>{{ topReliefSlot?.predictedAvailability || 0 }}%</strong>
+        <p>{{ topReliefSlot?.name || 'No strong relief site' }}</p>
+      </article>
+      <article class="admin-signal-card admin-signal-card-slot">
+        <span>Open capacity</span>
+        <strong>{{ openCapacity }}</strong>
+        <p>Units ready to activate</p>
+      </article>
+    </div>
+
+    <div class="admin-entity-grid">
+      <div class="admin-entity-list" *ngIf="filteredSlots.length; else noSlotRows">
+        <article class="admin-entity-row" *ngFor="let slot of filteredSlots">
+          <div class="admin-slot-row">
+            <img class="admin-slot-thumb" [src]="coverImageFor(slot)" [alt]="slot.name + ' preview'">
+            <div class="admin-slot-copy">
+              <div class="admin-entity-row-top">
+                <strong>{{ slot.name }} | {{ slot.city }}</strong>
+                <span class="badge" [ngClass]="slot.portfolio==='owned' ? 'badge-primary' : 'badge-success'">
+                  {{ portfolioLabel(slot) }}
+                </span>
+              </div>
+              <p>{{ slot.type }} | {{ slot.zone }} | {{ slot.ownerCompany }}</p>
+              <div class="admin-entity-row-meta">
+                <span>{{ slot.utilizationRate }}% occupied</span>
+                <span>{{ statusLabel(slot.status) }}</span>
+                <span>{{ slot.capacity - slot.occupied }} free</span>
+                <span>{{ imageCountLabel(slot) }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="admin-entity-row-note">
+            {{ slot.spotlightMessage || slot.recoveryAction }}
+          </div>
+          <div class="admin-entity-row-actions">
+            <button class="btn btn-ghost btn-sm" type="button" (click)="openSlotDetails(slot)">View</button>
+            <button class="btn btn-outline btn-sm" type="button" (click)="openEditDialog(slot)">Edit</button>
+            <button class="btn btn-danger btn-sm" type="button" (click)="requestDeleteSlot(slot)">Delete</button>
+          </div>
+        </article>
+      </div>
+
+      <aside class="admin-entity-side">
+        <article class="admin-entity-panel">
+          <img
+            class="admin-slot-hero"
+            *ngIf="topPressureSlot"
+            [src]="coverImageFor(topPressureSlot)"
+            [alt]="topPressureSlot.name + ' preview'">
+          <span class="badge badge-info">{{ openCapacity }} open units</span>
+          <strong>{{ topPressureSlot?.name || 'Network balance stable' }}</strong>
+          <p>
+            {{ topPressureSlot ? (topPressureSlot.utilizationRate + '% occupied in ' + topPressureSlot.city + '.') : 'No site is under strong pressure right now.' }}
+          </p>
+        </article>
+
+        <article class="admin-entity-panel">
+          <img
+            class="admin-slot-hero"
+            *ngIf="topReliefSlot"
+            [src]="coverImageFor(topReliefSlot)"
+            [alt]="topReliefSlot.name + ' preview'">
+          <span class="badge badge-success">{{ topReliefSlot?.predictedAvailability || 0 }}% expected free</span>
+          <strong>{{ topReliefSlot?.name || 'No strong relief site' }}</strong>
+          <p>
+            {{ topReliefSlot ? topReliefSlot.recoveryAction : 'Every site is already operating near its expected band.' }}
+          </p>
+        </article>
+
+        <article class="admin-entity-panel">
+          <span class="badge badge-neutral">Activation note</span>
+          <strong>{{ topReliefSlot?.bestUseMode || 'Capacity guidance' }}</strong>
+          <p>{{ topReliefSlot?.ecoFitNote || 'Use this desk to watch where the network can expand or where it needs protection.' }}</p>
+        </article>
+      </aside>
+    </div>
+
+    <ng-template #noSlotRows>
+      <div class="admin-entity-empty">No space matches the current watch filters.</div>
+    </ng-template>
+  </div>
+</section>
+
+<div class="admin-entity-modal-backdrop" *ngIf="viewModalOpen" (click)="closeSlotModal()"></div>
+
+<section class="card admin-entity-modal" *ngIf="viewModalOpen && selectedSlot as slot">
+  <div class="card-header admin-entity-modal-head">
+    <div>
+      <h3>{{ slot.name }} | {{ slot.city }}</h3>
+      <span class="admin-entity-muted">{{ slot.type }} | {{ slot.zone }} | {{ slot.ownerCompany }}</span>
+    </div>
+    <button class="admin-entity-modal-close" type="button" (click)="closeSlotModal()">Close</button>
+  </div>
+
+  <div class="card-body">
+    <img class="admin-slot-hero admin-slot-hero-modal" [src]="coverImageFor(slot)" [alt]="slot.name + ' preview'">
+
+    <div class="admin-entity-detail-top">
+      <span class="badge" [ngClass]="slot.portfolio==='owned' ? 'badge-primary' : 'badge-success'">
+        {{ portfolioLabel(slot) }}
+      </span>
+      <span
+        class="badge"
+        [ngClass]="{
+          'badge-success': slot.status === 'available',
+          'badge-info': slot.status === 'balanced',
+          'badge-warning': slot.status === 'peak',
+          'badge-danger': slot.status === 'maintenance'
+        }">
+        {{ statusLabel(slot.status) }}
+      </span>
+    </div>
+
+    <div class="admin-entity-detail-grid">
+      <article class="admin-entity-panel">
+        <span class="badge badge-info">{{ slot.utilizationRate }}% occupied</span>
+        <strong>Load signal</strong>
+        <p>{{ slot.occupied }}/{{ slot.capacity }} units currently in use.</p>
+      </article>
+
+      <article class="admin-entity-panel">
+        <span class="badge badge-success">{{ slot.predictedAvailability }}% expected free</span>
+        <strong>Availability note</strong>
+        <p>{{ slot.spotlightMessage || slot.recoveryAction }}</p>
+      </article>
+    </div>
+
+    <div class="admin-entity-detail-copy">
+      <p><strong>Equipment:</strong> {{ slot.equipment.length ? slot.equipment.join(', ') : 'No equipment listed.' }}</p>
+      <p><strong>Pictures:</strong> {{ imageCountLabel(slot) }}</p>
+      <p><strong>Activation guidance:</strong> {{ slot.ecoFitNote || slot.bestUseMode || slot.recoveryAction }}</p>
+    </div>
+
+    <div class="admin-entity-row-actions">
+      <button class="btn btn-outline" type="button" (click)="openEditDialog(slot)">Edit</button>
+      <button class="btn btn-danger" type="button" (click)="requestDeleteSlot(slot)">Delete</button>
+    </div>
+  </div>
+</section>

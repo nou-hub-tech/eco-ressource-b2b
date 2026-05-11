@@ -1,0 +1,596 @@
+<section class="workspace-page">
+  <div class="page-header-row workspace-section-header">
+    <div class="workspace-section-copy">
+      <h2>Orders</h2>
+      <p>Track invoices, payment status, document delivery, and settlement follow-up inside the same structured enterprise workspace language.</p>
+    </div>
+
+    <div class="workspace-header-actions">
+      <button class="btn btn-outline" type="button" *ngIf="selectedOrder" (click)="startEditOrder(selectedOrder)">Edit selected</button>
+      <button class="btn btn-primary" type="button" (click)="startCreateOrder()">+ Create order</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dbeafe;color:#1d4ed8">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <line x1="7" y1="9" x2="17" y2="9"></line>
+          <line x1="7" y1="13" x2="17" y2="13"></line>
+          <line x1="7" y1="17" x2="13" y2="17"></line>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ orders.length }}</div>
+        <div class="stat-label">All orders</div>
+        <div class="stat-change up">Tracked billing files</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dcfce7;color:#047857">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M12 1v22"></path>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ toCollect | number:'1.0-0' }} TND</div>
+        <div class="stat-label">Still to collect</div>
+        <div class="stat-change up">Provider side balance</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef3c7;color:#b45309">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M12 1v22"></path>
+          <path d="M7 5h7.5a3.5 3.5 0 0 1 0 7h-5a3.5 3.5 0 0 0 0 7H18"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ toPay | number:'1.0-0' }} TND</div>
+        <div class="stat-label">Still to pay</div>
+        <div class="stat-change down">Consumer side balance</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fee2e2;color:#b91c1c">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <line x1="12" y1="8" x2="12" y2="13"></line>
+          <circle cx="12" cy="16.5" r="0.5" fill="currentColor"></circle>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-value">{{ reviewCount }}</div>
+        <div class="stat-label">Manual review</div>
+        <div class="stat-change down">Needs attention</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input [(ngModel)]="search" type="text" placeholder="Search by invoice, customer, city, or booking code">
+    </div>
+
+    <select class="filter-select" [(ngModel)]="roleFilter">
+      <option value="all">All sides</option>
+      <option value="provider">We collect</option>
+      <option value="consumer">We pay</option>
+    </select>
+
+    <select class="filter-select" [(ngModel)]="paymentFilter">
+      <option value="all">All payment states</option>
+      <option value="paid">Paid</option>
+      <option value="pending">Pending</option>
+      <option value="review">Manual check</option>
+    </select>
+
+    <div class="spacer"></div>
+    <span class="toolbar-count">{{ filteredOrders.length }} orders</span>
+  </div>
+
+  <div class="workspace-content-grid">
+    <section class="card workspace-table-card">
+      <div class="card-header">
+        <div>
+          <h3>Order list</h3>
+          <span class="workspace-card-subtitle">The financial file list follows the same table-first review pattern as the other admin pages.</span>
+        </div>
+      </div>
+
+      <div class="workspace-table-scroll" *ngIf="filteredOrders.length; else ordersEmpty">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Side</th>
+              <th>Due date</th>
+              <th>Payment</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let order of filteredOrders"
+              [class.active-row]="order.id === selectedOrderId"
+              (click)="selectOrder(order.id)">
+              <td>
+                <div class="workspace-row-title">{{ order.invoiceNumber }}</div>
+                <div class="workspace-row-meta">{{ order.customer }} | {{ order.city }} | {{ linkedReservation(order)?.code || 'No linked booking' }}</div>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="order.role === 'provider' ? 'badge-primary' : 'badge-warning'">
+                  {{ roleLabel(order) }}
+                </span>
+              </td>
+              <td>
+                <div class="workspace-row-title">{{ order.dueDate }}</div>
+                <div class="workspace-row-meta">{{ orderStatusLabel(order.status) }}</div>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'badge-success': order.paymentStatus === 'paid',
+                    'badge-warning': order.paymentStatus === 'pending',
+                    'badge-danger': order.paymentStatus === 'review'
+                  }">
+                  {{ paymentStatusLabel(order.paymentStatus) }}
+                </span>
+              </td>
+              <td>
+                <div class="workspace-row-title">{{ order.total | number:'1.2-2' }} TND</div>
+                <div class="workspace-row-meta">{{ trackingProgress(order) }}% complete</div>
+              </td>
+              <td (click)="$event.stopPropagation()">
+                <div class="workspace-row-actions">
+                  <button class="btn btn-ghost btn-sm" type="button" (click)="openOrderDetails(order)">View</button>
+                  <button class="btn btn-outline btn-sm" type="button" (click)="startEditOrder(order)">Edit</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #ordersEmpty>
+        <div class="empty-state">
+          <h3>No orders found</h3>
+          <p>Try another filter or create a new order from a booking.</p>
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="card workspace-detail-card" [class.workspace-detail-card-modal]="showOrderModal">
+      <div class="card-header">
+        <div>
+          <h3>{{ editorMode ? (editorMode === 'create' ? 'Create order' : 'Edit order') : 'Order details' }}</h3>
+          <span class="workspace-card-subtitle">
+            {{ editorMode ? 'Dates, status, and line items stay in one predictable CRUD form.' : 'Overview, tracking, finance, and documents stay together in the same detail area.' }}
+          </span>
+        </div>
+        <button class="workspace-modal-close" type="button" *ngIf="showOrderModal" (click)="closeOrderModal()">Close</button>
+      </div>
+
+      <div class="card-body" *ngIf="editorMode; else orderDetail">
+        <form [formGroup]="editorForm" class="workspace-editor-form">
+          <div class="alert alert-danger" *ngIf="editorErrorMessage">{{ editorErrorMessage }}</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Linked booking</label>
+              <select formControlName="reservationId">
+                <option *ngFor="let reservation of reservations" [value]="reservation.id">
+                  {{ reservation.code }} | {{ reservation.customer }}
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Customer</label>
+              <input formControlName="customer" type="text" placeholder="Company name">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Side</label>
+              <select formControlName="role">
+                <option value="provider">We collect</option>
+                <option value="consumer">We pay</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Linked space</label>
+              <select formControlName="slotId">
+                <option *ngFor="let slot of slots" [value]="slot.id">{{ slot.name }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>City</label>
+              <input formControlName="city" type="text">
+            </div>
+            <div class="form-group">
+              <label>Tax</label>
+              <input formControlName="tax" type="number" min="0" step="0.01">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Created on</label>
+              <input formControlName="createdAt" type="date">
+            </div>
+            <div class="form-group">
+              <label>Due date</label>
+              <input formControlName="dueDate" type="date">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Order stage</label>
+              <select formControlName="status">
+                <option value="draft">Draft</option>
+                <option value="processing">In follow-up</option>
+                <option value="invoiced">Invoiced</option>
+                <option value="fulfilled">Closed</option>
+                <option value="flagged">Manual check</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Payment state</label>
+              <select formControlName="paymentStatus">
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="review">Manual check</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="workspace-line-items" formArrayName="items">
+            <div class="workspace-line-items-head">
+              <strong>Line items</strong>
+              <button class="btn btn-ghost btn-sm" type="button" (click)="addItem()">Add line</button>
+            </div>
+
+            <div class="workspace-line-item" *ngFor="let item of itemControls; let index = index" [formGroupName]="index">
+              <input formControlName="label" type="text" placeholder="Service line">
+              <input formControlName="quantity" type="number" min="1">
+              <input formControlName="unitPrice" type="number" min="0" step="0.01">
+              <button class="btn btn-danger btn-sm" type="button" (click)="removeItem(index)">Remove</button>
+            </div>
+          </div>
+
+          <div class="workspace-totals">
+            <article>
+              <span>Subtotal</span>
+              <strong>{{ editorSubtotal | number:'1.2-2' }} TND</strong>
+            </article>
+            <article>
+              <span>Total</span>
+              <strong>{{ editorTotal | number:'1.2-2' }} TND</strong>
+            </article>
+          </div>
+
+          <div class="workspace-editor-actions">
+            <button class="btn btn-outline" type="button" (click)="cancelEditor()">Cancel</button>
+            <button class="btn btn-primary" type="button" (click)="saveOrder()">
+              {{ editorMode === 'create' ? 'Create order' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <ng-template #orderDetail>
+        <div class="card-body" *ngIf="selectedOrder as order; else orderDetailEmpty">
+          <div class="workspace-detail-top">
+            <span class="badge" [ngClass]="order.role === 'provider' ? 'badge-primary' : 'badge-warning'">{{ roleLabel(order) }}</span>
+            <span
+              class="badge"
+              [ngClass]="{
+                'badge-success': order.paymentStatus === 'paid',
+                'badge-warning': order.paymentStatus === 'pending',
+                'badge-danger': order.paymentStatus === 'review'
+              }">
+              {{ paymentStatusLabel(order.paymentStatus) }}
+            </span>
+          </div>
+
+          <div class="workspace-detail-stack">
+            <div>
+              <div class="workspace-detail-title">{{ order.invoiceNumber }}</div>
+              <div class="workspace-detail-subtitle">{{ order.customer }} | {{ linkedSlot(order)?.name || 'No linked space' }}</div>
+            </div>
+
+            <section class="workspace-spotlight workspace-spotlight-order">
+              <div class="workspace-spotlight-head">
+                <div>
+                  <span class="badge badge-info">Finance spotlight</span>
+                  <h4>Decision view for this order</h4>
+                </div>
+                <span class="workspace-spotlight-copy">{{ order.paymentInsight }}</span>
+              </div>
+
+              <div class="workspace-spotlight-grid">
+                <article class="workspace-spotlight-card">
+                  <span>Review score</span>
+                  <strong>{{ order.fraudRisk }}%</strong>
+                  <div class="workspace-signal-track">
+                    <div
+                      class="workspace-signal-fill"
+                      [ngClass]="reviewTone(order)"
+                      [style.width.%]="order.fraudRisk">
+                    </div>
+                  </div>
+                  <p>{{ order.fraudRisk >= 65 ? 'Manual review is strongly recommended' : order.fraudRisk >= 45 ? 'Keep this file under review' : 'Low review pressure' }}</p>
+                </article>
+
+                <article class="workspace-spotlight-card">
+                  <span>Settlement priority</span>
+                  <strong>{{ order.settlementPriority }}</strong>
+                  <div class="workspace-chip-row">
+                    <span class="badge badge-neutral">{{ paymentStatusLabel(order.paymentStatus) }}</span>
+                    <span class="badge badge-neutral">{{ orderStatusLabel(order.status) }}</span>
+                  </div>
+                  <p>{{ order.nextBestAction }}</p>
+                </article>
+
+                <article class="workspace-spotlight-card">
+                  <span>Tracking pulse</span>
+                  <strong>{{ trackingProgress(order) }}%</strong>
+                  <div class="workspace-signal-track">
+                    <div class="workspace-signal-fill success" [style.width.%]="trackingProgress(order)"></div>
+                  </div>
+                  <p>{{ completedTrackingSteps(order) }}/{{ order.tracking.length }} steps complete</p>
+                </article>
+              </div>
+
+              <div class="workspace-spotlight-story">
+                <article class="workspace-story-card">
+                  <span>Follow-up draft</span>
+                  <strong>Recommended outreach</strong>
+                  <p>{{ order.followUpDraft }}</p>
+                </article>
+
+                <article class="workspace-story-card">
+                  <span>Account tone</span>
+                  <strong>Relationship view</strong>
+                  <p>{{ order.relationshipTone }}</p>
+                </article>
+              </div>
+            </section>
+
+            <div class="workspace-mini-grid">
+              <article>
+                <span>Total</span>
+                <strong>{{ order.total | number:'1.2-2' }} TND</strong>
+                <p>{{ order.createdAt }} to {{ order.dueDate }}</p>
+              </article>
+              <article>
+                <span>Review level</span>
+                <strong>{{ order.fraudRisk }}%</strong>
+                <p>{{ order.spendingCluster }}</p>
+              </article>
+              <article>
+                <span>Tracking</span>
+                <strong>{{ trackingProgress(order) }}%</strong>
+                <p>{{ completedTrackingSteps(order) }}/{{ order.tracking.length }} steps complete</p>
+              </article>
+            </div>
+
+            <div class="workspace-view-tabs">
+              <button class="btn btn-sm" type="button" [class.btn-primary]="detailView === 'overview'" [class.btn-outline]="detailView !== 'overview'" (click)="setDetailView('overview')">Overview</button>
+              <button class="btn btn-sm" type="button" [class.btn-primary]="detailView === 'tracking'" [class.btn-outline]="detailView !== 'tracking'" (click)="setDetailView('tracking')">Tracking</button>
+              <button class="btn btn-sm" type="button" [class.btn-primary]="detailView === 'finance'" [class.btn-outline]="detailView !== 'finance'" (click)="setDetailView('finance')">Finance</button>
+              <button class="btn btn-sm" type="button" [class.btn-primary]="detailView === 'documents'" [class.btn-outline]="detailView !== 'documents'" (click)="setDetailView('documents')">Documents</button>
+            </div>
+
+            <div class="workspace-detail-block" *ngIf="detailView === 'overview'">
+              <h4>Overview</h4>
+              <p>{{ order.paymentInsight }}</p>
+              <div class="workspace-list-stack">
+                <article class="workspace-list-card">
+                  <div class="workspace-list-card-top">
+                    <span class="badge" [ngClass]="reviewTone(order) === 'danger' ? 'badge-danger' : reviewTone(order) === 'warning' ? 'badge-warning' : 'badge-success'">
+                      {{ order.settlementPriority }}
+                    </span>
+                    <span class="workspace-list-muted">{{ orderStatusLabel(order.status) }}</span>
+                  </div>
+                  <strong>{{ order.nextBestAction }}</strong>
+                  <p>{{ order.followUpDraft }}</p>
+                </article>
+              </div>
+            </div>
+
+            <div class="workspace-detail-block" *ngIf="detailView === 'tracking'">
+              <h4>Tracking</h4>
+              <div class="workspace-list-stack" *ngIf="order.tracking.length; else noTracking">
+                <article class="workspace-list-card" *ngFor="let step of order.tracking">
+                  <div class="workspace-list-card-top">
+                    <span class="badge" [ngClass]="step.done ? 'badge-success' : 'badge-neutral'">{{ step.done ? 'Done' : 'Open' }}</span>
+                    <span class="workspace-list-muted">{{ step.timestamp }}</span>
+                  </div>
+                  <strong>{{ step.label }}</strong>
+                </article>
+              </div>
+              <ng-template #noTracking>
+                <p class="workspace-list-muted">Tracking steps will appear here once the order moves forward.</p>
+              </ng-template>
+            </div>
+
+            <div class="workspace-detail-block" *ngIf="detailView === 'finance'">
+              <h4>Finance</h4>
+              <p>{{ order.relationshipTone }}</p>
+              <div class="workspace-pill-list" *ngIf="order.financeChecklist?.length">
+                <span class="badge badge-neutral" *ngFor="let item of order.financeChecklist">{{ item }}</span>
+              </div>
+            </div>
+
+            <div class="workspace-detail-block" *ngIf="detailView === 'documents'">
+              <h4>Documents</h4>
+              <div class="workspace-doc-grid">
+                <div class="workspace-qr-shell">
+                  <img *ngIf="qrDataUrl" [src]="qrDataUrl" alt="Order QR code">
+                  <p>{{ order.code }}</p>
+                </div>
+                <div class="workspace-doc-copy">
+                  <p>QR handover and order reference stay directly connected to the selected order.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="workspace-detail-actions">
+              <button class="btn btn-outline" type="button" (click)="startEditOrder(order)">Edit</button>
+              <button class="btn btn-primary" type="button" [disabled]="!canAdvanceOrder(order)" (click)="advanceOrder(order)">
+                {{ advanceOrderLabel(order) }}
+              </button>
+              <button class="btn btn-danger" type="button" (click)="requestDeleteOrder(order)">Delete</button>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+
+      <ng-template #orderDetailEmpty>
+        <div class="empty-state">
+          <h3>Select an order</h3>
+          <p>Choose a row from the table to inspect the selected billing file here.</p>
+        </div>
+      </ng-template>
+    </section>
+  </div>
+
+  <div class="workspace-modal-backdrop" *ngIf="showOrderModal || showDeleteModal" (click)="showDeleteModal ? closeDeleteModal() : closeOrderModal()"></div>
+
+  <section class="card workspace-confirm-modal" *ngIf="showDeleteModal && selectedOrder as order">
+    <div class="card-header">
+      <div>
+        <h3>Delete order</h3>
+        <span class="workspace-card-subtitle">This action removes {{ order.invoiceNumber }} from the workspace.</span>
+      </div>
+      <button class="workspace-modal-close" type="button" (click)="closeDeleteModal()">Close</button>
+    </div>
+    <div class="card-body">
+      <p class="workspace-confirm-copy">This billing file and its linked follow-up state will be removed permanently. Continue only if this record should no longer stay in the workspace.</p>
+      <div class="workspace-detail-actions">
+        <button class="btn btn-outline" type="button" (click)="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" type="button" (click)="deleteOrder(order.id)">Delete order</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="workspace-secondary-grid">
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h3>Line items</h3>
+          <span class="workspace-card-subtitle">Selected order breakdown.</span>
+        </div>
+      </div>
+      <div class="workspace-table-scroll" *ngIf="selectedOrder as order; else orderItemsEmpty">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Unit price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of order.items">
+              <td>{{ item.label }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ item.unitPrice | number:'1.2-2' }} TND</td>
+              <td>{{ lineItemTotal(item) | number:'1.2-2' }} TND</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #orderItemsEmpty>
+        <div class="empty-state">
+          <h3>No order selected</h3>
+          <p>Select an order to inspect its line-item breakdown.</p>
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h3>Guidance</h3>
+          <span class="workspace-card-subtitle">Follow-up signals for payment and account review.</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="workspace-list-stack" *ngIf="insights.length; else noOrderGuidance">
+          <article class="workspace-list-card" *ngFor="let insight of insights">
+            <div class="workspace-list-card-top">
+              <span
+                class="badge"
+                [ngClass]="{
+                  'badge-danger': insight.tone === 'danger',
+                  'badge-warning': insight.tone === 'warning',
+                  'badge-success': insight.tone === 'success',
+                  'badge-info': insight.tone === 'info'
+                }">
+                {{ insight.badge }}
+              </span>
+            </div>
+            <strong>{{ insight.title }}</strong>
+            <p>{{ insight.description }}</p>
+          </article>
+        </div>
+        <ng-template #noOrderGuidance>
+          <p class="workspace-list-muted">Guidance will appear here as orders move through the billing flow.</p>
+        </ng-template>
+      </div>
+    </section>
+  </div>
+
+  <div class="workspace-chart-grid">
+    <app-chart-card
+      [title]="'Revenue trend'"
+      [subtitle]="'Switch the side view or click a day to focus the order table on that billing date.'"
+      [badge]="revenueBadge"
+      [series]="revenueSeries"
+      [chart]="revenueChart"
+      [xaxis]="revenueXAxis"
+      [colors]="['#0284c7']"
+      (pointSelected)="onRevenueChartSelect($event)">
+      <div chart-actions class="workspace-chart-actions">
+        <button class="btn btn-sm" type="button" [class.btn-primary]="revenueView === 'all'" [class.btn-outline]="revenueView !== 'all'" (click)="setRevenueView('all')">All</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="revenueView === 'provider'" [class.btn-outline]="revenueView !== 'provider'" (click)="setRevenueView('provider')">We collect</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="revenueView === 'consumer'" [class.btn-outline]="revenueView !== 'consumer'" (click)="setRevenueView('consumer')">We pay</button>
+        <button class="btn btn-ghost btn-sm" type="button" *ngIf="activeRevenueDay" (click)="clearRevenueDayFocus()">Clear {{ activeRevenueDay }}</button>
+      </div>
+    </app-chart-card>
+
+    <app-chart-card
+      [title]="'Payment mix'"
+      [subtitle]="'Switch between file count and amount, or click a segment to filter the table by payment state.'"
+      [badge]="paymentMixBadge"
+      [series]="paymentMixSeries"
+      [chart]="paymentMixChart"
+      [labels]="['Paid', 'Pending', 'Manual review']"
+      [colors]="['#059669', '#d97706', '#dc2626']"
+      (pointSelected)="onPaymentMixSelect($event)">
+      <div chart-actions class="workspace-chart-actions">
+        <button class="btn btn-sm" type="button" [class.btn-primary]="paymentMixMode === 'count'" [class.btn-outline]="paymentMixMode !== 'count'" (click)="setPaymentMixMode('count')">Files</button>
+        <button class="btn btn-sm" type="button" [class.btn-primary]="paymentMixMode === 'value'" [class.btn-outline]="paymentMixMode !== 'value'" (click)="setPaymentMixMode('value')">Amounts</button>
+      </div>
+    </app-chart-card>
+  </div>
+</section>

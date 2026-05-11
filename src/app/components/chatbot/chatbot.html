@@ -107,7 +107,7 @@
                 <div class="products-carousel">
                   <div *ngFor="let p of m.cards" class="product-card-enhanced" (click)="viewProduct(p.id_product!)">
                     <div class="product-card-image" *ngIf="p.image">
-                      <img [src]="'http://localhost:9090/files/' + p.image" [alt]="p.name">
+                      <img [src]="getImageUrl(p.image)" [alt]="p.name">
                     </div>
                     <div class="product-card-initial" *ngIf="!p.image">
                       {{ p.name.slice(0,2).toUpperCase() }}
