@@ -5,5 +5,5 @@ export const environment = {
   productApiUrl: '/product',
 
   /** URL de base pour les QR codes (tunnel ngrok, domaine, etc.). Vide = window.location.origin */
-  qrCodeBaseUrl: ''
+  qrCodeBaseUrl: 'https://coastline-rumor-falcon.ngrok-free.dev'
 };

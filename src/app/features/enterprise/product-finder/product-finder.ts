@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from '../../../../environments/environment';
 import Quagga from '@ericblade/quagga2';
 declare const JsBarcode: any;
 
@@ -34,7 +35,7 @@ export class ProductFinder implements OnInit {
   selectedItem: any = null;
 
   readonly categories = ['Metal','Plastic','Paper','Glass','Textile','Electronics','Wood','Chemical','Other'];
-  private readonly api = 'http://localhost:9090/api/enterprise/finder';
+  private readonly api = `${environment.apiUrl}/enterprise/finder`;
 
   constructor(
     private http: HttpClient,
@@ -143,7 +144,7 @@ export class ProductFinder implements OnInit {
   getImageUrl(img: string | undefined): string {
     if (!img || img === 'default.png' || img === 'undefined') return '';
     if (img.startsWith('http')) return img;
-    return `http://localhost:9090/files/${img}`;
+    return `/files/${img}`;
   }
 
   getCategoryColor(cat: string): string {

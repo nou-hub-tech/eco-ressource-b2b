@@ -745,7 +745,7 @@ export class PdfGeneratorService {
             doc.setFontSize(8);
             doc.setTextColor(173, 181, 189);
             doc.text('[Erreur génération QR code]', 14, currentY + 25);
-            doc.text(`URL: https://exes-unreal-movable.ngrok-free.dev/api/delivery-orders/update-by-qr/${order.idDelivery}`, 14, currentY + 35);
+            doc.text(`URL: ${this.qrCodeService.generateQrData(order.idDelivery)}`, 14, currentY + 35);
         }
         
         // ========== SECTION 5 : INFORMATIONS SUPPLEMENTAIRES ==========

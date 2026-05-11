@@ -294,6 +294,12 @@ export class Chatbot implements OnInit {
     return text.substring(0, maxLength) + '...';
   }
 
+  getImageUrl(img: string | undefined): string {
+    if (!img || img === 'default.png' || img === 'undefined') return '';
+    if (img.startsWith('http')) return img;
+    return `/files/${img}`;
+  }
+
   getCurrentTime(): string {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
