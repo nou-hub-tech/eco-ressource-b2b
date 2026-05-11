@@ -1,0 +1,26 @@
+apiVersion: 2021-09-01
+location: germanywestcentral
+name: ecoressource-frontend
+properties:
+  containers:
+    - name: frontend
+      properties:
+        image: ahmedmansour0604/eco-ressource-b2b:v2
+        command:
+          - /bin/sh
+          - -c
+          - "sed -i 's|http://backend:9090|https://coastline-rumor-falcon.ngrok-free.dev|g; s|http://eco-backend:9090|https://coastline-rumor-falcon.ngrok-free.dev|g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+        ports:
+          - port: 80
+        resources:
+          requests:
+            cpu: 0.5
+            memoryInGb: 0.5
+  ipAddress:
+    type: Public
+    ports:
+      - protocol: tcp
+        port: 80
+    dnsNameLabel: ecoressource-b2b-2026
+  osType: Linux
+type: Microsoft.ContainerInstance/containerGroups
