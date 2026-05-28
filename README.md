@@ -1,4 +1,4 @@
-<img width="1913" height="924" alt="Screenshot 2026-05-28 211938" src="https://github.com/user-attachments/assets/2c382704-d125-44c1-8aa8-f9691513f150" />
+<img width="1600" height="743" alt="image" src="https://github.com/user-attachments/assets/793d9f06-19e4-4145-a647-89acd7c65933" />
 
 # Eco Ressource B2B
 
