@@ -1,3 +1,5 @@
+<img width="1913" height="924" alt="Screenshot 2026-05-28 211938" src="https://github.com/user-attachments/assets/2c382704-d125-44c1-8aa8-f9691513f150" />
+
 # Eco Ressource B2B
 
 Eco Ressource B2B est une application web Angular dediee a la gestion et a la valorisation des ressources entre entreprises. La plateforme centralise les annonces, les stocks, les reservations, les livraisons, les transactions et les evenements afin de faciliter les echanges B2B dans une logique d'economie circulaire.
